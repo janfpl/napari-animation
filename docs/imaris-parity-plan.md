@@ -10,9 +10,11 @@ Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
 This document is the design/implementation plan.
 
-**Status:** Phases 0 and 1 (§5) are implemented and tested — the state-capture
-and interpolation foundations, and N animatable clipping planes with the
-compositor. Phase 1's Qt widget and Phases 2–5 are still design only.
+**Status:** Phases 0, 1 and 2 (§5) are implemented and tested — the
+state-capture and interpolation foundations, N animatable clipping planes with
+the compositor, and ortho slices backed by real napari layers. The Qt widgets
+for Phases 1–2, and Phases 3–5, are still design only. See
+`examples/imaris_style_flythrough.py` for the API in use.
 
 ---
 
@@ -521,24 +523,36 @@ needs the small `HeadlessViewer` subclass in that file.
 spinboxes, orientation presets, per-plane target-layer selector, "flip normal"
 button (`ClipPlane.flipped()` already exists).
 
-### Phase 2 — Ortho slices (R2)
+### Phase 2 — Ortho slices (R2) ✅ *model implemented; widget outstanding*
 
-* `OrthoSlice` with all three render modes; backing-layer lifecycle
-  (create/update/destroy, naming, exclusion from *its own* capture to avoid
-  recursion).
-* Port `OrthoSlicer` → `OrthoSlice(render_mode="dims")` so existing behaviour
-  and existing keyframe files keep working.
-* Widget: per-slicer panel with orientation preset (XY/XZ/YZ/oblique),
-  thickness in physical units (reuse `physical_step`), projection type, source
-  layer + level, follow-dims toggle, VRAM estimate.
-* Optional napari-threedee "Edit in canvas" button per §4, behind
-  `napari-animation[threedee]` and a guarded import.
+* **`OrthoSlice`** (`scene/ortho_slice.py`) in `"plane"` and `"clip"` modes.
+  `"plane"` creates a real napari Image layer sharing the source array (no
+  copy) with `depiction='plane'`; `"clip"` contributes a pair of opposed
+  planes to the compositor and creates no layer.
+* **Projection → rendering**: `max`→`mip`, `mean`→`average`, `min`→`minip`.
+  Projecting through the slab *is* the napari rendering mode.
+* **Thickness in world units**, converted per layer by projecting the world
+  offset onto the data-space normal — correct for oblique planes through
+  anisotropic voxels, which dividing by a single axis' scale is not.
+* **The backing layer is the source of truth**, per §4. `sync_from_viewer`
+  reads `layer.plane` back before each capture, so a plane moved by a
+  napari-threedee manipulator or napari's own controls is what gets recorded.
+  It compares against the geometry last written in `apply()` to tell an
+  external edit from a programmatic one — reading back unconditionally would
+  silently discard changes made through the object.
+* **Optional napari-threedee integration** (`scene/_manipulators.py`),
+  guarded so its absence is never fatal.
+* Disabling hides the backing layer rather than deleting it; deleting layers
+  mid-animation is disruptive. `Animation.remove_scene_object` deletes it.
 
-*Tests:* plane position/normal/thickness reach `layer.plane` with correct
-data-coordinate conversion; thickness in µm maps correctly through anisotropic
-`scale`; projection→rendering mapping; a slab sweep produces monotonically
-advancing `plane.position` across frames; `clip` mode composites through the
-scene rather than assigning.
+*Tests:* `_tests/test_ortho_slice.py`, 18 tests.
+
+*Outstanding:* the Qt widget — orientation preset (XY/XZ/YZ/oblique),
+thickness in physical units (reuse `physical_step`), projection type, source
+layer + pyramid level, VRAM estimate, and an "Edit in canvas" button wired to
+`_manipulators.attach_plane_manipulator`. Also still to do: port the legacy
+`OrthoSlicer` onto `OrthoSlice` as a third `"dims"` render mode, so there is
+one ortho-slice concept rather than two.
 
 ### Phase 3 — 2D/3D (R3)
 

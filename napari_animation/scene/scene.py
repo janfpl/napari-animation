@@ -15,7 +15,7 @@ compositing is what makes "cut the volume with N planes" work at all.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional
 
 from napari.utils.events import SelectableEventedList
 
@@ -40,6 +40,17 @@ def _planes_differ(current, desired: List[dict]) -> bool:
     return False
 
 
+def _objects_from_state(scene_state: Optional[dict]) -> Iterator[SceneObject]:
+    """Rebuild the scene objects described by a captured state."""
+    for params in (scene_state or {}).values():
+        try:
+            yield SceneObject.from_dict(params)
+        except (ValueError, TypeError):
+            # an object kind this version doesn't know about; ignore it
+            # rather than failing the whole frame
+            continue
+
+
 def scene_contributions(
     viewer: "napari.viewer.Viewer", scene_state: Optional[dict]
 ) -> Dict[str, List[dict]]:
@@ -50,14 +61,8 @@ def scene_contributions(
     per-keyframe on/off switch takes effect.
     """
     contributions: Dict[str, List[dict]] = defaultdict(list)
-    for params in (scene_state or {}).values():
-        if not params.get("enabled", True):
-            continue
-        try:
-            scene_object = SceneObject.from_dict(params)
-        except (ValueError, TypeError):
-            # an object kind this version doesn't know about; ignore it
-            # rather than failing the whole frame
+    for scene_object in _objects_from_state(scene_state):
+        if not scene_object.enabled:
             continue
         for layer_name, planes in scene_object.clipping_planes(viewer):
             contributions[layer_name].extend(planes)
@@ -87,7 +92,16 @@ def apply_scene_state(
     than assigned separately, so an optical section and a set of cutaway planes
     can be active at the same time.
     """
-    contributions = scene_contributions(viewer, scene_state)
+    contributions: Dict[str, List[dict]] = defaultdict(list)
+    for scene_object in _objects_from_state(scene_state):
+        # applied even when disabled, so an object that is switched off can
+        # hide the layer it owns
+        scene_object.apply(viewer)
+        if not scene_object.enabled:
+            continue
+        for name, planes in scene_object.clipping_planes(viewer):
+            contributions[name].extend(planes)
+
     if ortho:
         for name, planes in OrthoSlicer.clip_contributions(
             viewer, ortho
@@ -113,8 +127,38 @@ class Scene(SelectableEventedList[SceneObject]):
     def apply(
         self, viewer: "napari.viewer.Viewer", ortho: Optional[dict] = None
     ) -> None:
-        """Push the live scene onto ``viewer``."""
-        apply_scene_state(viewer, self.to_dict(), ortho=ortho)
+        """Push the live scene onto ``viewer``.
+
+        Drives the live objects directly rather than going through
+        :func:`apply_scene_state`, which rebuilds throwaway objects from a
+        dict. The live objects need to record what they wrote so they can
+        later tell an external edit from one of their own.
+        """
+        contributions: Dict[str, List[dict]] = defaultdict(list)
+        for scene_object in self:
+            scene_object.apply(viewer)
+            if not scene_object.enabled:
+                continue
+            for name, planes in scene_object.clipping_planes(viewer):
+                contributions[name].extend(planes)
+
+        if ortho:
+            for name, planes in OrthoSlicer.clip_contributions(
+                viewer, ortho
+            ).items():
+                contributions[name].extend(planes)
+        composite_clipping_planes(viewer, contributions)
+
+    def sync_from_viewer(self, viewer: "napari.viewer.Viewer") -> None:
+        """Refresh every object from the live viewer before capturing.
+
+        Objects backed by a real napari layer treat that layer as the source
+        of truth, so a plane repositioned by an external tool (a
+        napari-threedee manipulator, napari's own controls) is captured as the
+        user actually sees it.
+        """
+        for scene_object in self:
+            scene_object.sync_from_viewer(viewer)
 
     def adopt_existing_clipping_planes(
         self, viewer: "napari.viewer.Viewer"

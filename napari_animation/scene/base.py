@@ -123,6 +123,24 @@ class SceneObject:
         """
         return iter(())
 
+    def apply(self, viewer: "napari.viewer.Viewer") -> None:
+        """Push any non-clipping state onto the viewer.
+
+        Called for *every* object, enabled or not, so that an object which is
+        switched off can hide whatever it owns. Objects whose only effect is
+        clipping need not override this.
+        """
+
+    def sync_from_viewer(self, viewer: "napari.viewer.Viewer") -> None:
+        """Refresh this object's parameters from the live viewer.
+
+        Called before a keyframe is captured, so objects whose state can be
+        edited outside this plugin record what the user actually sees.
+        """
+
+    def remove_layer(self, viewer: "napari.viewer.Viewer") -> None:
+        """Remove any layer this object owns. No-op unless it owns one."""
+
 
 def world_to_data_position(layer, position) -> np.ndarray:
     """Convert a world-space position to a layer's data coordinates.

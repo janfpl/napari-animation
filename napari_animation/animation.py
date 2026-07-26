@@ -70,8 +70,24 @@ class Animation:
         ortho = (
             self.ortho_slicer.to_dict() if self.ortho_slicer.enabled else None
         )
+        # objects backed by a real layer read their geometry back out of it
+        # first, so a plane repositioned outside this plugin is captured as
+        # the user sees it
+        self.scene.sync_from_viewer(self.viewer)
         scene = self.scene.to_dict() if len(self.scene) else None
         return ortho, scene
+
+    def remove_scene_object(self, scene_object):
+        """Remove a scene object, taking any layer it owns with it.
+
+        The object's parameters are left in already-captured keyframes; they
+        are simply ignored, so removing an object cannot corrupt an animation
+        that was built around it.
+        """
+        scene_object.remove_layer(self.viewer)
+        self.scene.remove(scene_object)
+        ortho, _ = self._capture_state()
+        self.scene.apply(self.viewer, ortho=ortho)
 
     def add_scene_object(self, scene_object, backfill: bool = True):
         """Add a scene object (e.g. a clipping plane) to the animation.
