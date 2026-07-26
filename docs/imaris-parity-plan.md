@@ -10,11 +10,12 @@ Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
 This document is the design/implementation plan.
 
-**Status:** Phases 0, 1 and 2 (§5) are implemented and tested, including
-their Qt widgets — the state-capture and interpolation foundations, N
-animatable clipping planes with the compositor, and ortho slices backed by real
-napari layers, all drivable from the GUI. Phases 3–5 are still design only. See
-`examples/imaris_style_flythrough.py` for the API in use.
+**Status:** Phases 0–3 (§5) are implemented and tested, including their Qt
+widgets — the state-capture and interpolation foundations, N animatable
+clipping planes with the compositor, ortho slices backed by real napari layers,
+and 2D/3D snapping with scroll-through generation, all drivable from the GUI.
+Phases 4–5 are still design only. See `examples/imaris_style_flythrough.py` for
+the API in use.
 
 ---
 
@@ -567,15 +568,34 @@ otherwise restore the wrong spacing.
 and porting the legacy `OrthoSlicer` onto `OrthoSlice` as a third `"dims"`
 render mode, so there is one ortho-slice concept rather than two.
 
-### Phase 3 — 2D/3D (R3)
+### Phase 3 — 2D/3D and scroll-throughs (R3) ✅ *implemented*
 
-* `snap_2d()` / `snap_3d()` and toolbar buttons.
-* `add_scroll_through()` helper.
-* Auto-fallback of `"plane"` slicers to `"dims"` mode when `ndisplay == 2`.
+* **`Animation.snap_2d(view)` / `snap_3d()`** — flatten to a named plane or
+  return to the volume. `snap_2d` sets `dims.order` via `order_for_view`, which
+  moves the sliced axis to the front: napari displays the *last* `ndisplay`
+  axes, so showing XY means putting Z where it becomes the slider. Leading
+  time/channel axes keep their position.
+* **`Animation.add_scroll_through(axis, start, stop, steps)`** — two keyframes
+  differing only in `dims.point`. Defaults to the current slider axis and the
+  full extent of the data. `enter_steps` controls the approach to the start of
+  the sweep, separately from the sweep's own duration.
+* **`Animation.add_slice_sweep(ortho_slice, ...)`** — the 3D counterpart,
+  sliding a slab along its own normal rather than along an axis, so oblique
+  sections sweep correctly. Limits default to the source data's bounding box
+  *projected onto the normal*, so the slab travels the full depth whatever
+  direction it faces.
+* **Plane-mode slices auto-hide in 2D**, where a slab layer would just redraw
+  its source on top of itself.
+* **Widget:** `_qt/scroll_widget.py` — 3D/XY/XZ/YZ snap buttons, an axis
+  selector that follows the snapped view until the user overrides it, a range
+  prefilled from the data extent, a step count, and buttons to generate either
+  kind of sweep.
 
-*Tests:* a 3D→2D→3D animation preserves each mode's camera; scroll-through
-generates the expected `dims.point` sequence; plane-mode slicers do not leave
-orphaned visible layers in 2D.
+*Tests:* `_tests/test_scroll_through.py` (20) and
+`_qt/_tests/test_scroll_widget.py` (12).
+
+*Note:* the camera-preservation half of R3 was fixed back in Phase 0 (B5); this
+phase adds the authoring commands on top of it.
 
 ### Phase 4 — Keyframe × object toggle matrix (R4)
 

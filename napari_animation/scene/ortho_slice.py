@@ -202,7 +202,10 @@ class OrthoSlice(SceneObject):
         if layer is None:
             return
 
-        layer.visible = bool(self.enabled)
+        # In 2D the slab layer would draw the same slice as its source, on top
+        # of it. Plane depiction only means something in a 3D view.
+        in_3d = getattr(viewer.dims, "ndisplay", 3) >= 3
+        layer.visible = bool(self.enabled) and in_3d
         if not self.enabled:
             return
 

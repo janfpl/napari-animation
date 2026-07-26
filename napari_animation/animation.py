@@ -15,7 +15,7 @@ from .diagnostics import RenderDiagnostics
 from .easing import Easing
 from .frame_sequence import FrameSequence
 from .key_frame import KeyFrame, KeyFrameList
-from .ortho_slicer import OrthoSlicer
+from .ortho_slicer import OrthoSlicer, order_for_view
 from .perf import PerfLogger
 from .prefetch import SlicePrefetcher, dask_cache_context
 from .scene import Scene
@@ -180,6 +180,190 @@ class Animation:
         key_frame.viewer_state = replace(state, scene=scene)
         # the interpolation cache holds states built from the old value
         self._frames._rebuild_frame_index()
+
+    # ------------------------------------------------- view mode and sweeps
+
+    def fit_view(self):
+        """Fit the camera to the data, across napari versions."""
+        for name in ("fit_to_view", "reset_view"):
+            method = getattr(self.viewer, name, None)
+            if callable(method):
+                method()
+                return
+
+    def snap_2d(self, view="XY", capture=True, steps=15, ease=Easing.LINEAR):
+        """Snap the canvas to a flat 2D view of a named plane.
+
+        Parameters
+        ----------
+        view : str
+            ``"XY"``, ``"XZ"`` or ``"YZ"``. The remaining axis becomes the
+            dims slider, which is what a scroll-through then sweeps.
+        capture : bool
+            Whether to record a keyframe once snapped.
+        """
+        self.viewer.dims.order = order_for_view(view, self.viewer.dims.ndim)
+        self.viewer.dims.ndisplay = 2
+        self.fit_view()
+        if capture:
+            self.capture_keyframe(steps=steps, ease=ease)
+
+    def snap_3d(self, capture=True, steps=15, ease=Easing.LINEAR):
+        """Return the canvas to the 3D view."""
+        self.viewer.dims.ndisplay = 3
+        self.fit_view()
+        if capture:
+            self.capture_keyframe(steps=steps, ease=ease)
+
+    def _axis_limits(self, axis):
+        """World-coordinate ``(start, stop)`` of one dims axis."""
+        axis_range = self.viewer.dims.range[axis]
+        start = float(getattr(axis_range, "start", axis_range[0]))
+        stop = float(getattr(axis_range, "stop", axis_range[1]))
+        return start, stop
+
+    def add_scroll_through(
+        self,
+        axis=None,
+        start=None,
+        stop=None,
+        steps=30,
+        enter_steps=1,
+        ease=Easing.LINEAR,
+    ):
+        """Add two keyframes that sweep the dims slider along one axis.
+
+        This is the plain slice-by-slice scroll-through: in 2D it walks the
+        stack, and in 3D it moves the visible slice plane. Only ``dims.point``
+        differs between the two keyframes, so everything else -- camera, scene
+        objects, layer settings -- is held exactly as it is now.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis to scroll. Defaults to the current slider axis, falling back
+            to the third-from-last (Z) axis when everything is displayed.
+        start, stop : float, optional
+            World coordinates to sweep between. Default to the full extent of
+            the data along ``axis``.
+        steps : int
+            Number of interpolation steps across the sweep -- its duration.
+        enter_steps : int
+            Steps used to reach the *start* of the sweep from the previous
+            keyframe. The default of 1 makes the sweep begin immediately;
+            raise it to glide into position first.
+
+        Returns
+        -------
+        tuple
+            The two keyframes that were added.
+        """
+        dims = self.viewer.dims
+        if axis is None:
+            not_displayed = tuple(dims.not_displayed)
+            axis = (
+                int(not_displayed[0])
+                if not_displayed
+                else max(0, dims.ndim - 3)
+            )
+        axis = int(axis)
+
+        limits = self._axis_limits(axis)
+        start = limits[0] if start is None else float(start)
+        stop = limits[1] if stop is None else float(stop)
+
+        dims.set_point(axis, start)
+        self.capture_keyframe(steps=enter_steps, ease=ease)
+        first = self.key_frames[-1]
+
+        dims.set_point(axis, stop)
+        self.capture_keyframe(steps=steps, ease=ease)
+        return first, self.key_frames[-1]
+
+    def add_slice_sweep(
+        self,
+        scene_object,
+        start=None,
+        stop=None,
+        steps=30,
+        enter_steps=1,
+        ease=Easing.LINEAR,
+    ):
+        """Add two keyframes that sweep an ortho slice along its own normal.
+
+        The 3D counterpart of :meth:`add_scroll_through`: rather than moving a
+        dims slider, this slides the slab through the volume in whatever
+        direction it faces, including oblique. Combine it with different
+        camera angles on each keyframe to get the Imaris effect of a section
+        travelling through the volume while the view orbits.
+
+        Parameters
+        ----------
+        scene_object : OrthoSlice
+            The slice to sweep.
+        start, stop : float, optional
+            Distances along the normal, in world units. Default to the extent
+            of the source data projected onto the normal, so the slab travels
+            from one face of the volume to the other.
+
+        Returns
+        -------
+        tuple
+            The two keyframes that were added.
+        """
+        low, high, centre, normal = self._sweep_geometry(scene_object)
+        start = low if start is None else float(start)
+        stop = high if stop is None else float(stop)
+
+        def position_at(distance):
+            offset = distance - float(np.dot(centre, normal))
+            return tuple(centre + offset * normal)
+
+        scene_object.position = position_at(start)
+        self.scene.apply(self.viewer, ortho=self._capture_state()[0])
+        self.capture_keyframe(steps=enter_steps, ease=ease)
+        first = self.key_frames[-1]
+
+        scene_object.position = position_at(stop)
+        self.scene.apply(self.viewer, ortho=self._capture_state()[0])
+        self.capture_keyframe(steps=steps, ease=ease)
+        return first, self.key_frames[-1]
+
+    def _sweep_geometry(self, scene_object):
+        """Extent of the source data projected onto a slice's normal."""
+        normal = np.asarray(scene_object.normal, dtype=float)
+        magnitude = np.linalg.norm(normal)
+        if magnitude == 0:
+            raise ValueError("Cannot sweep a slice with a zero normal")
+        normal = normal / magnitude
+
+        layer = scene_object.source_layer(self.viewer)
+        if layer is None:
+            raise ValueError("Ortho slice has no source layer to sweep across")
+
+        extent = layer.extent.world
+        low_corner = np.asarray(extent[0], dtype=float)[-3:]
+        high_corner = np.asarray(extent[1], dtype=float)[-3:]
+        centre = (low_corner + high_corner) / 2.0
+
+        # project every corner of the bounding box onto the normal, so an
+        # oblique slice still travels the full depth of the data
+        corners = np.array(
+            [
+                [
+                    high_corner[i] if (index >> i) & 1 else low_corner[i]
+                    for i in range(3)
+                ]
+                for index in range(8)
+            ]
+        )
+        distances = corners @ normal
+        return (
+            float(distances.min()),
+            float(distances.max()),
+            centre,
+            normal,
+        )
 
     def set_voxel_size(self, layer_name, scale, units=None):
         """Correct the physical voxel spacing of a layer.

@@ -52,6 +52,20 @@ def view_to_axis(view: str, ndim: int) -> int:
     return max(0, min(axis, ndim - 1))
 
 
+def order_for_view(view: str, ndim: int) -> tuple:
+    """Return a ``dims.order`` that puts a named view on screen.
+
+    napari displays the *last* ``ndisplay`` axes of ``dims.order``, so showing
+    the XY plane means moving Z to the front where it becomes the slider axis.
+    Leading non-spatial axes (time, channel) keep their position.
+    """
+    axis = view_to_axis(view, ndim)
+    spatial = list(range(max(0, ndim - 3), ndim))
+    leading = list(range(0, max(0, ndim - 3)))
+    rest = [a for a in spatial if a != axis]
+    return tuple(leading + [axis] + rest)
+
+
 def axis_to_view(axis: int, ndim: int) -> Optional[str]:
     """Return the named orthogonal view for a slab ``axis`` (or ``None``)."""
     for name, offset in ORTHO_VIEWS.items():

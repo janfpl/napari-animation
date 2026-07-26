@@ -28,6 +28,9 @@ class HeadlessViewer(ViewerModel):
 @pytest.fixture
 def viewer():
     viewer = HeadlessViewer()
+    # ViewerModel starts in 2D, where a plane-depiction slab layer is hidden
+    # because it would just redraw its source; these tests are about 3D
+    viewer.dims.ndisplay = 3
     viewer.add_image(
         np.random.random((10, 20, 20)), name="img", scale=(3, 1, 1)
     )

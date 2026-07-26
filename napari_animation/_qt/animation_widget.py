@@ -19,6 +19,7 @@ from .keyframeslist_widget import KeyFramesListWidget
 from .ortho_slicer_widget import OrthoSlicerWidget
 from .savedialog_widget import SaveDialogWidget
 from .scene_widget import SceneWidget
+from .scroll_widget import ScrollThroughWidget
 from .voxel_size_widget import VoxelSizeWidget
 
 
@@ -58,6 +59,7 @@ class AnimationWidget(QWidget):
         self.orthoSlicerWidget = OrthoSlicerWidget(parent=self)
         self.voxelSizeWidget = VoxelSizeWidget(parent=self)
         self.sceneWidget = SceneWidget(parent=self)
+        self.scrollWidget = ScrollThroughWidget(parent=self)
         self.saveButton = QPushButton("Save Animation", parent=self)
         self.saveButton.setEnabled(len(self.animation.key_frames) > 1)
 
@@ -87,6 +89,7 @@ class AnimationWidget(QWidget):
         self.layout().addWidget(self.frameWidget)
         self.layout().addWidget(self.voxelSizeWidget)
         self.layout().addWidget(self.sceneWidget)
+        self.layout().addWidget(self.scrollWidget)
         self.layout().addWidget(self.orthoSlicerWidget)
         self.layout().addWidget(self.keyframeIOWidget)
         self.layout().addWidget(self.saveButton)

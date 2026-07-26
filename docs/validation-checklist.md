@@ -18,7 +18,7 @@ failure early on will cause confusing failures later.
 |---|---|---|
 | 0.1 | `python -c "import napari; print(napari.__version__)"` | ≥ 0.5, ideally 0.8.x |
 | 0.2 | `python -c "import napari_animation; print(napari_animation.__file__)"` | points at your clone |
-| 0.3 | `napari` opens, **Plugins → napari-animation → Wizard** | panel appears with Voxel size and 3D scene sections |
+| 0.3 | `napari` opens, **Plugins → napari-animation → Wizard** | panel appears with Voxel size, 3D scene and View sections |
 | 0.4 | `python -c "from napari_threedee.manipulators import RenderPlaneManipulator"` | imports without error (Python 3.10 env) |
 
 If 0.4 fails you are on Python ≥ 3.11 — napari-threedee pins `zarr<3`, which
@@ -39,11 +39,13 @@ the missing OpenGL context. Those are environmental. The model and widget tests
 run without a GPU:
 
 ```bash
-python -m pytest napari_animation/_tests napari_animation/_qt/_tests/test_scene_widget.py \
+python -m pytest napari_animation/_tests \
+                 napari_animation/_qt/_tests/test_scene_widget.py \
+                 napari_animation/_qt/_tests/test_scroll_widget.py \
                  napari_animation/_qt/_tests/test_savedialog_widget.py -q
 ```
 
-**Pass:** 154 passed.
+**Pass:** 186 passed.
 
 ---
 
@@ -143,6 +145,26 @@ external tool moving the plane must be what gets captured.
 7.6 is the regression that motivated the apply-ordering fix. A failure looks
 like the camera snapping to a default view after every mode change.
 
+## 7b. Scroll-throughs and view snapping
+
+| # | Check | Pass |
+|---|---|---|
+| 7b.1 | Click **XY** in the View panel | canvas flattens to 2D looking down Z |
+| 7b.2 | Click **XZ**, then **YZ** | re-orients; the scroll axis follows each time |
+| 7b.3 | Click **3D** | back to the volume |
+| 7b.4 | In a 2D view, check the Range boxes | prefilled with the full extent of the slider axis |
+| 7b.5 | **Add slider scroll-through**, then scrub | two keyframes; the stack walks end to end |
+| 7b.6 | Narrow the Range, add another | sweeps only the range you set |
+| 7b.7 | Pick an axis by hand, then snap to a different view | your chosen axis is kept, not overridden |
+| 7b.8 | With an ortho slice present, **Add ortho slice sweep** | the slab travels the full depth of the volume |
+| 7b.9 | Give the slice an oblique normal, sweep again | motion is along the normal, not an axis, and still crosses the whole volume |
+| 7b.10 | Set different camera angles on the two sweep keyframes, scrub | slab travels while the view orbits |
+| 7b.11 | Snap to 2D with a plane-mode slice active | the slab layer hides rather than doubling its source |
+
+7b.9 is the reason sweeps are defined along the normal rather than an axis: an
+oblique slab has to travel further than any single axis extent to clear the
+volume.
+
 ## 8. Persistence
 
 | # | Check | Pass |
@@ -223,8 +245,6 @@ jump in `apply` after adding scene objects is the signal worth watching.
 
 Not yet implemented, so do not test for them:
 
-* 2D/3D snap buttons and scroll-through helpers (Phase 3). The *state* handling
-  works — check 7.5 and 7.6 — but there is no button for it.
 * The keyframe × object toggle matrix (Phase 4). Per-keyframe toggling works
   via capture; there is no grid view.
 * Pyramid-level selection and a VRAM readout on the ortho slice panel.
