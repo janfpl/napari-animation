@@ -131,7 +131,7 @@ def test_missing_output_is_reported(tmp_path):
     assert "OUTPUT MISSING" in diagnostics.report()
 
 
-def test_tiny_output_is_flagged(tmp_path):
+def test_tiny_unreadable_output_is_flagged(tmp_path):
     path = tmp_path / "truncated.mp4"
     path.write_bytes(b"\x00" * 64)
 
@@ -141,6 +141,27 @@ def test_tiny_output_is_flagged(tmp_path):
     report = diagnostics.report()
     assert "too small" in report
     assert "could not be reopened" in report or "no decodable frames" in report
+
+
+def test_a_small_but_valid_video_is_not_flagged(tmp_path):
+    """Size alone proves nothing -- simple content compresses very well."""
+    imageio = pytest.importorskip("imageio")
+    pytest.importorskip("imageio_ffmpeg")
+
+    path = tmp_path / "small.mp4"
+    writer = imageio.get_writer(str(path), fps=10, quality=5)
+    for i in range(6):
+        frame = np.zeros((64, 48, 4), dtype=np.uint8)
+        frame[..., 3] = 255
+        frame[:, i] = 255  # a single moving column: tiny, but valid
+        writer.append_data(frame)
+    writer.close()
+    assert path.stat().st_size < 2048
+
+    diagnostics = RenderDiagnostics()
+    diagnostics.verify_output(path, 6)
+
+    assert "too small" not in diagnostics.report()
 
 
 def test_round_trip_of_a_real_video(tmp_path):
@@ -273,6 +294,78 @@ def test_compat_encoding_is_applied_and_announced(tmp_path, capsys):
     assert COMPAT_ENCODER["pixelformat"] in out
     # and the file really is in that pixel format
     assert "yuv420p" in out
+
+
+def test_unplayable_h264_profile_is_flagged():
+    """A well-formed yuv420p file can still be undecodable by OS players."""
+    diagnostics = RenderDiagnostics()
+
+    diagnostics._check_h264_profile(
+        "Stream #0:0[0x1](und): Video: h264 (High 4:4:4 Predictive) "
+        "(avc1 / 0x31637661), yuv420p(progressive), 448x544, 5 fps"
+    )
+
+    report = diagnostics.report()
+    assert "WARNING" in report
+    assert "High 4:4:4 Predictive" in report
+    assert "Windows Media Player" in report
+
+
+@pytest.mark.parametrize(
+    "profile", ["Baseline", "Constrained Baseline", "Main", "High"]
+)
+def test_playable_h264_profiles_are_not_flagged(profile):
+    diagnostics = RenderDiagnostics()
+
+    diagnostics._check_h264_profile(
+        f"Stream #0:0: Video: h264 ({profile}) (avc1), yuv420p, 448x544"
+    )
+
+    assert "WARNING" not in diagnostics.report()
+
+
+def test_compat_encoding_pins_a_playable_profile(tmp_path, capsys):
+    """Setting the pixel format alone is not enough; pin the profile too."""
+    pytest.importorskip("imageio_ffmpeg")
+    from napari.components import ViewerModel
+
+    from napari_animation import Animation
+
+    class _HeadlessViewer(ViewerModel):
+        def screenshot(self, *args, **kwargs):
+            frame = np.zeros((64, 48, 4), dtype=np.uint8)
+            frame[..., 3] = 255
+            frame[:, int(self.camera.angles[2]) % 40] = 255
+            return frame
+
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((4, 16, 16)), name="img")
+    animation = Animation(viewer)
+    viewer.camera.angles = (0, 0, 0)
+    animation.capture_keyframe()
+    viewer.camera.angles = (0, 0, 30)
+    animation.capture_keyframe(steps=6)
+
+    animation.animate(str(tmp_path / "movie.mp4"), fps=10, perf_log=False)
+
+    out = capsys.readouterr().out
+    assert "-profile:v" in out
+    # the encoded stream really is a widely playable profile
+    assert "h264 (High)" in out
+    assert "WARNING" not in out
+
+
+def test_quality_maps_onto_crf():
+    from napari_animation.animation import _compat_output_params
+
+    def crf(quality):
+        params = _compat_output_params(quality)
+        return int(params[params.index("-crf") + 1])
+
+    # higher quality must mean a lower (better) CRF, and stay in range
+    assert crf(10) < crf(5) < crf(1)
+    assert 0 <= crf(0) <= 51
+    assert 0 <= crf(10) <= 51
 
 
 def test_macro_block_padding_is_explained(tmp_path):

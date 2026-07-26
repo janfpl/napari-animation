@@ -39,6 +39,15 @@ SUSPICIOUS_BYTES = 2048
 #: small one.
 SAMPLE_AXIS = 64
 
+#: H.264 profiles that OS-bundled players can be relied on to decode. Anything
+#: else is flagged, because a file can be well-formed and still unplayable.
+COMPATIBLE_H264_PROFILES = (
+    "baseline",
+    "constrained baseline",
+    "main",
+    "high",
+)
+
 
 def _sample(frame: np.ndarray) -> np.ndarray:
     """Return a cheap, evenly spaced subsample of a frame."""
@@ -157,12 +166,6 @@ class RenderDiagnostics:
 
         size = path.stat().st_size
         self.notes.append(f"output file: {size:,} bytes")
-        if size < SUSPICIOUS_BYTES:
-            self.notes.append(
-                f"WARNING: {size} bytes is too small to contain "
-                f"{expected_frames} frames -- the encoder probably wrote only "
-                "a container header"
-            )
 
         import imageio.v2 as iio
 
@@ -173,6 +176,7 @@ class RenderDiagnostics:
                 f"WARNING: the written file could not be reopened ({err}); "
                 "it is not a readable video"
             )
+            self._flag_suspicious_size(size, expected_frames)
             return
 
         try:
@@ -189,11 +193,13 @@ class RenderDiagnostics:
         )
         if read_back == 0:
             self.notes.append("WARNING: the file contains no decodable frames")
+            self._flag_suspicious_size(size, expected_frames)
         elif read_back < expected_frames:
             self.notes.append(
                 f"WARNING: wrote {expected_frames} frames but only "
                 f"{read_back} decoded -- the container may be truncated"
             )
+            self._flag_suspicious_size(size, expected_frames)
 
         self._probe_streams(path)
 
@@ -207,6 +213,20 @@ class RenderDiagnostics:
                     "multiple of 16, which adds a blank strip. Size the napari "
                     "window so both dimensions are multiples of 16 to avoid it"
                 )
+
+    def _flag_suspicious_size(self, size: int, expected_frames: int) -> None:
+        """Note a too-small file, but only as corroborating evidence.
+
+        Size alone proves nothing: a short, simple animation compresses to
+        well under a kilobyte quite legitimately. It is only worth raising
+        once the file has already failed to decode.
+        """
+        if size < SUSPICIOUS_BYTES:
+            self.notes.append(
+                f"  ...and {size} bytes is too small to hold "
+                f"{expected_frames} frames, so the encoder probably wrote "
+                "little more than a container header"
+            )
 
     def _probe_streams(self, path) -> None:
         """Ask ffmpeg what it actually put in the file.
@@ -244,6 +264,32 @@ class RenderDiagnostics:
             line = line.strip()
             if line.startswith("Stream #") or line.startswith("Duration:"):
                 self.notes.append(line)
+            if line.startswith("Stream #"):
+                self._check_h264_profile(line)
+
+    def _check_h264_profile(self, stream_line: str) -> None:
+        """Flag H.264 profiles that common players cannot decode.
+
+        A file can be perfectly well-formed, in ``yuv420p``, and still refuse
+        to open: "High 4:4:4 Predictive" in particular is rejected by the
+        decoders bundled with Windows and macOS, while VLC plays it happily.
+        That combination -- valid everywhere you test it, broken for the user
+        -- is worth naming explicitly.
+        """
+        import re
+
+        match = re.search(r"h264 \(([^)]+)\)", stream_line)
+        if not match:
+            return
+        profile = match.group(1).strip()
+        if profile.lower() in COMPATIBLE_H264_PROFILES:
+            return
+        self.notes.append(
+            f"WARNING: H.264 profile {profile!r} is not decodable by most "
+            "OS-bundled players (Windows Media Player, Photos, QuickTime), "
+            "though VLC and ffmpeg will play it. Re-render with compat=True "
+            "to pin a widely supported profile."
+        )
 
     # -------------------------------------------------------------- report
 

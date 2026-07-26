@@ -30,15 +30,39 @@ VIDEO_SUFFIXES = (".mov", ".avi", ".mpg", ".mpeg", ".mp4", ".mkv", ".wmv")
 H264_SUFFIXES = (".mp4", ".mov", ".mkv")
 
 #: Encoder settings chosen for playback compatibility rather than for size.
-#: ``yuv420p`` because hardware and OS-bundled decoders (notably Windows
-#: Media Player and Photos) reject 4:2:2 and 4:4:4 H.264; ``+faststart``
-#: because it moves the moov atom to the front of the file, without which many
-#: players -- and every Explorer/Finder preview -- refuse to open it.
+#:
+#: * ``yuv420p`` because OS-bundled decoders reject 4:2:2 and 4:4:4 H.264.
+#: * ``-profile:v high`` because setting the pixel format is *not* sufficient:
+#:   some ffmpeg builds still select the "High 4:4:4 Predictive" profile for a
+#:   yuv420p stream, and Windows Media Player and Photos cannot decode it. The
+#:   profile has to be pinned explicitly.
+#: * ``-crf`` because ``-qscale:v`` -- what imageio's ``quality`` argument
+#:   becomes -- is an MJPEG-era control that libx264 honours only loosely, and
+#:   is implicated in the odd profile selection above. CRF is x264's intended
+#:   rate control.
+#: * ``+faststart`` moves the moov atom to the front of the file, without which
+#:   many players, and every Explorer/Finder preview, refuse to open it.
 COMPAT_ENCODER = {
     "codec": "libx264",
     "pixelformat": "yuv420p",
-    "output_params": ["-movflags", "+faststart"],
 }
+
+
+def _compat_output_params(quality):
+    """ffmpeg parameters for a maximally playable H.264 stream."""
+    # imageio quality is 0-10 (higher is better); CRF is 0-51 (lower is
+    # better). Map so the default quality of 5 lands on a visually lossless
+    # CRF of 20.
+    crf = int(round(30 - 2 * float(quality)))
+    crf = max(0, min(51, crf))
+    return [
+        "-profile:v",
+        "high",
+        "-crf",
+        str(crf),
+        "-movflags",
+        "+faststart",
+    ]
 
 
 class Animation:
@@ -401,14 +425,19 @@ class Animation:
             try:
                 # gif doesn't accept the quality parameter
                 if path_obj.suffix in VIDEO_SUFFIXES:
-                    writer_kwargs = {"fps": fps, "quality": quality}
                     if compat and path_obj.suffix in H264_SUFFIXES:
-                        writer_kwargs.update(COMPAT_ENCODER)
+                        # CRF replaces quality here, so don't pass both
+                        writer_kwargs = {"fps": fps, **COMPAT_ENCODER}
+                        writer_kwargs["output_params"] = _compat_output_params(
+                            quality
+                        )
                         settings = ", ".join(
-                            f"{k}={v}" for k, v in COMPAT_ENCODER.items()
+                            f"{k}={v}" for k, v in writer_kwargs.items()
                         )
                         print(f"Encoder (compatibility mode): {settings}")
                         logger.info("Encoder settings: %s", settings)
+                    else:
+                        writer_kwargs = {"fps": fps, "quality": quality}
                     writer = imageio.get_writer(
                         path, format=format, **writer_kwargs
                     )
