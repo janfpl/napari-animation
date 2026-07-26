@@ -3,7 +3,7 @@ from ._qt import AnimationWidget
 from .animation import Animation
 from .key_frame import KeyFrame
 from .ortho_slicer import OrthoSlicer
-from .scene import ClipPlane, Scene, SceneObject
+from .scene import ClipPlane, OrthoSlice, Scene, SceneObject
 from .viewer_state import ViewerState
 
 __all__ = [
@@ -12,6 +12,7 @@ __all__ = [
     "Animation",
     "ClipPlane",
     "KeyFrame",
+    "OrthoSlice",
     "OrthoSlicer",
     "Scene",
     "SceneObject",
