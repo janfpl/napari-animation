@@ -201,7 +201,11 @@ class AnimationWidget(QWidget):
             self, "Save animation", str(Path.home()), filters
         )
 
-        if animation_kwargs["path"]:
+        # None when the user cancelled the dialog: nothing to do
+        if not animation_kwargs:
+            return
+
+        if animation_kwargs.get("path"):
             try:
                 self.animation.animate(**animation_kwargs)
             except Exception as err:  # noqa: BLE001 - surface, don't crash

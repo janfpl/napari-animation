@@ -1,8 +1,26 @@
 """Tests for the save-dialog extension handling (no GUI interaction)."""
 
+from unittest.mock import patch
+
 from napari_animation._qt.savedialog_widget import SaveDialogWidget
 
 FILTERS = "MP4 (*.mp4);;GIF (*.gif);;Folder of PNGs (*)"
+
+
+def test_cancelling_returns_none(qtbot):
+    """Cancelling must not return something a caller will index into.
+
+    Returning "" meant `animation_kwargs["path"]` raised "string indices must
+    be integers", so backing out of the save dialog looked like a crash.
+    """
+    dialog = SaveDialogWidget()
+    qtbot.addWidget(dialog)
+
+    # exec_() returns 0 when the dialog is rejected
+    with patch.object(SaveDialogWidget, "exec_", return_value=0):
+        result = dialog.getAnimationParameters(filter=FILTERS)
+
+    assert result is None
 
 
 def test_ensure_extension_appends_from_filter(qtbot):

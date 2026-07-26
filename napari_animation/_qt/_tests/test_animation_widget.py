@@ -1,6 +1,37 @@
+from unittest.mock import patch
+
 import numpy as np
+from napari.components import ViewerModel
 
 from napari_animation._qt import AnimationWidget
+from napari_animation._qt.savedialog_widget import SaveDialogWidget
+
+
+class _HeadlessViewer(ViewerModel):
+    """Stands in for a real viewer where no OpenGL context is available."""
+
+    def screenshot(self, *args, **kwargs):
+        return np.zeros((60, 60, 4), dtype=np.uint8)
+
+
+def test_cancelling_the_save_dialog_is_a_no_op(qtbot):
+    """Regression: backing out of the save dialog used to raise.
+
+    The dialog returned "" on cancel and the callback did
+    ``animation_kwargs["path"]``, so cancelling raised "string indices must be
+    integers" instead of quietly doing nothing.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    with patch.object(
+        SaveDialogWidget, "getAnimationParameters", return_value=None
+    ), patch.object(widget.animation, "animate") as animate:
+        widget._save_callback()
+
+    animate.assert_not_called()
 
 
 def test_animation_widget(make_napari_viewer, qtbot):

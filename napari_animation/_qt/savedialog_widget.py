@@ -24,6 +24,14 @@ class SaveDialogWidget(QFileDialog):
         selectedFilter="",
         options=None,
     ):
+        """Prompt for a destination and render settings.
+
+        Returns
+        -------
+        dict or None
+            The keyword arguments for :meth:`Animation.animate`, or ``None``
+            if the user cancelled the dialog.
+        """
 
         # Set dialog parameters
         self.setWindowTitle(caption)
@@ -67,8 +75,11 @@ class SaveDialogWidget(QFileDialog):
             )
 
             return animation_kwargs
-        else:
-            return ""
+
+        # cancelled: None rather than "", so a caller that reaches for a key
+        # gets a clear AttributeError instead of "string indices must be
+        # integers" from indexing into an empty string.
+        return None
 
     def _ensure_extension(self, path):
         """Append the selected filter's extension if ``path`` has none."""
