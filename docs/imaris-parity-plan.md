@@ -8,8 +8,11 @@ on/off at each keyframe. (Reference: Supplementary Movie 4 of *"Brain-wide
 reconstruction of inhibitory circuits after traumatic brain injury"*, Nat.
 Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
-This document is the design/implementation plan. Nothing here is implemented
-yet.
+This document is the design/implementation plan.
+
+**Status:** Phase 0 (§5) is implemented and tested — the state-capture and
+interpolation foundations that every later phase builds on. Phases 1–5 are
+still design only.
 
 ---
 
@@ -236,6 +239,14 @@ but the rest of the volume is cut away rather than shown alongside the slab.
 `Scene.apply` auto-falls back to this in 2D, since plane depiction is
 meaningless there.
 
+The backing layer is the **single source of truth** for the slab geometry.
+`OrthoSlice` writes into `layer.plane` / `layer.rendering` and reads back out of
+them at capture time, rather than holding an authoritative private copy. That
+one decision means *any* external tool that moves the plane — a
+napari-threedee manipulator, napari's own layer controls, a user script — is
+picked up automatically when a keyframe is captured, with no glue code. See
+§4.
+
 **Scrolling as the camera interpolates** is then just interpolation: keyframe A
 with `camera.angles=(0,0,90)` and `position` at one end of the volume,
 keyframe B with `camera.angles=(0,45,90)` and `position` at the other. Camera
@@ -337,30 +348,141 @@ the same path `Animation.overwrite_keyframe` already uses
 
 ---
 
-## 4. Phased implementation
+## 4. Relationship to napari-threedee
+
+The question was raised whether
+[napari-threedee](https://github.com/napari-threedee/napari-threedee) (n3d) is
+a better starting point than building plane handling ourselves. I read its
+source at `src/napari_threedee/`. The answer is: **use it, but as an optional
+authoring layer on top of this design — not as the foundation.** Four findings
+drive that.
+
+**1. Its render-plane manipulator drives the exact same napari state this plan
+already targets.** `RenderPlaneManipulator` is a vispy gizmo whose entire
+model-facing surface is three lines:
+
+```python
+def _while_dragging_translator(self):
+    self.layer.plane.position = self.layer.world_to_data(self.origin)
+
+def _while_dragging_rotator(self):
+    self.layer.plane.normal = world_to_data_normal(self.z_vector, layer=self.layer)
+```
+
+It owns no state. napari core owns `layer.plane`; n3d just gives you a
+draggable handle for it. So it is not an alternative to the `OrthoSlice` model
+— it is a nicer input device for it. Because §3.4 makes the backing layer the
+source of truth, the two compose with **zero glue**: drag the gizmo, hit
+"capture keyframe", and the new position is recorded.
+
+**2. It does not do clipping planes at all.** `grep -rn clipping src/` over the
+entire n3d tree returns nothing. The clipping-plane manipulator referenced in
+blog posts and search results is
+[napari-threedee#17](https://github.com/napari-threedee/napari-threedee/issues/17),
+still open and unimplemented. *(An earlier revision of this plan cited it as
+shipped — that was wrong.)* R1 is entirely ours to build regardless.
+
+**3. It never touches `plane.thickness`.** n3d manipulates position and normal
+only. The "projection of a certain thickness" half of R2 — `plane.thickness`
+plus the `rendering` mode mapping in §3.4 — has no n3d equivalent.
+
+**4. Its dependency footprint is unacceptable for a hard dependency.**
+
+```
+einops, imageio, libigl, magicgui, morphosamplers, mrcfile, napari>=0.5.0,
+numpy, pandas, pooch, psygnal, pydantic, qtpy, scipy, superqt, vispy, zarr<3
+```
+
+That pulls cryo-EM-specific packages (`morphosamplers`, `mrcfile`, `libigl`)
+into a general-purpose animation plugin. Worse, the hard `zarr<3` pin drags in
+`asciitree`, which does not build on Python ≥3.11 — **napari-threedee could not
+be installed in this environment at all**, on either attempt. Making it
+required would immediately break `napari-animation` installs on current Python.
+
+Also note the manipulator needs a live Qt canvas, vispy visuals, and mouse
+callbacks, so anything built on it is untestable in the headless `ViewerModel`
+harness the rest of this plan (and the existing test suite) relies on.
+
+### Decision
+
+| Concern | Owner |
+|---|---|
+| Plane geometry state, keyframing, interpolation | napari-animation (this plan) |
+| Thickness + projection rendering | napari-animation, via napari core `plane.thickness` / `rendering` |
+| Clipping planes (all of R1) | napari-animation — n3d has none |
+| **Interactive in-canvas plane dragging** | **napari-threedee, optional** |
+
+Integration lands in Phase 2 as a soft dependency:
+
+```python
+# napari_animation/scene/_manipulators.py
+def attach_plane_manipulator(viewer, layer):
+    try:
+        from napari_threedee.manipulators import RenderPlaneManipulator
+    except ImportError:
+        return None          # UI shows a "pip install napari-threedee" hint
+    return RenderPlaneManipulator(viewer, layer=layer, enabled=True)
+```
+
+Declared as `pip install napari-animation[threedee]`, surfaced as an "Edit in
+canvas" button on each ortho-slice panel, and gracefully absent otherwise.
+n3d's `RenderPlaneManipulator._on_depiction_change` already auto-enables itself
+when `layer.depiction == 'plane'`, which is exactly the state our backing
+layers are in.
+
+Two adjacent things worth tracking rather than duplicating: napari's own
+in-progress clipping-planes control widget
+([napari#7993](https://github.com/napari/napari/pull/7993)), and n3d's
+`CameraSpline`, which drives the camera along an annotated spline path. The
+latter is a genuinely different authoring paradigm from keyframes and could
+later feed a keyframe generator, but it is out of scope here.
+
+---
+
+## 5. Phased implementation
 
 Each phase is independently shippable and independently testable. All tests can
 run headless against `napari.components.ViewerModel` — no GL context, which is
 how `_tests/test_ortho_slicer.py` already works.
 
-### Phase 0 — Foundations (no user-visible feature; everything depends on it)
+### Phase 0 — Foundations ✅ *implemented*
 
-* Curated per-layer capture: `_get_base_state()` + an allow-list of
-  `depiction`, `plane`, `rendering`, `colormap`, `contrast_limits`, `gamma`,
-  `iso_threshold`, `attenuation` — explicitly **excluding** `data`,
-  `multiscale`, `rgb`. Must degrade gracefully per layer type (Points/Labels
-  lack most of these).
-* `interpolate_dict`, `slerp_vector`, `STEP_START/END`, non-truncating
-  `interpolate_seq`.
-* Glob matching in `state_interpolation_map`.
-* Fix `ViewerState.apply` ordering; feature-detect `camera.synced`.
-* Bump `setup.cfg` from `napari>=0.4.8` — the code already requires
-  `dims.margin_left` and `projection_mode`. `napari>=0.5` minimum, with
-  0.8-only features feature-detected.
+No user-visible feature; everything else depends on it.
 
-*Tests:* dict/sequence/vector interpolation unit tests; a round-trip test that
-`plane` and `depiction` survive capture→interpolate→apply; a regression test
-that a camera set alongside an `ndisplay` change survives the switch.
+* **Curated per-layer capture** (`viewer_state.py`): `_get_base_state()` plus
+  `ANIMATABLE_LAYER_PROPERTIES` — `depiction`, `plane`, `rendering`,
+  `contrast_limits`, `gamma`, `iso_threshold`, `attenuation`,
+  `interpolation2d/3d` — and `colormap` captured *by name* (the expanded form
+  is colour arrays that neither interpolate nor survive JSON). Explicitly
+  excludes `data`: `FrameSequence` deep-copies state per frame, so capturing
+  the array would copy the whole volume once per frame. Degrades per layer
+  type (Points has none of these; Labels has some).
+* **`interpolate_dict`** (`interpolation.py`) — fixes B2. `plane` and
+  clipping-plane dicts now interpolate field by field instead of snapping.
+* **Non-truncating `interpolate_seq`** — fixes B3. Unequal-length sequences
+  interpolate over the common prefix and *hold* the remainder.
+* **`slerp_vector`** — plane normals rotate along the shortest arc instead of
+  collapsing toward the origin mid-turn. Handles opposed and zero vectors.
+* **`STEP_START` / `STEP_END`** — discrete transitions. `STEP_END` holds the
+  starting value for the whole transition and switches on arrival.
+* **Glob matching** in `state_interpolation_map` via `resolve_interpolation`
+  (`frame_sequence.py`): exact keys win, then the most specific pattern.
+  Registers `dims.ndisplay → STEP_END` (fixes the int-truncation half of B5)
+  and `layers.*.plane.normal → SLERP_VECTOR`.
+* **Apply ordering fixed** (`viewer_state.py`) — dims → layers → camera, so a
+  2D/3D switch can no longer discard the keyframe's camera (B5). Per-property
+  `setattr` is now individually guarded so one unsettable property cannot
+  abandon the rest of the frame.
+
+*Tests:* `_tests/test_animatable_state.py`, 22 tests, all headless against
+`ViewerModel`. Note the camera regression test must use an **interpolated**
+state whose camera differs from anything napari has cached — capturing and
+re-applying the same state passes under both orderings, because napari's
+per-mode cache happens to hold the right answer.
+
+*Still outstanding from this phase:* bump `setup.cfg` from `napari>=0.4.8`.
+The code already requires `dims.margin_left` and `projection_mode`, so the
+floor is really `napari>=0.5`, with 0.8-only features feature-detected.
 
 ### Phase 1 — Clipping planes (R1)
 
@@ -384,6 +506,8 @@ adding a plane between keyframes fades in rather than truncating the list.
 * Widget: per-slicer panel with orientation preset (XY/XZ/YZ/oblique),
   thickness in physical units (reuse `physical_step`), projection type, source
   layer + level, follow-dims toggle, VRAM estimate.
+* Optional napari-threedee "Edit in canvas" button per §4, behind
+  `napari-animation[threedee]` and a guarded import.
 
 *Tests:* plane position/normal/thickness reach `layer.plane` with correct
 data-coordinate conversion; thickness in µm maps correctly through anisotropic
@@ -417,20 +541,13 @@ half-applied.
   converts the old single `ortho` dict into one `OrthoSlice` scene object.
   Serialisation itself needs no new code — `_to_builtin` already handles the
   nested float/bool dicts (verified).
-* Optional [napari-threedee](https://github.com/napari-threedee/napari-threedee)
-  integration: its render-plane and clipping-plane manipulators let planes be
-  dragged in the canvas instead of typed into spinboxes, which is a large
-  authoring-ergonomics win. Keep it an optional extra, not a hard dependency.
-  Upstream napari is also building a clipping-planes control widget
-  ([napari#7993](https://github.com/napari/napari/pull/7993)) — worth tracking
-  so we don't duplicate it.
 * An `examples/imaris_style_flythrough.py` reproducing the reference movie:
   volume + 2 cutaway planes + 1 sweeping ortho slice + orbiting camera.
 * README section and screenshots.
 
 ---
 
-## 5. Performance notes
+## 6. Performance notes
 
 The existing prefetch/dask-cache work (`prefetch.py`, `animation.py:337-353`)
 optimises *dims-based slicing*, i.e. reads from disk per frame. The features
@@ -449,7 +566,7 @@ scroll-throughs for short segments.
 
 ---
 
-## 6. Open questions
+## 7. Open questions
 
 1. **Scene objects vs. napari layers in the layer list.** `"plane"`-mode ortho
    slices *are* real layers, so they show up in napari's own list. Clipping

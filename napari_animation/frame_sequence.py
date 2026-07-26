@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Dict, Iterator, Optional, Sequence, Tuple
 
 import numpy as np
@@ -9,6 +10,38 @@ from napari.utils.events import EmitterGroup
 from .interpolation import Interpolation, InterpolationMap
 from .utils import pairwise
 from .viewer_state import ViewerState
+
+#: Characters that make an interpolation-map key a glob pattern rather than a
+#: literal state path.
+_GLOB_CHARS = ("*", "?", "[")
+
+
+def resolve_interpolation(
+    interpolation_map: InterpolationMap, path: str
+) -> Interpolation:
+    """Return the interpolation to use for a dotted state ``path``.
+
+    Exact keys take precedence. Otherwise keys containing glob characters are
+    matched against the path, which lets a single rule cover every layer or
+    scene object (``"layers.*.rendering"``) without naming them. When several
+    patterns match, the most specific one wins -- specificity being the length
+    of the pattern's leading literal (non-wildcard) text.
+    """
+    if path in interpolation_map:
+        return interpolation_map[path]
+
+    best = Interpolation.DEFAULT
+    best_specificity = -1
+    for pattern, interpolation in interpolation_map.items():
+        if not any(char in pattern for char in _GLOB_CHARS):
+            continue
+        if not fnmatchcase(path, pattern):
+            continue
+        specificity = len(pattern.split("*")[0])
+        if specificity > best_specificity:
+            best, best_specificity = interpolation, specificity
+    return best
+
 
 if TYPE_CHECKING:
     import napari
@@ -47,6 +80,16 @@ class FrameSequence(Sequence[ViewerState]):
         self.state_interpolation_map: InterpolationMap = {
             "camera.angles": Interpolation.SLERP,
             "camera.zoom": Interpolation.LOG,
+            # 2D/3D is a discrete mode, not a number to blend: hold the
+            # starting mode for the whole transition and switch on arrival.
+            "dims.ndisplay": Interpolation.STEP_END,
+            # plane normals rotate along the shortest arc rather than
+            # collapsing toward the origin halfway through a large turn.
+            "layers.*.plane.normal": Interpolation.SLERP_VECTOR,
+            # discrete display state, likewise switched on arrival.
+            "layers.*.depiction": Interpolation.STEP_END,
+            "layers.*.rendering": Interpolation.STEP_END,
+            "layers.*.colormap": Interpolation.STEP_END,
         }
 
         # cache of interpolated viewer states
@@ -148,7 +191,7 @@ class FrameSequence(Sequence[ViewerState]):
             v0 = nested_get(from_state, keys)
             v1 = nested_get(to_state, keys)
 
-            interp_func = interp_map.get(sep.join(keys), Interpolation.DEFAULT)
+            interp_func = resolve_interpolation(interp_map, sep.join(keys))
 
             nested_set(state, keys, interp_func(v0, v1, fraction))
 

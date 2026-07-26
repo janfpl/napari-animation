@@ -37,6 +37,69 @@ def _resilient_update(model, state: dict):
                 state.pop(key, None)
 
 
+#: Per-layer display properties captured in addition to the layer's
+#: ``_get_base_state()``.
+#:
+#: ``_get_base_state()`` covers geometry and visibility but omits everything
+#: that describes how a volume is *drawn*. Most importantly it omits ``plane``
+#: (``position`` / ``normal`` / ``thickness``) and ``depiction``, which are
+#: napari's native optical-section primitive -- without them an ortho slice
+#: cannot be keyframed at all.
+#:
+#: ``data`` is deliberately excluded: :class:`FrameSequence` deep-copies the
+#: captured state for every interpolated frame, so capturing the array would
+#: copy the entire volume once per frame of the movie.
+ANIMATABLE_LAYER_PROPERTIES = (
+    "depiction",
+    "plane",
+    "rendering",
+    "contrast_limits",
+    "gamma",
+    "iso_threshold",
+    "attenuation",
+    "interpolation2d",
+    "interpolation3d",
+)
+
+
+def _layer_state(layer) -> dict:
+    """Capture the animatable display state of a single layer."""
+    state = layer._get_base_state()
+    state.pop("metadata", None)
+
+    try:
+        full_state = layer._get_state()
+    except Exception:  # noqa: BLE001 - never fail a capture over one layer
+        return state
+
+    for key in ANIMATABLE_LAYER_PROPERTIES:
+        if key in full_state:
+            state[key] = full_state[key]
+
+    # Colormaps are captured by name rather than as the full definition: the
+    # expanded form is a dict of colour arrays that neither interpolates
+    # meaningfully nor survives a JSON round trip.
+    name = getattr(getattr(layer, "colormap", None), "name", None)
+    if name:
+        state["colormap"] = name
+
+    return state
+
+
+def _differs(original, value) -> bool:
+    """Whether ``value`` differs from ``original`` (assume it does on error).
+
+    Layer state now includes structured values (a ``plane`` dict, a colormap
+    name) that ``np.array_equal`` cannot always compare; treating those as
+    changed is the safe direction, since it costs a redundant assignment
+    rather than a silently skipped one.
+    """
+    try:
+        return not np.array_equal(original, value)
+    except Exception:  # noqa: BLE001
+        return True
+
+
 @dataclass(frozen=True)
 class ViewerState:
     """The state of the viewer camera, dims, and layers.
@@ -72,11 +135,7 @@ class ViewerState:
         ortho : dict, optional
             Ortho-slicer parameters to record alongside the viewer state.
         """
-        layers = {
-            layer.name: layer._get_base_state() for layer in viewer.layers
-        }
-        for d in layers.values():
-            d.pop("metadata")
+        layers = {layer.name: _layer_state(layer) for layer in viewer.layers}
         return cls(
             camera=viewer.camera.dict(),
             dims=viewer.dims.dict(),
@@ -93,7 +152,10 @@ class ViewerState:
             A napari viewer. (viewer state will be directly modified)
         """
 
-        _resilient_update(viewer.camera, self.camera)
+        # Dims must be applied before the camera. Changing ``ndisplay``
+        # makes napari recompute the camera itself -- restoring a per-mode
+        # cache or calling ``fit_to_view()`` -- so a camera applied first
+        # would be silently discarded by a 2D/3D switch.
         _resilient_update(viewer.dims, self.dims)
 
         for layer_name, layer_state in self.layers.items():
@@ -103,15 +165,25 @@ class ViewerState:
                 continue
             layer = viewer.layers[layer_name]
             for key, value in layer_state.items():
-                original_value = getattr(layer, key)
+                original_value = getattr(layer, key, None)
                 # Only set if value differs to avoid expensive redraws
-                if not np.array_equal(original_value, value):
-                    setattr(layer, key, value)
+                if _differs(original_value, value):
+                    try:
+                        setattr(layer, key, value)
+                    except Exception:  # noqa: BLE001
+                        # A property may be unsettable for this layer's data
+                        # (e.g. plane depiction on 2D data). Skip it rather
+                        # than abandoning the rest of the frame.
+                        pass
 
         # The optical section is recomputed from its parameters and the (now
         # applied) dims, so a sweeping/growing slab interpolates smoothly.
         if self.ortho is not None:
             OrthoSlicer.apply_state(viewer, self.ortho)
+
+        # Camera last, so the keyframe's camera wins over anything an
+        # ndisplay switch recomputed above.
+        _resilient_update(viewer.camera, self.camera)
 
     def render(
         self, viewer: napari.viewer.Viewer, canvas_only=True
