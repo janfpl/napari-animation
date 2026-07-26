@@ -108,6 +108,7 @@ def animation_to_dict(animation: "Animation") -> dict:
                     "dims": _to_builtin(state.dims),
                     "layers": _to_builtin(state.layers),
                     "ortho": _to_builtin(state.ortho),
+                    "scene": _to_builtin(state.scene),
                 },
             }
         )
@@ -155,6 +156,8 @@ def _key_frame_from_dict(kf_data: dict) -> KeyFrame:
         dims=vs_data["dims"],
         layers=vs_data["layers"],
         ortho=vs_data.get("ortho"),
+        # absent in files written before scene objects existed
+        scene=vs_data.get("scene"),
     )
     return KeyFrame(
         viewer_state=viewer_state,

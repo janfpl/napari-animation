@@ -2,6 +2,7 @@ import logging
 import os
 import queue
 import threading
+from dataclasses import replace
 from itertools import count
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from .key_frame import KeyFrame, KeyFrameList
 from .ortho_slicer import OrthoSlicer
 from .perf import PerfLogger
 from .prefetch import SlicePrefetcher, dask_cache_context
+from .scene import Scene
 
 logger = logging.getLogger("napari_animation")
 
@@ -58,6 +60,86 @@ class Animation:
         # each keyframe so the optical section can be animated.
         self.ortho_slicer = OrthoSlicer()
 
+        # Clipping planes and other 3D scene objects. Their parameters are
+        # captured into every keyframe, so each can be reshaped and switched
+        # on or off independently at each keyframe.
+        self.scene = Scene()
+
+    def _capture_state(self):
+        """Current ortho-slicer and scene parameters to record on a keyframe."""
+        ortho = (
+            self.ortho_slicer.to_dict() if self.ortho_slicer.enabled else None
+        )
+        scene = self.scene.to_dict() if len(self.scene) else None
+        return ortho, scene
+
+    def add_scene_object(self, scene_object, backfill: bool = True):
+        """Add a scene object (e.g. a clipping plane) to the animation.
+
+        Parameters
+        ----------
+        scene_object : SceneObject
+            The object to add.
+        backfill : bool
+            Whether to record the object in the keyframes captured so far. By
+            default it is, so a newly added clipping plane is visible across
+            the whole animation and the user switches it *off* where it is not
+            wanted -- rather than it silently disappearing whenever an older
+            keyframe is selected.
+
+        Returns
+        -------
+        SceneObject
+            The object that was added.
+        """
+        self.scene.append(scene_object)
+        if backfill:
+            params = scene_object.to_dict()
+            for key_frame in self.key_frames:
+                state = key_frame.viewer_state
+                scene = dict(state.scene or {})
+                scene[scene_object.id] = dict(params)
+                key_frame.viewer_state = replace(state, scene=scene)
+            self._frames._rebuild_frame_index()
+        ortho, _ = self._capture_state()
+        self.scene.apply(self.viewer, ortho=ortho)
+        return scene_object
+
+    def set_object_enabled(
+        self, keyframe_index: int, object_id: str, enabled: bool
+    ):
+        """Switch a scene object on or off at a single keyframe.
+
+        This is the per-keyframe toggle: the object's geometry is untouched,
+        only whether it contributes to that keyframe.
+        """
+        key_frame = self.key_frames[keyframe_index]
+        state = key_frame.viewer_state
+        scene = {k: dict(v) for k, v in (state.scene or {}).items()}
+        if object_id not in scene:
+            raise KeyError(
+                f"No scene object {object_id!r} in keyframe {keyframe_index}"
+            )
+        scene[object_id]["enabled"] = bool(enabled)
+        key_frame.viewer_state = replace(state, scene=scene)
+        # the interpolation cache holds states built from the old value
+        self._frames._rebuild_frame_index()
+
+    def set_layer_visible(
+        self, keyframe_index: int, layer_name: str, visible: bool
+    ):
+        """Show or hide a napari layer at a single keyframe."""
+        key_frame = self.key_frames[keyframe_index]
+        state = key_frame.viewer_state
+        if layer_name not in state.layers:
+            raise KeyError(
+                f"No layer {layer_name!r} in keyframe {keyframe_index}"
+            )
+        layers = {k: dict(v) for k, v in state.layers.items()}
+        layers[layer_name]["visible"] = bool(visible)
+        key_frame.viewer_state = replace(state, layers=layers)
+        self._frames._rebuild_frame_index()
+
     def capture_keyframe(
         self, steps=15, ease=Easing.LINEAR, insert=True, position: int = None
     ):
@@ -89,11 +171,9 @@ class Animation:
                 else:
                     raise ValueError("No selected keyframe to replace !")
 
-        ortho = (
-            self.ortho_slicer.to_dict() if self.ortho_slicer.enabled else None
-        )
+        ortho, scene = self._capture_state()
         new_frame = KeyFrame.from_viewer(
-            self.viewer, steps=steps, ease=ease, ortho=ortho
+            self.viewer, steps=steps, ease=ease, ortho=ortho, scene=scene
         )
         new_frame.name = f"Key Frame {next(self._keyframe_counter)}"
 
@@ -115,14 +195,13 @@ class Animation:
             Index of the key-frame to overwrite.
         """
         existing = self.key_frames[index]
-        ortho = (
-            self.ortho_slicer.to_dict() if self.ortho_slicer.enabled else None
-        )
+        ortho, scene = self._capture_state()
         captured = KeyFrame.from_viewer(
             self.viewer,
             steps=existing.steps,
             ease=existing.ease,
             ortho=ortho,
+            scene=scene,
         )
         # Update the existing key-frame in place (keeping its identity, name,
         # steps and ease) rather than replacing the list item -- replacing

@@ -10,9 +10,9 @@ Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
 This document is the design/implementation plan.
 
-**Status:** Phase 0 (§5) is implemented and tested — the state-capture and
-interpolation foundations that every later phase builds on. Phases 1–5 are
-still design only.
+**Status:** Phases 0 and 1 (§5) are implemented and tested — the state-capture
+and interpolation foundations, and N animatable clipping planes with the
+compositor. Phase 1's Qt widget and Phases 2–5 are still design only.
 
 ---
 
@@ -484,17 +484,42 @@ per-mode cache happens to hold the right answer.
 The code already requires `dims.margin_left` and `projection_mode`, so the
 floor is really `napari>=0.5`, with 0.8-only features feature-detected.
 
-### Phase 1 — Clipping planes (R1)
+### Phase 1 — Clipping planes (R1) ✅ *model implemented; widget outstanding*
 
-* `SceneObject`, `ClipPlane`, `Scene` with the compositor.
-* `Animation.scene` + capture into `ViewerState.scene`.
-* Adoption of pre-existing `experimental_clipping_planes` on first capture.
-* Widget: add/remove/rename planes, position + normal spinboxes, orientation
-  presets, per-plane target-layer selector, "flip normal" button.
+* **`napari_animation/scene/`** — `SceneObject` (base, stable uuid, `enabled`,
+  `targets`, kind registry), `ClipPlane`, and `Scene` (a
+  `SelectableEventedList`).
+* **The compositor** (`scene/scene.py`) — `apply_scene_state` is the only code
+  that assigns `experimental_clipping_planes`. Every source *contributes*
+  planes and the compositor unions them per layer, which is what makes N
+  cutaways coexist (fixes B4). The ortho slicer's clip-mode slab now
+  contributes through `OrthoSlicer.clip_contributions` instead of assigning,
+  so an optical section and cutaway planes are simultaneously active.
+* **World↔data transforms** — positions via `layer.world_to_data`; normals via
+  the transpose of the layer-to-world linear matrix, so anisotropic voxels
+  don't skew plane orientation.
+* **`ViewerState.scene`** keyed by object id, captured by `Animation`. When a
+  scene exists, `experimental_clipping_planes` is dropped from the per-layer
+  capture so the two cannot fight; without one, the old per-layer behaviour is
+  untouched.
+* **`Scene.adopt_existing_clipping_planes`** so planes set by hand or by
+  another plugin become real scene objects instead of being wiped.
+* **`Animation.add_scene_object(..., backfill=True)`** records a new object in
+  the keyframes captured so far, so adding a plane doesn't make it vanish when
+  scrubbing to an older keyframe.
+* **`Animation.set_object_enabled` / `set_layer_visible`** — the per-keyframe
+  toggle (most of R4's model layer, ahead of schedule). Both rebuild the
+  interpolation cache, since `ViewerState` is frozen and gets replaced.
 
-*Tests:* N>2 planes composite onto one layer; two objects targeting the same
-layer both survive; position interpolates smoothly (no jump at fraction>0);
-adding a plane between keyframes fades in rather than truncating the list.
+*Tests:* `_tests/test_scene.py`, 20 tests. Two notes for whoever picks this up:
+`@dataclass` resets `__hash__` to `None` on every subclass, which makes objects
+unusable in napari's selectable evented list — `register_kind` restores it.
+And `ViewerModel` has no `screenshot`, so testing the capture API headlessly
+needs the small `HeadlessViewer` subclass in that file.
+
+*Outstanding:* the Qt widget — add/remove/rename planes, position + normal
+spinboxes, orientation presets, per-plane target-layer selector, "flip normal"
+button (`ClipPlane.flipped()` already exists).
 
 ### Phase 2 — Ortho slices (R2)
 

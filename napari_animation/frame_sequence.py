@@ -90,6 +90,13 @@ class FrameSequence(Sequence[ViewerState]):
             "layers.*.depiction": Interpolation.STEP_END,
             "layers.*.rendering": Interpolation.STEP_END,
             "layers.*.colormap": Interpolation.STEP_END,
+            # scene objects: geometry blends, identity and on/off do not.
+            "scene.*.normal": Interpolation.SLERP_VECTOR,
+            "scene.*.enabled": Interpolation.STEP_END,
+            "scene.*.kind": Interpolation.STEP_END,
+            "scene.*.name": Interpolation.STEP_END,
+            "scene.*.id": Interpolation.STEP_END,
+            "scene.*.targets": Interpolation.STEP_END,
         }
 
         # cache of interpolated viewer states

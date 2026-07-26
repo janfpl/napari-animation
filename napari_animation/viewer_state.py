@@ -117,15 +117,26 @@ class ViewerState:
         Parameters of the :class:`~napari_animation.ortho_slicer.OrthoSlicer`
         optical section (``None`` when the slicer is inactive).  Stored so the
         optical section can be animated alongside the rest of the viewer state.
+    scene : dict, optional
+        Parameters of every :class:`~napari_animation.scene.SceneObject`,
+        keyed by object id, so clipping planes and optical sections can be
+        reshaped and switched on or off independently at each keyframe.
+        ``None`` when no scene objects exist.
     """
 
     camera: dict
     dims: dict
     layers: dict
     ortho: Optional[dict] = field(default=None)
+    scene: Optional[dict] = field(default=None)
 
     @classmethod
-    def from_viewer(cls, viewer: napari.viewer.Viewer, ortho: dict = None):
+    def from_viewer(
+        cls,
+        viewer: napari.viewer.Viewer,
+        ortho: dict = None,
+        scene: dict = None,
+    ):
         """Create a ViewerState from a viewer instance.
 
         Parameters
@@ -134,13 +145,22 @@ class ViewerState:
             A napari viewer.
         ortho : dict, optional
             Ortho-slicer parameters to record alongside the viewer state.
+        scene : dict, optional
+            Scene-object parameters to record alongside the viewer state.
         """
         layers = {layer.name: _layer_state(layer) for layer in viewer.layers}
+        if scene:
+            # The scene compositor is the sole writer of clipping planes;
+            # capturing them per layer as well would apply a stale set just
+            # before the compositor recomputes them.
+            for layer_state in layers.values():
+                layer_state.pop("experimental_clipping_planes", None)
         return cls(
             camera=viewer.camera.dict(),
             dims=viewer.dims.dict(),
             layers=layers,
             ortho=ortho,
+            scene=scene,
         )
 
     def apply(self, viewer: napari.viewer.Viewer):
@@ -178,8 +198,18 @@ class ViewerState:
 
         # The optical section is recomputed from its parameters and the (now
         # applied) dims, so a sweeping/growing slab interpolates smoothly.
+        # When a scene is present it owns every layer's clipping planes, so
+        # the slicer contributes its slab to the composite instead of
+        # assigning it -- otherwise the two would overwrite each other.
+        has_scene = self.scene is not None
         if self.ortho is not None:
-            OrthoSlicer.apply_state(viewer, self.ortho)
+            OrthoSlicer.apply_state(
+                viewer, self.ortho, assign_clipping_planes=not has_scene
+            )
+        if has_scene:
+            from .scene import apply_scene_state
+
+            apply_scene_state(viewer, self.scene, ortho=self.ortho)
 
         # Camera last, so the keyframe's camera wins over anything an
         # ndisplay switch recomputed above.
@@ -213,6 +243,7 @@ class ViewerState:
                 and self.dims == other.dims
                 and self.layers == other.layers
                 and self.ortho == other.ortho
+                and self.scene == other.scene
             )
         else:
             return False

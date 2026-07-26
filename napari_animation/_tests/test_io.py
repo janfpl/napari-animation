@@ -15,10 +15,12 @@ from napari_animation.io import (
 )
 
 
-def _make_keyframe(viewer, name="kf", steps=10, ease=Easing.CUBIC, ortho=None):
+def _make_keyframe(
+    viewer, name="kf", steps=10, ease=Easing.CUBIC, ortho=None, scene=None
+):
     """Build a KeyFrame without a screenshot (no GL required)."""
     return KeyFrame(
-        viewer_state=ViewerState.from_viewer(viewer, ortho=ortho),
+        viewer_state=ViewerState.from_viewer(viewer, ortho=ortho, scene=scene),
         thumbnail=np.random.randint(0, 255, (30, 30, 4), dtype=np.uint8),
         steps=steps,
         ease=ease,
@@ -45,6 +47,51 @@ def test_to_builtin_is_json_serialisable(model_animation):
     assert set(restored["camera"]) == set(state.camera)
     assert set(restored["dims"]) == set(state.dims)
     assert "img" in restored["layers"]
+
+
+def test_scene_survives_a_save_load_round_trip(tmp_path, model_animation):
+    """Clipping planes must come back as usable objects, not strings."""
+    from napari_animation.scene import ClipPlane
+
+    plane = ClipPlane(
+        name="cutaway", position=(2.0, 0.0, 0.0), normal=(0.0, 1.0, 0.0)
+    )
+    model_animation.scene.append(plane)
+    scene = model_animation.scene.to_dict()
+    model_animation.key_frames.append(
+        _make_keyframe(model_animation.viewer, scene=scene)
+    )
+    model_animation.key_frames.append(
+        _make_keyframe(model_animation.viewer, scene=scene)
+    )
+
+    path = model_animation.save_keyframes(tmp_path / "animation.json")
+    model_animation.load_keyframes(path, reload_layers=False)
+
+    restored = model_animation.key_frames[0].viewer_state.scene[plane.id]
+    assert restored["kind"] == "clip_plane"
+    assert restored["name"] == "cutaway"
+    assert tuple(restored["position"]) == (2.0, 0.0, 0.0)
+    # and it still composites onto a viewer after the round trip
+    model_animation.key_frames[0].viewer_state.apply(model_animation.viewer)
+    planes = model_animation.viewer.layers["img"].experimental_clipping_planes
+    assert len(planes) == 1
+
+
+def test_keyframes_without_a_scene_still_load(tmp_path, model_animation):
+    """Files written before scene objects existed must keep working."""
+    model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
+    model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
+    path = model_animation.save_keyframes(tmp_path / "old.json")
+
+    data = json.loads(path.read_text())
+    for key_frame in data["key_frames"]:
+        key_frame["viewer_state"].pop("scene")
+    path.write_text(json.dumps(data))
+
+    model_animation.load_keyframes(path, reload_layers=False)
+
+    assert model_animation.key_frames[0].viewer_state.scene is None
 
 
 def test_thumbnail_round_trip():

@@ -161,11 +161,25 @@ class OrthoSlicer:
 
     @staticmethod
     def apply_state(
-        viewer: "napari.viewer.Viewer", params: Optional[dict]
+        viewer: "napari.viewer.Viewer",
+        params: Optional[dict],
+        assign_clipping_planes: bool = True,
     ) -> None:
-        """Apply ortho-slicer ``params`` (or reset the view if disabled)."""
+        """Apply ortho-slicer ``params`` (or reset the view if disabled).
+
+        Parameters
+        ----------
+        assign_clipping_planes : bool
+            Whether clip mode should write the slab's clipping planes onto the
+            layers itself. Set to ``False`` when a scene compositor owns the
+            layers' clipping planes and will fold in this slicer's
+            contribution (see :func:`napari_animation.scene.apply_scene_state`)
+            -- otherwise the two would overwrite each other.
+        """
         if not params or not params.get("enabled", False):
-            OrthoSlicer._reset(viewer)
+            OrthoSlicer._reset(
+                viewer, clear_clipping_planes=assign_clipping_planes
+            )
             return
 
         thickness = max(1, int(round(params.get("thickness", 1))))
@@ -174,14 +188,44 @@ class OrthoSlicer:
         if axis is None:
             # Nothing sensible to slice (e.g. projection mode with no
             # not-displayed axis); leave the view untouched but reset.
-            OrthoSlicer._reset(viewer)
+            OrthoSlicer._reset(
+                viewer, clear_clipping_planes=assign_clipping_planes
+            )
             return
 
         if mode == "clip":
-            OrthoSlicer._apply_clip(viewer, axis, thickness)
+            OrthoSlicer._apply_clip(
+                viewer, axis, thickness, assign=assign_clipping_planes
+            )
         else:
             projection = params.get("projection_mode", "max")
-            OrthoSlicer._apply_projection(viewer, axis, thickness, projection)
+            OrthoSlicer._apply_projection(
+                viewer,
+                axis,
+                thickness,
+                projection,
+                clear_clipping_planes=assign_clipping_planes,
+            )
+
+    @staticmethod
+    def clip_contributions(
+        viewer: "napari.viewer.Viewer", params: Optional[dict]
+    ) -> dict:
+        """Return the clipping planes this slicer contributes, per layer.
+
+        Empty unless the slicer is enabled and in ``"clip"`` mode. Used by the
+        scene compositor so the optical section and any cutaway planes
+        accumulate rather than overwrite one another.
+        """
+        if not params or not params.get("enabled", False):
+            return {}
+        if params.get("mode", "projection") != "clip":
+            return {}
+        axis = OrthoSlicer._resolve_axis(viewer, params.get("axis"))
+        if axis is None:
+            return {}
+        thickness = max(1, int(round(params.get("thickness", 1))))
+        return OrthoSlicer._slab_planes(viewer, axis, thickness)
 
     # ------------------------------------------------------------------ utils
 
@@ -209,7 +253,9 @@ class OrthoSlicer:
         return step or 1.0
 
     @staticmethod
-    def _apply_projection(viewer, axis, thickness, projection):
+    def _apply_projection(
+        viewer, axis, thickness, projection, clear_clipping_planes=True
+    ):
         step = OrthoSlicer._axis_step(viewer, axis)
         # half-width in world units so that exactly ``thickness`` planes are
         # included symmetrically around the center plane.
@@ -224,7 +270,8 @@ class OrthoSlicer:
 
         for layer in viewer.layers:
             # clip mode (if previously active) is mutually exclusive
-            OrthoSlicer._clear_clipping_planes(layer)
+            if clear_clipping_planes:
+                OrthoSlicer._clear_clipping_planes(layer)
             if hasattr(layer, "projection_mode"):
                 try:
                     layer.projection_mode = projection
@@ -233,15 +280,14 @@ class OrthoSlicer:
                     pass
 
     @staticmethod
-    def _apply_clip(viewer, axis, thickness):
+    def _slab_planes(viewer, axis, thickness) -> dict:
+        """Return the pair of planes bounding the slab, keyed by layer name."""
         step = OrthoSlicer._axis_step(viewer, axis)
         center = float(viewer.dims.point[axis])
         half = (thickness / 2.0) * step
         low, high = center - half, center + half
 
-        # projection margins are mutually exclusive with clip mode
-        OrthoSlicer._reset_margins(viewer)
-
+        contributions = {}
         for layer in viewer.layers:
             if not hasattr(layer, "experimental_clipping_planes"):
                 continue
@@ -262,7 +308,7 @@ class OrthoSlicer:
             pos_high[layer_axis] = data_high
             normal[layer_axis] = 1.0
 
-            layer.experimental_clipping_planes = [
+            contributions[layer.name] = [
                 {
                     "position": tuple(pos_low),
                     "normal": tuple(normal),
@@ -274,12 +320,29 @@ class OrthoSlicer:
                     "enabled": True,
                 },
             ]
+        return contributions
 
     @staticmethod
-    def _reset(viewer):
+    def _apply_clip(viewer, axis, thickness, assign=True):
+        # projection margins are mutually exclusive with clip mode
+        OrthoSlicer._reset_margins(viewer)
+
+        if not assign:
+            # a scene compositor owns the layers' clipping planes and will
+            # fold in this slab via ``clip_contributions``
+            return
+
+        for name, planes in OrthoSlicer._slab_planes(
+            viewer, axis, thickness
+        ).items():
+            viewer.layers[name].experimental_clipping_planes = planes
+
+    @staticmethod
+    def _reset(viewer, clear_clipping_planes=True):
         OrthoSlicer._reset_margins(viewer)
         for layer in viewer.layers:
-            OrthoSlicer._clear_clipping_planes(layer)
+            if clear_clipping_planes:
+                OrthoSlicer._clear_clipping_planes(layer)
             if hasattr(layer, "projection_mode"):
                 try:
                     layer.projection_mode = "none"
