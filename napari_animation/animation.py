@@ -11,6 +11,7 @@ import numpy as np
 from napari.utils.io import imsave
 from tqdm import tqdm
 
+from .diagnostics import RenderDiagnostics
 from .easing import Easing
 from .frame_sequence import FrameSequence
 from .key_frame import KeyFrame, KeyFrameList
@@ -283,6 +284,7 @@ class Animation:
         prefetch=4,
         prefetch_workers=4,
         dask_cache="auto",
+        diagnose=True,
     ):
         """Create a movie based on key-frames
         Parameters
@@ -324,6 +326,13 @@ class Animation:
             being recomputed, and frames sharing a chunk are free. ``"auto"``
             (default) sizes it from available RAM; pass a byte count for a
             fixed size, or ``None``/0 to disable.
+        diagnose : bool
+            If True (default), sample every rendered frame and read the
+            finished file back off disk, then report anything that would make
+            the output unplayable or blank: frames that changed size
+            mid-render, frames that are a single flat colour, frames that never
+            change, a truncated container, or a file too small to hold the
+            frames written.
 
         Notes
         -----
@@ -337,6 +346,11 @@ class Animation:
 
         perf = PerfLogger(enabled=perf_log)
         perf.start()
+
+        # Evidence about what the render actually produced, for the case where
+        # everything reports success but the file is unplayable or blank.
+        diagnostics = RenderDiagnostics(enabled=diagnose)
+        diagnostics.describe_environment()
 
         # create path object
         path_obj = Path(path)
@@ -467,6 +481,8 @@ class Animation:
                             frame = ndi.zoom(
                                 frame, (scale_factor, scale_factor, 1)
                             ).astype(np.uint8)
+                    # sample the frame exactly as it will be encoded
+                    diagnostics.record_frame(ind, frame)
                     frame_queue.put((ind, frame))
                     pbar.update(1)
         finally:
@@ -495,15 +511,24 @@ class Animation:
             print(f"Saved animation to {path}")
             logger.info("Saved animation to %s", path)
             output = path_obj
+            # only a real video file can be decoded back; a PNG folder can't
+            diagnostics.verify_output(path, n_frames)
         else:
             print(f"Saved {n_frames} PNG frames to {folder_path}")
             logger.info("Saved %d PNG frames to %s", n_frames, folder_path)
             output = folder_path
 
+        diagnostics_report = diagnostics.report()
+        if diagnostics_report:
+            print(diagnostics_report)
+            logger.info("%s", diagnostics_report)
+
         if perf_log:
             report = perf.report()
             print(report)
             perf.log_report()
+            if diagnostics_report:
+                report = f"{diagnostics_report}\n\n{report}"
             # also write the report to a file the user can find and report back
             log_path = self._write_render_log(output, n_frames, report)
             if log_path is not None:
