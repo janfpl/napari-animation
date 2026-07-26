@@ -5,8 +5,10 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QErrorMessage,
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QPushButton,
+    QScrollArea,
     QSlider,
     QVBoxLayout,
     QWidget,
@@ -82,16 +84,39 @@ class AnimationWidget(QWidget):
         self.animationSlider.setToolTip("Scroll through animation")
         self.animationSlider.setRange(0, len(self.animation._frames) - 1)
 
-        # Create layout
+        # The panels together are taller than a typical side dock, so they go
+        # in a scroll area. Note that adding them to this container reparents
+        # them away from the AnimationWidget -- fine, because each one reads
+        # ``parentWidget().animation`` in its constructor and caches it.
+        self.contentWidget = QWidget(parent=self)
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        for panel in (
+            self.keyframesListControlWidget,
+            self.keyframesListWidget,
+            self.frameWidget,
+            self.voxelSizeWidget,
+            self.sceneWidget,
+            self.scrollWidget,
+            self.orthoSlicerWidget,
+            self.keyframeIOWidget,
+        ):
+            content_layout.addWidget(panel)
+        content_layout.addStretch(1)
+        self.contentWidget.setLayout(content_layout)
+
+        self.scrollArea = QScrollArea(parent=self)
+        self.scrollArea.setWidget(self.contentWidget)
+        # resize the content to the viewport width, so panels fill the dock
+        # rather than sitting at their minimum width
+        self.scrollArea.setWidgetResizable(True)
+        # no extra border: the dock already provides one
+        self.scrollArea.setFrameShape(QFrame.NoFrame)
+
+        # Create layout. Saving and scrubbing stay pinned below the scroll
+        # area rather than scrolling out of reach with everything else.
         self.setLayout(QVBoxLayout())
-        self.layout().addWidget(self.keyframesListControlWidget)
-        self.layout().addWidget(self.keyframesListWidget)
-        self.layout().addWidget(self.frameWidget)
-        self.layout().addWidget(self.voxelSizeWidget)
-        self.layout().addWidget(self.sceneWidget)
-        self.layout().addWidget(self.scrollWidget)
-        self.layout().addWidget(self.orthoSlicerWidget)
-        self.layout().addWidget(self.keyframeIOWidget)
+        self.layout().addWidget(self.scrollArea)
         self.layout().addWidget(self.saveButton)
         self.layout().addWidget(self.animationSlider)
 

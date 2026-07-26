@@ -48,6 +48,10 @@ class ScrollThroughWidget(QGroupBox):
         # -- view snapping --
         self.view3dButton = QPushButton("3D")
         self.view3dButton.setToolTip("Snap to the 3D volume view")
+        # four short buttons in a row that cannot wrap; without an explicit
+        # minimum, Qt's default button width forces the whole dock wider
+        self.view3dButton.setMinimumWidth(36)
+        self.view3dButton.setMaximumWidth(80)
         self.viewButtons = {}
         view_row = QWidget()
         view_row.setLayout(QHBoxLayout())
@@ -56,6 +60,8 @@ class ScrollThroughWidget(QGroupBox):
         for view in ORTHO_VIEWS:
             button = QPushButton(view)
             button.setToolTip(f"Snap to a flat 2D {view} view")
+            button.setMinimumWidth(36)
+            button.setMaximumWidth(80)
             self.viewButtons[view] = button
             view_row.layout().addWidget(button)
 
@@ -68,6 +74,8 @@ class ScrollThroughWidget(QGroupBox):
         for spin_box in (self.startSpinBox, self.stopSpinBox):
             spin_box.setDecimals(3)
             spin_box.setRange(-1e6, 1e6)
+            spin_box.setMinimumWidth(70)
+            spin_box.setMaximumWidth(120)
         range_row = QWidget()
         range_row.setLayout(QHBoxLayout())
         range_row.layout().setContentsMargins(0, 0, 0, 0)
@@ -81,7 +89,7 @@ class ScrollThroughWidget(QGroupBox):
         self.stepsSpinBox.setValue(30)
         self.stepsSpinBox.setToolTip("Frames the sweep takes")
 
-        self.scrollButton = QPushButton("Add slider scroll-through")
+        self.scrollButton = QPushButton("Add scroll-through")
         self.scrollButton.setToolTip(
             "Two keyframes that differ only in the dims slider"
         )
@@ -91,12 +99,14 @@ class ScrollThroughWidget(QGroupBox):
         self.sliceComboBox.setToolTip(
             "Ortho slice to slide through the volume along its own normal"
         )
-        self.sweepButton = QPushButton("Add ortho slice sweep")
+        self.sweepButton = QPushButton("Add slice sweep")
         self.sweepButton.setToolTip(
             "Two keyframes that sweep the slice across the whole volume"
         )
 
         form = QFormLayout()
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         form.addRow("Snap view", view_row)
         form.addRow("Scroll axis", self.axisComboBox)
         form.addRow("Range", range_row)

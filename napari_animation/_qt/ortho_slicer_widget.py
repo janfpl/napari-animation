@@ -75,6 +75,8 @@ class OrthoSlicerWidget(QGroupBox):
         )
 
         layout = QFormLayout()
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow("View", self.viewComboBox)
         layout.addRow("Thickness (planes)", self.thicknessSpinBox)
         layout.addRow("Section", self.sectionLabel)

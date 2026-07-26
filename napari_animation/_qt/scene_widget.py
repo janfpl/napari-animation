@@ -46,6 +46,10 @@ def _vector_widget(tooltip):
         spin_box = QDoubleSpinBox()
         spin_box.setDecimals(3)
         spin_box.setRange(-1e6, 1e6)
+        # a wide range gives a very wide natural width; three of these side by
+        # side would force the whole dock to scroll horizontally
+        spin_box.setMinimumWidth(62)
+        spin_box.setMaximumWidth(110)
         spin_box.setToolTip(f"{tooltip} ({axis})")
         boxes.append(spin_box)
         layout.addWidget(QLabel(axis))
@@ -111,6 +115,8 @@ class ClipPlaneEditor(_ObjectEditor):
         self.flipButton.setToolTip("Cut away the other side of the plane")
 
         layout = QFormLayout()
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow("Facing", self.orientationComboBox)
         layout.addRow("Position", position_widget)
         layout.addRow("Normal", normal_widget)
@@ -200,6 +206,7 @@ class OrthoSliceEditor(_ObjectEditor):
         self.thicknessSpinBox = QDoubleSpinBox()
         self.thicknessSpinBox.setDecimals(3)
         self.thicknessSpinBox.setRange(0.001, 1e6)
+        self.thicknessSpinBox.setMaximumWidth(130)
         self.thicknessSpinBox.setToolTip(
             "Slab thickness in world units, measured along the normal"
         )
@@ -225,6 +232,8 @@ class OrthoSliceEditor(_ObjectEditor):
             self.manipulatorButton.setToolTip(INSTALL_HINT)
 
         layout = QFormLayout()
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow("Source", self.sourceComboBox)
         layout.addRow("View", self.viewComboBox)
         layout.addRow("Centre", position_widget)
@@ -335,9 +344,14 @@ class SceneWidget(QGroupBox):
             "Objects in the 3D scene. Untick to switch one off; capture a "
             "keyframe to record the state."
         )
+        # keep the list compact: it sits inside a scrolling panel, and a tall
+        # object list would push the editor below it out of view
+        self.listWidget.setMaximumHeight(140)
 
-        self.addPlaneButton = QPushButton("+ Clipping plane")
-        self.addSliceButton = QPushButton("+ Ortho slice")
+        self.addPlaneButton = QPushButton("+ Plane")
+        self.addPlaneButton.setToolTip("Add a clipping plane")
+        self.addSliceButton = QPushButton("+ Slice")
+        self.addSliceButton.setToolTip("Add an ortho slice")
         self.removeButton = QPushButton("Remove")
         self.removeButton.setEnabled(False)
 

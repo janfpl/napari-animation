@@ -55,6 +55,10 @@ class VoxelSizeWidget(QGroupBox):
             spin_box.setDecimals(6)
             spin_box.setRange(1e-6, 1e6)
             spin_box.setValue(1.0)
+            # six decimals over a wide range is a very wide natural width;
+            # three side by side would force the dock to scroll horizontally
+            spin_box.setMinimumWidth(70)
+            spin_box.setMaximumWidth(120)
             spin_box.setToolTip(f"Voxel size along {axis}")
             self.spinBoxes[axis] = spin_box
             axes_layout.addWidget(QLabel(axis))
@@ -77,6 +81,8 @@ class VoxelSizeWidget(QGroupBox):
         )
 
         layout = QFormLayout()
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow("Layer", self.layerComboBox)
         layout.addRow("Spacing", axes_widget)
         layout.addRow("Units", self.unitsComboBox)

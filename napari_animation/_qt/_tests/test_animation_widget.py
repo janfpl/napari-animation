@@ -14,6 +14,82 @@ class _HeadlessViewer(ViewerModel):
         return np.zeros((60, 60, 4), dtype=np.uint8)
 
 
+def test_panels_are_scrollable(qtbot):
+    """The stack of panels is taller than a side dock, so it must scroll.
+
+    Without this the controls at the bottom -- save/load keyframes, the ortho
+    slicer -- are simply unreachable in a normal-height napari window.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    assert widget.scrollArea.widget() is widget.contentWidget
+    # panels stretch to the dock width instead of sitting at minimum width
+    assert widget.scrollArea.widgetResizable() is True
+
+    # every panel is inside the scrolling area, so none can be cut off
+    for panel in (
+        widget.voxelSizeWidget,
+        widget.sceneWidget,
+        widget.scrollWidget,
+        widget.orthoSlicerWidget,
+        widget.keyframeIOWidget,
+    ):
+        assert widget.contentWidget.isAncestorOf(panel)
+
+    # saving and scrubbing stay pinned outside it, always reachable
+    assert not widget.contentWidget.isAncestorOf(widget.saveButton)
+    assert not widget.contentWidget.isAncestorOf(widget.animationSlider)
+
+
+def test_panels_fit_a_normal_dock_width(qtbot):
+    """Vertical scrolling only: the panel must fit a typical side dock.
+
+    A wide control anywhere in the stack forces a *horizontal* scrollbar
+    across the whole dock, which is far more disruptive than the vertical one
+    it is paired with. Form rows wrap and spin boxes are width-capped to keep
+    this in check; this guards against a new panel undoing that.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    minimum = widget.contentWidget.minimumSizeHint().width()
+    assert minimum <= 340, (
+        f"controls need {minimum}px, wider than a normal napari dock; "
+        "cap spin box widths or let the form rows wrap"
+    )
+
+
+def test_panels_still_reach_their_animation(qtbot):
+    """Reparenting into the scroll container must not orphan the panels.
+
+    Each panel resolves ``parentWidget().animation`` in its constructor; if
+    that were deferred it would break once the panel is moved into the
+    scrolling container.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    for panel in (
+        widget.voxelSizeWidget,
+        widget.sceneWidget,
+        widget.scrollWidget,
+        widget.orthoSlicerWidget,
+        widget.frameWidget,
+    ):
+        assert panel.animation is widget.animation
+
+    # and the panels still work after being reparented
+    widget.sceneWidget.add_clip_plane()
+    assert len(widget.animation.scene) == 1
+
+
 def test_cancelling_the_save_dialog_is_a_no_op(qtbot):
     """Regression: backing out of the save dialog used to raise.
 
