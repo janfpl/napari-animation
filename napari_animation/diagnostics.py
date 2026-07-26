@@ -195,6 +195,8 @@ class RenderDiagnostics:
                 f"{read_back} decoded -- the container may be truncated"
             )
 
+        self._probe_streams(path)
+
         encoded = next(iter(shapes), None)
         if encoded and self.first_shape:
             canvas = self.first_shape[:2]
@@ -205,6 +207,43 @@ class RenderDiagnostics:
                     "multiple of 16, which adds a blank strip. Size the napari "
                     "window so both dimensions are multiples of 16 to avoid it"
                 )
+
+    def _probe_streams(self, path) -> None:
+        """Ask ffmpeg what it actually put in the file.
+
+        "The file decodes but will not play" is nearly always a codec or
+        pixel-format compatibility problem rather than corruption, and the only
+        way to tell is to look at the stream. Windows' built-in decoder, for
+        instance, handles H.264 High profile in ``yuv420p`` but not 4:4:4.
+        """
+        import subprocess
+
+        try:
+            import imageio_ffmpeg
+
+            exe = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception as err:  # noqa: BLE001
+            self.notes.append(f"could not locate ffmpeg to probe: {err}")
+            return
+
+        # ffmpeg writes stream info to stderr and exits non-zero when given no
+        # output file; that is the expected path here.
+        kwargs = {"capture_output": True, "text": True, "timeout": 30}
+        if hasattr(subprocess, "CREATE_NO_WINDOW"):
+            # don't flash a console window on Windows
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+        try:
+            result = subprocess.run(
+                [exe, "-hide_banner", "-i", str(path)], **kwargs
+            )
+        except Exception as err:  # noqa: BLE001
+            self.notes.append(f"ffmpeg probe failed: {err}")
+            return
+
+        for line in (result.stderr or "").splitlines():
+            line = line.strip()
+            if line.startswith("Stream #") or line.startswith("Duration:"):
+                self.notes.append(line)
 
     # -------------------------------------------------------------- report
 

@@ -25,6 +25,21 @@ logger = logging.getLogger("napari_animation")
 #: File extensions handled by the imageio-ffmpeg video writer.
 VIDEO_SUFFIXES = (".mov", ".avi", ".mpg", ".mpeg", ".mp4", ".mkv", ".wmv")
 
+#: Containers for which H.264 is the sensible codec, and where forcing the
+#: most widely supported settings is worth doing.
+H264_SUFFIXES = (".mp4", ".mov", ".mkv")
+
+#: Encoder settings chosen for playback compatibility rather than for size.
+#: ``yuv420p`` because hardware and OS-bundled decoders (notably Windows
+#: Media Player and Photos) reject 4:2:2 and 4:4:4 H.264; ``+faststart``
+#: because it moves the moov atom to the front of the file, without which many
+#: players -- and every Explorer/Finder preview -- refuse to open it.
+COMPAT_ENCODER = {
+    "codec": "libx264",
+    "pixelformat": "yuv420p",
+    "output_params": ["-movflags", "+faststart"],
+}
+
 
 class Animation:
     """Make animations using the napari viewer.
@@ -285,6 +300,7 @@ class Animation:
         prefetch_workers=4,
         dask_cache="auto",
         diagnose=True,
+        compat=True,
     ):
         """Create a movie based on key-frames
         Parameters
@@ -333,6 +349,14 @@ class Animation:
             mid-render, frames that are a single flat colour, frames that never
             change, a truncated container, or a file too small to hold the
             frames written.
+        compat : bool
+            If True (default), encode ``.mp4``/``.mov``/``.mkv`` with the most
+            widely playable settings -- H.264 in ``yuv420p`` with the moov atom
+            moved to the front of the file -- rather than leaving the codec and
+            pixel format to whatever the installed ffmpeg happens to default
+            to. This is what makes the output open in OS-bundled players such
+            as Windows Media Player and Photos. Set to False to let imageio
+            choose.
 
         Notes
         -----
@@ -377,8 +401,16 @@ class Animation:
             try:
                 # gif doesn't accept the quality parameter
                 if path_obj.suffix in VIDEO_SUFFIXES:
+                    writer_kwargs = {"fps": fps, "quality": quality}
+                    if compat and path_obj.suffix in H264_SUFFIXES:
+                        writer_kwargs.update(COMPAT_ENCODER)
+                        settings = ", ".join(
+                            f"{k}={v}" for k, v in COMPAT_ENCODER.items()
+                        )
+                        print(f"Encoder (compatibility mode): {settings}")
+                        logger.info("Encoder settings: %s", settings)
                     writer = imageio.get_writer(
-                        path, fps=fps, quality=quality, format=format
+                        path, format=format, **writer_kwargs
                     )
                 else:
                     writer = imageio.get_writer(path, fps=fps, format=format)

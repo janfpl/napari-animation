@@ -223,6 +223,58 @@ def test_animate_can_disable_diagnostics(tmp_path, capsys):
     assert "render diagnostics" not in capsys.readouterr().out
 
 
+def test_output_stream_parameters_are_reported(tmp_path):
+    """ "Decodes but won't play" is a codec problem, so name the codec."""
+    imageio = pytest.importorskip("imageio")
+    pytest.importorskip("imageio_ffmpeg")
+
+    path = tmp_path / "probe.mp4"
+    writer = imageio.get_writer(str(path), fps=10, quality=5)
+    for i in range(6):
+        writer.append_data(_varied_frame(i, shape=(64, 48)))
+    writer.close()
+
+    diagnostics = RenderDiagnostics()
+    diagnostics.verify_output(path, 6)
+    report = diagnostics.report()
+
+    assert "Stream #0:0" in report
+    assert "h264" in report
+    assert "yuv420p" in report
+
+
+def test_compat_encoding_is_applied_and_announced(tmp_path, capsys):
+    """mp4 output must not depend on the local ffmpeg's default codec."""
+    pytest.importorskip("imageio_ffmpeg")
+    from napari.components import ViewerModel
+
+    from napari_animation import Animation
+    from napari_animation.animation import COMPAT_ENCODER
+
+    class _HeadlessViewer(ViewerModel):
+        def screenshot(self, *args, **kwargs):
+            frame = np.zeros((64, 48, 4), dtype=np.uint8)
+            frame[..., 3] = 255
+            frame[:, int(self.camera.angles[2]) % 40] = 255
+            return frame
+
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((4, 16, 16)), name="img")
+    animation = Animation(viewer)
+    viewer.camera.angles = (0, 0, 0)
+    animation.capture_keyframe()
+    viewer.camera.angles = (0, 0, 30)
+    animation.capture_keyframe(steps=6)
+
+    animation.animate(str(tmp_path / "movie.mp4"), fps=10, perf_log=False)
+
+    out = capsys.readouterr().out
+    assert "compatibility mode" in out
+    assert COMPAT_ENCODER["pixelformat"] in out
+    # and the file really is in that pixel format
+    assert "yuv420p" in out
+
+
 def test_macro_block_padding_is_explained(tmp_path):
     """Sizes not divisible by 16 get padded; say so rather than leaving a
     mystery black strip."""
