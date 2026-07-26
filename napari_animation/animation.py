@@ -181,6 +181,76 @@ class Animation:
         # the interpolation cache holds states built from the old value
         self._frames._rebuild_frame_index()
 
+    def set_voxel_size(self, layer_name, scale, units=None):
+        """Correct the physical voxel spacing of a layer.
+
+        Use this when a file's metadata is wrong -- most commonly a TIFF whose
+        Z spacing does not match the microscope's step size, which leaves the
+        volume stretched or squashed along Z.
+
+        The spacing is applied to the live layer *and* rewritten into every
+        keyframe already captured. Without that, replaying an older keyframe
+        would restore the wrong spacing, because ``scale`` is part of the
+        captured layer state. Voxel size describes the data rather than the
+        animation, so it is corrected everywhere rather than being keyframed.
+
+        Parameters
+        ----------
+        layer_name : str
+            Name of the layer to correct.
+        scale : sequence of float
+            Physical size of one voxel. Applied to the layer's trailing axes,
+            so a 3-element ``(z, y, x)`` works for a layer that also has
+            leading time or channel axes.
+        units : str or sequence of str, optional
+            Physical unit for the spacing, e.g. ``"um"``. Applied to the same
+            trailing axes.
+        """
+        if layer_name not in self.viewer.layers:
+            raise KeyError(f"No layer named {layer_name!r}")
+
+        layer = self.viewer.layers[layer_name]
+        scale = [float(value) for value in scale]
+        if any(value == 0 for value in scale):
+            raise ValueError("Voxel size must be non-zero on every axis")
+
+        new_scale = list(layer.scale)
+        new_scale[-len(scale) :] = scale[-len(new_scale) :]
+        layer.scale = new_scale
+
+        new_units = None
+        if units is not None:
+            if isinstance(units, str):
+                units = [units] * len(scale)
+            try:
+                new_units = list(layer.units)
+                new_units[-len(units) :] = list(units)[-len(new_units) :]
+                layer.units = new_units
+            except (AttributeError, ValueError, TypeError):
+                # older napari, or a unit string it will not accept
+                new_units = None
+
+        self._rewrite_keyframe_layer_state(
+            layer_name, scale=new_scale, units=new_units
+        )
+        return tuple(new_scale)
+
+    def _rewrite_keyframe_layer_state(self, layer_name, **values):
+        """Overwrite one layer's captured properties in every keyframe."""
+        changed = False
+        for key_frame in self.key_frames:
+            state = key_frame.viewer_state
+            if layer_name not in state.layers:
+                continue
+            layers = {k: dict(v) for k, v in state.layers.items()}
+            for key, value in values.items():
+                if value is not None and key in layers[layer_name]:
+                    layers[layer_name][key] = list(value)
+            key_frame.viewer_state = replace(state, layers=layers)
+            changed = True
+        if changed:
+            self._frames._rebuild_frame_index()
+
     def set_layer_visible(
         self, keyframe_index: int, layer_name: str, visible: bool
     ):

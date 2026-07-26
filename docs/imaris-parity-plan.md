@@ -10,10 +10,10 @@ Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
 This document is the design/implementation plan.
 
-**Status:** Phases 0, 1 and 2 (§5) are implemented and tested — the
-state-capture and interpolation foundations, N animatable clipping planes with
-the compositor, and ortho slices backed by real napari layers. The Qt widgets
-for Phases 1–2, and Phases 3–5, are still design only. See
+**Status:** Phases 0, 1 and 2 (§5) are implemented and tested, including
+their Qt widgets — the state-capture and interpolation foundations, N
+animatable clipping planes with the compositor, and ortho slices backed by real
+napari layers, all drivable from the GUI. Phases 3–5 are still design only. See
 `examples/imaris_style_flythrough.py` for the API in use.
 
 ---
@@ -519,9 +519,10 @@ unusable in napari's selectable evented list — `register_kind` restores it.
 And `ViewerModel` has no `screenshot`, so testing the capture API headlessly
 needs the small `HeadlessViewer` subclass in that file.
 
-*Outstanding:* the Qt widget — add/remove/rename planes, position + normal
-spinboxes, orientation presets, per-plane target-layer selector, "flip normal"
-button (`ClipPlane.flipped()` already exists).
+*Widget:* `_qt/scene_widget.py` — an Imaris-style object list with
+add/remove/rename, a per-object on/off tick, and a `ClipPlaneEditor` with
+position and normal spin boxes, orientation presets, a flip button and a
+target-layer selector.
 
 ### Phase 2 — Ortho slices (R2) ✅ *model implemented; widget outstanding*
 
@@ -547,12 +548,24 @@ button (`ClipPlane.flipped()` already exists).
 
 *Tests:* `_tests/test_ortho_slice.py`, 18 tests.
 
-*Outstanding:* the Qt widget — orientation preset (XY/XZ/YZ/oblique),
-thickness in physical units (reuse `physical_step`), projection type, source
-layer + pyramid level, VRAM estimate, and an "Edit in canvas" button wired to
-`_manipulators.attach_plane_manipulator`. Also still to do: port the legacy
-`OrthoSlicer` onto `OrthoSlice` as a third `"dims"` render mode, so there is
-one ortho-slice concept rather than two.
+*Widget:* `OrthoSliceEditor` in `_qt/scene_widget.py` — source layer, view
+preset (XY/XZ/YZ/custom), centre and normal, thickness in world units,
+projection type, render mode, and an "Edit in canvas" button wired to
+`_manipulators.attach_plane_manipulator` (disabled with an install hint when
+napari-threedee is absent).
+
+Also added alongside these: `_qt/voxel_size_widget.py` and
+`Animation.set_voxel_size`, for correcting the physical voxel spacing of
+imported files. This is a prerequisite rather than a nicety — slab thickness is
+specified in world units and clipping planes are positioned in world
+coordinates, so neither is physically meaningful until the voxel size is right.
+A corrected spacing is written into every already-captured keyframe, because
+`scale` is part of the captured layer state and replaying an old keyframe would
+otherwise restore the wrong spacing.
+
+*Outstanding:* pyramid-level selection and a VRAM estimate on the slice panel;
+and porting the legacy `OrthoSlicer` onto `OrthoSlice` as a third `"dims"`
+render mode, so there is one ortho-slice concept rather than two.
 
 ### Phase 3 — 2D/3D (R3)
 
