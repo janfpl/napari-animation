@@ -86,6 +86,84 @@ def test_add_ortho_slice_creates_a_backing_layer(scene_widget, animation):
     assert animation.viewer.layers["Ortho slice"].depiction == "plane"
 
 
+def test_slice_channel_checklist_adds_an_overlay(scene_widget, animation):
+    animation.viewer.dims.ndisplay = 3
+    animation.viewer.add_image(
+        np.ones((10, 20, 20)), name="second", colormap="green"
+    )
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    section = animation.scene[-1]
+    item = next(
+        editor.channelList.item(index)
+        for index in range(editor.channelList.count())
+        if editor.channelList.item(index).text() == "second"
+    )
+    item.setCheckState(Qt.Checked)
+    assert section.channels is not None
+    assert len([v for v in section.channels.values() if v["enabled"]]) == 2
+    assert any(
+        layer.metadata.get("napari_animation.composite") == section.id
+        and layer.metadata.get("napari_animation.object_id") != section.id
+        for layer in animation.viewer.layers
+    )
+
+
+def test_slice_channel_can_use_a_custom_color(scene_widget, animation):
+    animation.viewer.dims.ndisplay = 3
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    section = animation.scene[-1]
+    editor.channelList.setCurrentRow(0)
+    editor.channelAppearance.setCurrentText("Custom")
+    editor.channelColor.setCurrentText("magenta")
+    source_id = next(iter(section.channels))
+    assert section.channels[source_id]["appearance"]["colormap"] == "magenta"
+    assert animation.viewer.layers["Ortho slice"].colormap.name == "magenta"
+
+
+def test_slice_channel_all_and_none_respect_search(scene_widget, animation):
+    animation.viewer.dims.ndisplay = 3
+    animation.viewer.add_image(np.ones((10, 20, 20)), name="second")
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    section = animation.scene[-1]
+    editor.channelSearch.setText("second")
+    editor.channelAllButton.click()
+    assert sum(binding["enabled"] for binding in section.channels.values()) == 2
+    editor.channelNoneButton.click()
+    assert sum(binding["enabled"] for binding in section.channels.values()) == 1
+
+
+def test_missing_channel_relinks_only_when_selected(scene_widget, animation):
+    animation.viewer.dims.ndisplay = 3
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    section = animation.scene[-1]
+    editor.channelAppearance.setCurrentText("Custom")
+    old_id = section.source_id
+    original = animation.viewer.layers["img"]
+    animation.viewer.layers.remove(original)
+    replacement = animation.viewer.add_image(
+        np.ones((10, 20, 20)), name="img"
+    )
+    new_id = animation.layer_registry.source_id(replacement)
+    assert old_id != new_id
+    editor.read(section)
+    assert section.source_id == old_id
+    missing = next(
+        editor.channelList.item(index)
+        for index in range(editor.channelList.count())
+        if editor.channelList.item(index).data(Qt.UserRole) == old_id
+    )
+    editor.channelList.setCurrentItem(missing)
+    editor.channelRelink.setCurrentIndex(editor.channelRelink.findData(new_id))
+    editor.channelRelinkButton.click()
+    assert section.source_id == new_id
+    assert old_id not in section.channels
+    assert section.channels[new_id]["enabled"]
+
+
 def test_new_objects_are_placed_at_the_data_centre(scene_widget, animation):
     scene_widget.add_clip_plane()
 
@@ -204,6 +282,39 @@ def test_editing_thickness_reaches_the_layer(scene_widget, animation):
     assert animation.viewer.layers["Ortho slice"].plane.thickness == (
         pytest.approx(6.0)
     )
+
+
+def test_centre_z_slider_scrolls_slice_and_tracks_numeric_control(
+    scene_widget, animation
+):
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    slider = editor.centreZSlider
+    lower, upper = animation.viewer.layers["img"].extent.world[:, -3]
+
+    assert slider.isEnabled()
+    slider.setValue(slider.maximum())
+    assert editor.positionBoxes[0].value() == pytest.approx(upper, abs=0.001)
+    assert animation.scene[0].position[0] == pytest.approx(upper, abs=0.001)
+    assert animation.viewer.layers["Ortho slice"].plane.position[0] == (
+        pytest.approx(upper, abs=0.001)
+    )
+
+    editor.positionBoxes[0].setValue(lower)
+    assert slider.value() == slider.minimum()
+
+
+def test_centre_z_slider_uses_selected_source_extent(scene_widget, animation):
+    animation.viewer.add_image(
+        np.zeros((5, 20, 20)), name="offset", translate=(50, 0, 0)
+    )
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    editor.sourceComboBox.setCurrentText("offset")
+
+    editor.centreZSlider.setValue(editor.centreZSlider.maximum())
+    upper = animation.viewer.layers["offset"].extent.world[1, -3]
+    assert animation.scene[0].position[0] == pytest.approx(upper, abs=0.001)
 
 
 def test_projection_reaches_the_layer(scene_widget, animation):

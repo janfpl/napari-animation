@@ -1,0 +1,29 @@
+........................................................................ [ 59%]
+.................................................                        [100%]
+============================== warnings summary ===============================
+napari_animation/_tests/test_review_followup.py::test_snapshot_validates_destination_source_transform
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+napari_animation/_tests/test_renderer_regressions.py::test_signed_and_permuted_axes_match_visible_pixel_oracle[transform1]
+  D:\081926\napari-animation-claude-3d-animation-capabilities-3phx02\.venv\Lib\site-packages\napari\layers\utils\_slice_input.py:195: UserWarning: Non-orthogonal slicing is being requested, but is not fully supported. Data is displayed without applying an out-of-slice rotation or shear component.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================ slowest 10 durations =============================
+0.35s call     napari_animation/_tests/test_prefetch.py::test_read_keys_accepts_napari_multiscale_container
+0.26s call     napari_animation/_tests/test_numba_projection.py::test_projection_matches_numpy[uint16-max-0]
+0.24s call     napari_animation/_tests/test_ortho_slice.py::test_active_section_is_captured_and_restored
+0.20s setup    napari_animation/_tests/test_scroll_through.py::test_snap_2d_flattens_and_orients
+0.17s call     napari_animation/_tests/test_review_followup.py::test_absent_scene_clears_outputs_and_restores_source[None]
+0.17s call     napari_animation/_tests/test_review_followup.py::test_keyframe_selection_applies_snapshot_once
+0.13s setup    napari_animation/_tests/test_ortho_slice.py::test_thickness_accounts_for_anisotropy
+0.12s call     napari_animation/_tests/test_review_followup.py::test_colliding_managed_name_does_not_change_each_render
+0.12s call     napari_animation/_tests/test_review_followup.py::test_initial_authored_position_is_not_replaced_by_dims
+0.11s call     napari_animation/_tests/test_renderer_regressions.py::test_2d_visibility_override_preserves_each_snapshot_authored_value
+Results (7.04s):
+       121 passed
+        10 deselected
+         7 warnings

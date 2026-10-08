@@ -373,6 +373,7 @@ def test_macro_block_padding_is_explained(tmp_path):
     mystery black strip."""
     imageio = pytest.importorskip("imageio")
     pytest.importorskip("imageio_ffmpeg")
+    from napari_animation.video_padding import pad_video_frame
 
     path = tmp_path / "padded.mp4"
     diagnostics = RenderDiagnostics()
@@ -381,7 +382,7 @@ def test_macro_block_padding_is_explained(tmp_path):
         # 546 is not a multiple of 16, matching the reported canvas height
         frame = _varied_frame(i, shape=(546, 448))
         diagnostics.record_frame(i, frame)
-        writer.append_data(frame)
+        writer.append_data(pad_video_frame(frame))
     writer.close()
 
     diagnostics.verify_output(path, 4)
@@ -389,3 +390,4 @@ def test_macro_block_padding_is_explained(tmp_path):
 
     assert "was encoded as" in report
     assert "multiple of 16" in report
+    assert "black pixels" in report

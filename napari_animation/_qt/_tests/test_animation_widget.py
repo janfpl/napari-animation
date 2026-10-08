@@ -110,6 +110,21 @@ def test_cancelling_the_save_dialog_is_a_no_op(qtbot):
     animate.assert_not_called()
 
 
+def test_incompatible_layer_units_are_visible_in_animation_dock(qtbot):
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.zeros((3, 4, 5)), name="physical", units=("um",) * 3)
+    other = viewer.add_image(np.zeros((3, 4, 5)), name="pixels")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    assert widget.unitsWarningLabel.isHidden() is False
+    assert "incompatible units" in widget.unitsWarningLabel.text()
+    assert "physical" in widget.unitsWarningLabel.toolTip()
+
+    other.units = ("um",) * 3
+    assert widget.unitsWarningLabel.isHidden()
+
+
 def test_animation_widget(make_napari_viewer, qtbot):
     viewer = make_napari_viewer()
     viewer.add_image(np.random.random((28, 28)))

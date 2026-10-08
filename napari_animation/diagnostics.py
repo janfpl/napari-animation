@@ -209,9 +209,10 @@ class RenderDiagnostics:
             if tuple(encoded[:2]) != tuple(canvas):
                 self.notes.append(
                     f"note: canvas {canvas[1]}x{canvas[0]} was encoded as "
-                    f"{encoded[1]}x{encoded[0]}; ffmpeg pads frames up to a "
-                    "multiple of 16, which adds a blank strip. Size the napari "
-                    "window so both dimensions are multiples of 16 to avoid it"
+                    f"{encoded[1]}x{encoded[0]}; export pads frames up to a "
+                    "multiple of 16 with black pixels on the right and "
+                    "bottom. Size the napari window so both dimensions are "
+                    "multiples of 16 to avoid it"
                 )
 
     def _flag_suspicious_size(self, size: int, expected_frames: int) -> None:

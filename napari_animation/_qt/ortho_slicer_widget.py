@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from qtpy.QtCore import QTimer
 from qtpy.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -33,6 +34,10 @@ class OrthoSlicerWidget(QGroupBox):
     def __init__(self, parent=None):
         super().__init__("Ortho slicer", parent=parent)
         self.animation: Animation = self.parentWidget().animation
+        self._apply_timer = QTimer(self)
+        self._apply_timer.setSingleShot(True)
+        self._apply_timer.setInterval(40)
+        self._apply_timer.timeout.connect(self.animation.apply_working_state)
         self.setCheckable(True)
         self.setChecked(self.animation.ortho_slicer.enabled)
         self.setToolTip(
@@ -137,10 +142,10 @@ class OrthoSlicerWidget(QGroupBox):
         self._sync_slicer_from_widgets()
         self._update_enabled_state()
         self._update_section_label()
-        self.animation.ortho_slicer.apply(self.animation.viewer)
+        self._apply_timer.start()
 
     def _on_dims_changed(self, event=None):
         """Re-center the optical section when the selected plane changes."""
         self._update_section_label()
         if self.animation.ortho_slicer.enabled:
-            self.animation.ortho_slicer.apply(self.animation.viewer)
+            self._apply_timer.start()

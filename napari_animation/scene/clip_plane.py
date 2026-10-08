@@ -78,8 +78,8 @@ class ClipPlane(SceneObject):
             normal = world_to_data_normal(layer, self.normal)
             yield layer.name, [
                 {
-                    "position": tuple(position.tolist()),
-                    "normal": tuple(normal.tolist()),
+                    "position": tuple(position[-3:].tolist()),
+                    "normal": tuple(normal[-3:].tolist()),
                     "enabled": True,
                 }
             ]

@@ -21,6 +21,7 @@ from qtpy.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -80,15 +81,21 @@ class VoxelSizeWidget(QGroupBox):
             "since voxel size describes the data rather than the animation"
         )
 
-        layout = QFormLayout()
-        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
-        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        layout.addRow("Layer", self.layerComboBox)
-        layout.addRow("Spacing", axes_widget)
-        layout.addRow("Units", self.unitsComboBox)
-        layout.addRow(self.allLayersCheckBox)
-        layout.addRow(self.applyButton)
-        self.setLayout(layout)
+        self._contents = QWidget(self)
+        form_layout = QFormLayout(self._contents)
+        form_layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        form_layout.addRow("Layer", self.layerComboBox)
+        form_layout.addRow("Spacing", axes_widget)
+        form_layout.addRow("Units", self.unitsComboBox)
+        form_layout.addRow(self.allLayersCheckBox)
+        form_layout.addRow(self.applyButton)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self._contents)
+        self.setCheckable(True)
+        self.toggled.connect(self._contents.setVisible)
+        self.setChecked(False)
+        self._contents.hide()
 
         self.layerComboBox.currentIndexChanged.connect(self._load_from_layer)
         self.applyButton.clicked.connect(self._apply)
@@ -146,6 +153,7 @@ class VoxelSizeWidget(QGroupBox):
         self.spinBoxes["Z"].setEnabled(layer.ndim >= 3)
 
         unit = str(next(iter(getattr(layer, "units", []) or []), "")).lower()
+        unit = {"micrometer": "um", "nanometer": "nm", "millimeter": "mm"}.get(unit, unit)
         for index, candidate in enumerate(UNITS):
             if unit.startswith(candidate.rstrip("s")) or unit == candidate:
                 self.unitsComboBox.setCurrentIndex(index)

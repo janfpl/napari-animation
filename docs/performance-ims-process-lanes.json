@@ -1,0 +1,129 @@
+{
+  "file": "D:\\081926\\single tile.ims",
+  "dataset": "DataSet/ResolutionLevel 1/TimePoint 0/Channel 0/Data",
+  "shape": [
+    1024,
+    1024,
+    1024
+  ],
+  "chunks": [
+    128,
+    64,
+    64
+  ],
+  "axis": 0,
+  "intervals": [
+    [
+      120,
+      124
+    ],
+    [
+      121,
+      125
+    ]
+  ],
+  "direct": [
+    {
+      "seconds": 0.5759,
+      "shape": [
+        1024,
+        1024
+      ],
+      "sum_uint64": 49662669
+    },
+    {
+      "seconds": 0.5776,
+      "shape": [
+        1024,
+        1024
+      ],
+      "sum_uint64": 49819921
+    }
+  ],
+  "process_pools": [
+    {
+      "lanes": 1,
+      "requests": [
+        {
+          "seconds": 0.8013,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49662669
+        },
+        {
+          "seconds": 0.5825,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49819921
+        }
+      ]
+    },
+    {
+      "lanes": 2,
+      "requests": [
+        {
+          "seconds": 0.5152,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49662669
+        },
+        {
+          "seconds": 0.2909,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49819921
+        }
+      ]
+    },
+    {
+      "lanes": 4,
+      "requests": [
+        {
+          "seconds": 0.4048,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49662669
+        },
+        {
+          "seconds": 0.1528,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49819921
+        }
+      ]
+    },
+    {
+      "lanes": 8,
+      "requests": [
+        {
+          "seconds": 0.404,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49662669
+        },
+        {
+          "seconds": 0.0828,
+          "shape": [
+            1024,
+            1024
+          ],
+          "sum_uint64": 49819921
+        }
+      ]
+    }
+  ]
+}

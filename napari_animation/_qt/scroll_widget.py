@@ -91,7 +91,8 @@ class ScrollThroughWidget(QGroupBox):
 
         self.scrollButton = QPushButton("Add scroll-through")
         self.scrollButton.setToolTip(
-            "Two keyframes that differ only in the dims slider"
+            "Scroll stack slices in 2D (or a non-displayed axis such as time "
+            "in 3D). Use Add slice sweep to move a visible section in 3D."
         )
 
         # -- ortho slice sweep --
@@ -135,6 +136,7 @@ class ScrollThroughWidget(QGroupBox):
 
         self.viewer.dims.events.ndisplay.connect(self.refresh)
         self.viewer.dims.events.order.connect(self.refresh)
+        self.viewer.dims.events.axis_labels.connect(self.refresh)
         self.viewer.layers.events.inserted.connect(self.refresh)
         self.viewer.layers.events.removed.connect(self.refresh)
 
@@ -153,8 +155,17 @@ class ScrollThroughWidget(QGroupBox):
         self.axisComboBox.blockSignals(True)
         self.axisComboBox.clear()
         labels = [str(label) for label in dims.axis_labels]
+        spatial_start = max(0, dims.ndim - 3)
+        spatial_names = ("Z", "Y", "X")[-min(dims.ndim, 3):]
         for axis in range(dims.ndim):
-            self.axisComboBox.addItem(f"{axis}: {labels[axis]}", axis)
+            if axis >= spatial_start:
+                name = spatial_names[axis - spatial_start]
+            else:
+                # Keep user-provided names for leading dimensions (for
+                # example Time); napari's numeric defaults are not useful.
+                label = labels[axis]
+                name = label if not label.lstrip("-").isdigit() else f"Axis {axis}"
+            self.axisComboBox.addItem(name, axis)
         # default to the current slider axis, which is what a user scrolling
         # by hand would be moving
         not_displayed = tuple(dims.not_displayed)

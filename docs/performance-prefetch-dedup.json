@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 3/TimePoint 0/Channel 0/Data",
+      "shape": [
+        256,
+        256,
+        256
+      ],
+      "native_chunks": [
+        128,
+        64,
+        64
+      ],
+      "lookahead_frames": 3,
+      "concurrent_frame_reads": 48,
+      "deduplicated_reads": 16,
+      "scheduled_tasks": 1
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data_4_4_4",
+      "shape": [
+        128,
+        512,
+        512
+      ],
+      "native_chunks": [
+        64,
+        64,
+        64
+      ],
+      "lookahead_frames": 3,
+      "concurrent_frame_reads": 192,
+      "deduplicated_reads": 64,
+      "scheduled_tasks": 1
+    }
+  ]
+}

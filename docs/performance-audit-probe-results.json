@@ -1,0 +1,39 @@
+{
+  "scope": "synthetic array/model checks; no Qt canvas, disk or GPU timing",
+  "unchanged_ensure_layer_calls": 3,
+  "backing_data_events": 3,
+  "multiscale_container": "MultiScaleData",
+  "prefetch_returns_container_instead_of_level": true,
+  "multiscale_prefetch_read_key_count": 1,
+  "multiscale_prefetch_read_error": "TypeError: list indices must be integers or slices, not tuple",
+  "array_protocol_take_full_materializations": 1,
+  "basic_slice_full_materializations": 0,
+  "basic_slice_requests": 1,
+  "controller_call_counts_without_qt_canvas": {
+    "snap_XY_capture_false": {
+      "apply_working": 1,
+      "ensure_layer": 1,
+      "_apply_2d": 1
+    },
+    "add_scroll_through": {
+      "apply_working": 5,
+      "ensure_layer": 11,
+      "_apply_2d": 8,
+      "screenshot": 2,
+      "apply": 3
+    },
+    "add_slice_sweep": {
+      "apply_working": 6,
+      "ensure_layer": 14,
+      "_apply_2d": 10,
+      "screenshot": 2,
+      "apply": 4
+    },
+    "select_first_keyframe": {
+      "apply": 2,
+      "ensure_layer": 6,
+      "_apply_2d": 4,
+      "apply_working": 2
+    }
+  }
+}

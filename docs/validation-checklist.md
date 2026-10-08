@@ -89,7 +89,7 @@ plane visibly skewed away from 45° when Z spacing differs from XY.
 |---|---|---|
 | 4.1 | **+ Ortho slice** | a slab appears; a new layer shows in napari's layer list |
 | 4.2 | Untick the layer in **napari's own** layer list | slab hides — it is a real layer |
-| 4.3 | Drag Centre Z | slab scrolls through the volume |
+| 4.3 | Drag the Centre Z slider, then edit the Centre Z number | slab scrolls through the source volume and the two controls stay in sync |
 | 4.4 | Increase Thickness | slab visibly thickens; a max projection through more material |
 | 4.5 | Projection max → mean → min | rendering changes accordingly |
 | 4.6 | View preset XY / XZ / YZ | slab re-orients |

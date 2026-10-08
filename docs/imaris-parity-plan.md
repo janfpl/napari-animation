@@ -1,5 +1,12 @@
 # Plan: Imaris-equivalent 3D animation capabilities
 
+> Implementation review, 2026-09-21: use
+> [the implementation guide](imaris-implementation-guide.md) for the corrective
+> architecture, ordered fixes for B01-B11, and acceptance tests. It supersedes
+> conflicting completion claims and implementation choices below. This original
+> plan is retained as design history; passing model tests alone does not establish
+> rendered-image correctness or a complete save/reopen/edit workflow.
+
 Target: the kind of movie produced by Imaris' Animation tab — a volume-rendered
 dataset that is progressively cut away by several clipping planes, with
 orthogonal slice planes of a defined thickness sweeping through the volume,
@@ -10,12 +17,17 @@ Commun. 13, 3417 (2022) — a cleared whole-brain light-sheet volume.)
 
 This document is the design/implementation plan.
 
-**Status:** Phases 0–3 (§5) are implemented and tested, including their Qt
-widgets — the state-capture and interpolation foundations, N animatable
-clipping planes with the compositor, ortho slices backed by real napari layers,
-and 2D/3D snapping with scroll-through generation, all drivable from the GUI.
-Phases 4–5 are still design only. See `examples/imaris_style_flythrough.py` for
-the API in use.
+**Status:** The original Phase 0–3 foundation and its Qt widgets are implemented
+and tested. The follow-up implementation pass also covers per-keyframe object
+toggles, controller-owned timing edits, 2D/3D thick-section application,
+multiscale/source rebinding, native plane edit capture, version-2 persistence
+with v1 migration, active-section selection, source-ID keyed snapshots, and the
+`SceneRenderer`/`LayerRegistry` split. Axis-aligned true-2D sections have a
+numeric pixel oracle and oblique/transformed true-2D sections fail before
+mutating the viewer; arbitrary oblique sections remain a future resampling
+backend. Remaining product work is the reference flythrough example, user-facing
+source relinking, and visual/GPU acceptance coverage. See
+`examples/imaris_style_flythrough.py` for the API in use.
 
 ---
 
@@ -584,8 +596,9 @@ render mode, so there is one ortho-slice concept rather than two.
   sections sweep correctly. Limits default to the source data's bounding box
   *projected onto the normal*, so the slab travels the full depth whatever
   direction it faces.
-* **Plane-mode slices auto-hide in 2D**, where a slab layer would just redraw
-  its source on top of itself.
+* **Plane-mode slices use the source layer's native thick-slice projection in
+  2D** and hide the managed backing plane to avoid drawing the source twice;
+  returning to 3D restores the plane depiction.
 * **Widget:** `_qt/scroll_widget.py` — 3D/XY/XZ/YZ snap buttons, an axis
   selector that follows the snapped view until the user overrides it, a range
   prefilled from the data extent, a step count, and buttons to generate either
@@ -609,10 +622,11 @@ half-applied.
 
 ### Phase 5 — Polish
 
-* `FILE_FORMAT_VERSION` → `"2"` (`io.py:35`) with a v1→v2 upgrade path that
-  converts the old single `ortho` dict into one `OrthoSlice` scene object.
-  Serialisation itself needs no new code — `_to_builtin` already handles the
-  nested float/bool dicts (verified).
+* `FILE_FORMAT_VERSION` → `"2"` (`io.py:39`) with a v1→v2 upgrade path that
+  preserves the old `ortho` dict as a compatibility input, adds source-layer
+  IDs, validates before replacing the live timeline, and writes atomically.
+  Converting legacy `ortho` into a first-class scene object remains a later
+  migration once the source registry exists.
 * An `examples/imaris_style_flythrough.py` reproducing the reference movie:
   volume + 2 cutaway planes + 1 sweeping ortho slice + orbiting camera.
 * README section and screenshots.

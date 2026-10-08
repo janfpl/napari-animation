@@ -113,6 +113,8 @@ itself — so if you add one in 2D, nothing appears and it looks broken.
 - **Source** — which layer's data it shows.
 - **View** — `XY` faces down Z, `XZ` down Y, `YZ` down X. Or type a **Normal**
   by hand for an oblique section.
+- **Centre Z** — drag the slider to scroll through the source volume, or enter
+  an exact world-coordinate value in the Centre Z box. The controls stay in sync.
 - **Thickness** — in world units, measured along the normal. At 2 µm Z
   spacing, a 10 µm XY slab is 5 planes thick.
 - **Projection** — `max` / `mean` / `min` through that thickness.

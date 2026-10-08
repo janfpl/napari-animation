@@ -158,12 +158,41 @@ def test_scroll_through_returns_its_keyframes(animation):
     assert list(animation.key_frames) == [first, last]
 
 
+def test_endpoint_helpers_do_not_take_synchronous_screenshots(animation, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        HeadlessViewer, "screenshot",
+        lambda *args, **kwargs: calls.append(1),
+    )
+    animation.snap_2d("XY", capture=False)
+    first, last = animation.add_scroll_through(steps=4)
+    assert not calls
+    assert first is animation.key_frames[0]
+    assert last is animation.key_frames[1]
+    assert animation.key_frames.selection.active is last
+
+    section = animation.add_scene_object(
+        OrthoSlice(name="section", source="img")
+    )
+    animation.add_slice_sweep(section, steps=4)
+    assert not calls
+
+
 def test_enter_steps_controls_the_approach(animation):
     animation.capture_keyframe()
     animation.add_scroll_through(steps=10, enter_steps=7)
 
     assert animation.key_frames[1].steps == 7
     assert animation.key_frames[2].steps == 10
+
+
+def test_interpolated_frame_cache_is_bounded(animation):
+    animation.capture_keyframe(steps=1)
+    animation.viewer.dims.set_point(0, 27)
+    animation.capture_keyframe(steps=160)
+    for index in range(len(animation._frames)):
+        animation._frames[index]
+    assert len(animation._frames._cache) <= 128
 
 
 # ------------------------------------------------------------- slice sweeps
@@ -235,12 +264,10 @@ def test_slice_sweep_drives_the_backing_layer(animation):
 
 
 def test_slice_sweep_rejects_a_zero_normal(animation):
-    slice_ = animation.add_scene_object(
-        OrthoSlice(name="Ortho", source="img", normal=(0.0, 0.0, 0.0))
-    )
-
-    with pytest.raises(ValueError, match="zero normal"):
-        animation.add_slice_sweep(slice_)
+    with pytest.raises(ValueError, match="non-zero"):
+        animation.add_scene_object(
+            OrthoSlice(name="Ortho", source="img", normal=(0.0, 0.0, 0.0))
+        )
 
 
 def test_slice_sweep_needs_a_source_layer(animation):
@@ -270,3 +297,43 @@ def test_camera_can_orbit_while_the_slice_sweeps(animation):
     state = animation._frames[middle]
     assert not np.allclose(state.camera["angles"], (0.0, 0.0, 90.0))
     assert low < state.scene[slice_.id]["position"][0] < high
+
+
+@pytest.mark.parametrize("helper", ["scroll", "slice", "capture"])
+def test_new_keyframes_continue_loaded_numbering(animation, tmp_path, helper):
+    animation.capture_keyframe()
+    animation.capture_keyframe()
+    path = animation.save_keyframes(tmp_path / "keyframes.json")
+    viewer = HeadlessViewer()
+    viewer.add_image(np.zeros((10, 20, 30)), name="img")
+    restored = Animation(viewer)
+    try:
+        restored.load_keyframes(path, reload_layers=False)
+        restored.set_to_keyframe(1)
+        if helper == "scroll":
+            restored.add_scroll_through(start=0, stop=3)
+        elif helper == "slice":
+            section = restored.add_scene_object(OrthoSlice(name="section", source="img"))
+            restored.add_slice_sweep(section, start=0, stop=3)
+        else:
+            restored.capture_keyframe()
+        expected = 3 if helper == "capture" else 4
+        assert [f.name for f in restored.key_frames] == [
+            f"Key Frame {i}" for i in range(expected)
+        ]
+    finally:
+        restored.close()
+
+
+def test_automatic_names_respect_renames_and_deleted_frames(animation):
+    animation.capture_keyframe()
+    animation.key_frames[0].name = "Overview"
+    animation.capture_keyframe()
+    animation.key_frames[1].name = "Key Frame 12"
+    first, last = animation.add_scroll_through(start=0, stop=3)
+    assert (first.name, last.name) == ("Key Frame 13", "Key Frame 14")
+    animation.key_frames.remove(last)
+    animation.key_frames.selection.active = first
+    animation.capture_keyframe()
+    assert animation.key_frames[-1].name == "Key Frame 15"
+    assert animation.key_frames[0].name == "Overview"

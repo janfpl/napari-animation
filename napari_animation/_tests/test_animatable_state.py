@@ -216,6 +216,18 @@ def test_plane_and_depiction_are_captured(viewer):
     assert captured["plane"]["position"] == pytest.approx((4.0, 10.0, 10.0))
 
 
+def test_layer_state_applies_by_source_id_after_rename(viewer):
+    layer = viewer.layers["img"]
+    layer.opacity = 0.25
+    state = ViewerState.from_viewer(viewer)
+    layer.name = "renamed"
+    layer.opacity = 1.0
+
+    state.apply(viewer)
+
+    assert viewer.layers["renamed"].opacity == pytest.approx(0.25)
+
+
 def test_animatable_properties_are_captured(viewer):
     captured = ViewerState.from_viewer(viewer).layers["img"]
 

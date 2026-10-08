@@ -1,0 +1,225 @@
+{
+  "scope": "headless controller and bounded HDF5 read; no Qt/OpenGL timing",
+  "io_probes": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
+      "shape": [
+        2048,
+        2112,
+        2048
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "sample_bytes": 32768,
+      "sample_seconds": 0.005
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "sample_bytes": 32768,
+      "sample_seconds": 0.0002
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data",
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "sample_bytes": 32768,
+      "sample_seconds": 0.0001
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\raw\\stack_1_channel_0-561_obj_left\\Cam_left_00000.lux.h5",
+      "dataset": "Data",
+      "shape": [
+        486,
+        2048,
+        2048
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "sample_bytes": 32768,
+      "sample_seconds": 0.0002
+    }
+  ],
+  "cases": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 3/TimePoint 0/Channel 0/Data",
+      "shape": [
+        256,
+        256,
+        256
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "dtype": "uint16",
+      "controller": {
+        "snap_XY": {
+          "seconds": 0.1193,
+          "calls": {
+            "apply_working": 1,
+            "ensure_layer": 1,
+            "_apply_2d": 1
+          }
+        },
+        "add_scroll_through": {
+          "seconds": 0.0124,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "add_slice_sweep": {
+          "seconds": 0.0118,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "select_keyframe": {
+          "seconds": 0.0147,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        }
+      }
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 2/TimePoint 0/Channel 0/Data",
+      "shape": [
+        128,
+        512,
+        512
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "dtype": "uint16",
+      "controller": {
+        "snap_XY": {
+          "seconds": 0.1053,
+          "calls": {
+            "apply_working": 1,
+            "ensure_layer": 1,
+            "_apply_2d": 1
+          }
+        },
+        "add_scroll_through": {
+          "seconds": 0.012,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "add_slice_sweep": {
+          "seconds": 0.0115,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "select_keyframe": {
+          "seconds": 0.0143,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        }
+      }
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data_4_4_4",
+      "shape": [
+        128,
+        512,
+        512
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "dtype": "uint16",
+      "controller": {
+        "snap_XY": {
+          "seconds": 0.1068,
+          "calls": {
+            "apply_working": 1,
+            "ensure_layer": 1,
+            "_apply_2d": 1
+          }
+        },
+        "add_scroll_through": {
+          "seconds": 0.0121,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "add_slice_sweep": {
+          "seconds": 0.0116,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        },
+        "select_keyframe": {
+          "seconds": 0.0144,
+          "calls": {
+            "apply": 1,
+            "ensure_layer": 2,
+            "_apply_2d": 1
+          }
+        }
+      }
+    }
+  ]
+}

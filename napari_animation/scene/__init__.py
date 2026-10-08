@@ -9,6 +9,8 @@ from .scene import (
     composite_clipping_planes,
     scene_contributions,
 )
+from .renderer import SceneRenderer
+from .layer_registry import LayerRegistry, SourceRecord, SOURCE_ID_METADATA
 
 __all__ = [
     "ORIENTATIONS",
@@ -18,6 +20,10 @@ __all__ = [
     "OrthoSlice",
     "Scene",
     "SceneObject",
+    "SceneRenderer",
+    "LayerRegistry",
+    "SourceRecord",
+    "SOURCE_ID_METADATA",
     "apply_scene_state",
     "composite_clipping_planes",
     "scene_contributions",

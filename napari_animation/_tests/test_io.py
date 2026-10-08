@@ -46,7 +46,8 @@ def test_to_builtin_is_json_serialisable(model_animation):
     restored = json.loads(json.dumps(payload))
     assert set(restored["camera"]) == set(state.camera)
     assert set(restored["dims"]) == set(state.dims)
-    assert "img" in restored["layers"]
+    assert len(restored["layers"]) == 1
+    assert next(iter(restored["layers"].values()))["name"] == "img"
 
 
 def test_scene_survives_a_save_load_round_trip(tmp_path, model_animation):
@@ -107,8 +108,13 @@ def test_empty_thumbnail():
 def test_animation_to_dict_structure(model_animation):
     model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
     data = animation_to_dict(model_animation)
-    assert data["version"] == "1"
+    assert data["version"] == "3"
     assert [r["name"] for r in data["layers"]] == ["img"]
+    source_id = data["layers"][0]["source_id"]
+    assert source_id
+    serialized_layers = data["key_frames"][0]["viewer_state"]["layers"]
+    assert list(serialized_layers) == [source_id]
+    assert serialized_layers[source_id]["name"] == "img"
     assert len(data["key_frames"]) == 1
     assert data["key_frames"][0]["ease"] == "CUBIC"
 
@@ -208,3 +214,39 @@ def test_version_mismatch_raises(tmp_path, model_animation):
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="Unsupported animation file version"):
         model_animation.load_keyframes(path, reload_layers=False)
+
+
+def test_version_one_files_migrate(tmp_path, model_animation):
+    model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
+    path = model_animation.save_keyframes(tmp_path / "v1-source.json")
+    data = json.loads(path.read_text())
+    data["version"] = "1"
+    for record in data["layers"]:
+        record.pop("id", None)
+    for frame in data["key_frames"]:
+        frame["viewer_state"].pop("scene", None)
+    path.write_text(json.dumps(data))
+
+    model_animation.load_keyframes(path, reload_layers=False)
+
+    assert len(model_animation.key_frames) == 1
+    assert model_animation.key_frames[0].viewer_state.scene is None
+
+
+def test_invalid_file_does_not_clear_current_animation(tmp_path, model_animation):
+    model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
+    path = tmp_path / "invalid.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": "2",
+                "layers": [],
+                "key_frames": [{"viewer_state": {"camera": {}}}],
+            }
+        )
+    )
+
+    with pytest.raises(ValueError, match="Invalid animation keyframe data"):
+        model_animation.load_keyframes(path, reload_layers=False)
+
+    assert len(model_animation.key_frames) == 1

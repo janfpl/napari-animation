@@ -14,6 +14,24 @@ from math import cos, pi, pow, sin, sqrt
 tau = pi * 2
 
 
+class _Callable:
+    """A callable enum payload that is stable on Python 3.9 through 3.13.
+
+    Python 3.13 treats ``functools.partial`` values specially while Enum is
+    building the class and can turn them into descriptors instead of members.
+    Keeping the partial inside this ordinary object preserves the historical
+    ``member.value(p)`` API and gives Enum an unambiguous member value.
+    """
+
+    __slots__ = ("function",)
+
+    def __init__(self, function):
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        return self.function(*args, **kwargs)
+
+
 def linear_interpolation(p):
     """Modeled after the line y = x"""
     return p
@@ -267,16 +285,16 @@ class Easing(Enum):
             * bounce: bounce easing in and out.
     """
 
-    LINEAR = partial(linear_interpolation)
-    QUADRATIC = partial(quadratic_ease_in_out)
-    CUBIC = partial(cubic_ease_in_out)
-    QUINTIC = partial(quintic_ease_in_out)
-    SINE = partial(sine_ease_in_out)
-    CIRCULAR = partial(circular_ease_in_out)
-    EXPONENTIAL = partial(exponential_ease_in_out)
-    ELASTIC = partial(elastic_ease_in_out)
-    BACK = partial(back_ease_in_out)
-    BOUNCE = partial(bounce_ease_in_out)
+    LINEAR = _Callable(linear_interpolation)
+    QUADRATIC = _Callable(quadratic_ease_in_out)
+    CUBIC = _Callable(cubic_ease_in_out)
+    QUINTIC = _Callable(quintic_ease_in_out)
+    SINE = _Callable(sine_ease_in_out)
+    CIRCULAR = _Callable(circular_ease_in_out)
+    EXPONENTIAL = _Callable(exponential_ease_in_out)
+    ELASTIC = _Callable(elastic_ease_in_out)
+    BACK = _Callable(back_ease_in_out)
+    BOUNCE = _Callable(bounce_ease_in_out)
 
     def __call__(self, *args):
         return self.value(*args)

@@ -1,0 +1,63 @@
+{
+  "scope": "bounded slab read plus warmed compute-only timings; no GUI or GPU",
+  "numba_threads": 8,
+  "first_warm_seconds": 2.693,
+  "cases": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 2/TimePoint 0/Channel 0/Data",
+      "slab_shape": [
+        32,
+        512,
+        512
+      ],
+      "slab_bytes": 16777216,
+      "read_seconds": 1.0515,
+      "compute": {
+        "max": {
+          "numpy_median_s": 0.0005,
+          "numba_median_s": 0.002951,
+          "speedup": 0.17
+        },
+        "min": {
+          "numpy_median_s": 0.000418,
+          "numba_median_s": 0.002903,
+          "speedup": 0.14
+        },
+        "mean": {
+          "numpy_median_s": 0.004413,
+          "numba_median_s": 0.002856,
+          "speedup": 1.55
+        }
+      }
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 1/TimePoint 0/Channel 0/Data",
+      "slab_shape": [
+        16,
+        1024,
+        1024
+      ],
+      "slab_bytes": 33554432,
+      "read_seconds": 2.0856,
+      "compute": {
+        "max": {
+          "numpy_median_s": 0.001527,
+          "numba_median_s": 0.005369,
+          "speedup": 0.28
+        },
+        "min": {
+          "numpy_median_s": 0.001363,
+          "numba_median_s": 0.005121,
+          "speedup": 0.27
+        },
+        "mean": {
+          "numpy_median_s": 0.010372,
+          "numba_median_s": 0.00545,
+          "speedup": 1.9
+        }
+      }
+    }
+  ]
+}

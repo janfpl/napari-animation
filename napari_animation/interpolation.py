@@ -7,6 +7,18 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 
+class _Callable:
+    """Keep callable interpolation payloads as real Enum members."""
+
+    __slots__ = ("function",)
+
+    def __init__(self, function):
+        self.function = function
+
+    def __call__(self, *args, **kwargs):
+        return self.function(*args, **kwargs)
+
+
 def default(a, b, fraction):
     """Default interpolation for the corresponding type;
     linear interpolation for numeric, instantaneous transition otherwise.
@@ -323,12 +335,12 @@ class Interpolation(Enum):
 
     """
 
-    DEFAULT = partial(default)
-    LOG = partial(interpolate_log)
-    SLERP = partial(slerp)
-    SLERP_VECTOR = partial(slerp_vector)
-    STEP_START = partial(step_start)
-    STEP_END = partial(step_end)
+    DEFAULT = _Callable(default)
+    LOG = _Callable(interpolate_log)
+    SLERP = _Callable(slerp)
+    SLERP_VECTOR = _Callable(slerp_vector)
+    STEP_START = _Callable(step_start)
+    STEP_END = _Callable(step_end)
 
     def __call__(self, *args):
         return self.value(*args)
