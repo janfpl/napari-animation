@@ -56,7 +56,7 @@ filesystem/cache warming took approximately **0.39–0.84 seconds**. These are
 observations from one machine, not a cold/warm benchmark comparison or a
 guaranteed loading time. Metadata preparation took 0.005–0.042 seconds.
 The latest measurement and exact source path are saved in
-[`luxendo-import-validation.json`](luxendo-import-validation.json).
+[`luxendo-import-validation.json`](dev-notes/luxendo-import-validation.json).
 
 Regression coverage includes multiple channels with different X/Y/Z spacing,
 recursive discovery, missing/corrupt metadata, pyramid validation, lazy reads,

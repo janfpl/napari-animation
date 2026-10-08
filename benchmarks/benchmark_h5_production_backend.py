@@ -184,7 +184,7 @@ def main():
         if args.lux_only:
             specs = [specs[2], specs[4]]
         report = {"cases": [run_case(*spec) for spec in specs]}
-        output = Path(__file__).resolve().parents[1] / "docs"
+        output = Path(__file__).resolve().parents[1] / "docs" / "dev-notes"
         output /= args.output or (
             "performance-lux-forced-processes.json" if args.lux_only
             else "performance-h5-production-processes.json"

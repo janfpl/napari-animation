@@ -24,7 +24,7 @@ The headless probe confirmed:
 | `np.take` on a simple array-protocol source | One full-array materialization | A non-Dask array-like can be fully converted before selection. Dask dispatch can behave differently; this probe does not establish whole-volume reads for every backend. |
 | Basic slicing of the same source | One slice request, no full-array materialization | Slice first, materialize or reduce second. |
 
-Run `examples/performance_audit_probe.py` with the workspace Python to reproduce. It uses small arrays and `ViewerModel`, redirects its settings/cache into `.performance-audit`, and does not benchmark a Qt canvas, disk, or CUDA. Results are saved in `docs/performance-audit-probe-results.json`.
+Run `benchmarks/performance_audit_probe.py` with the workspace Python to reproduce. It uses small arrays and `ViewerModel`, redirects its settings/cache into `.performance-audit`, and does not benchmark a Qt canvas, disk, or CUDA. Results are saved in `docs/performance-audit-probe-results.json`.
 
 The user identified **Add scroll-through, Add slice-sweep, Snap view, and selecting another keyframe** as the slow interactions. A second probe exercised those exact controller paths, in that order, with one small Dask-backed volume and one section, switching to XY before the remaining operations. Screenshots were stubbed; real GUI listeners may add further work. Counts describe this reproducible scenario, not universal counts for every scene:
 

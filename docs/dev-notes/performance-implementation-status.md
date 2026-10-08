@@ -35,7 +35,7 @@ read-only handle. This avoids Dask scheduling overhead without process startup.
 The graph match follows the [upstream `ims_reader` implementation](https://github.com/CBI-PITT/imaris_ims_file_reader/blob/master/imaris_ims_file_reader/ims.py),
 which reads its selected resolution's HDF5 `Data` dataset without a voxel transform.
 
-`examples/benchmark_h5_production_backend.py` exercised the actual Qt
+`benchmarks/benchmark_h5_production_backend.py` exercised the actual Qt
 projection service on the supplied files and compared every output pixel with
 a direct HDF5 reduction. On `single tile.ims`, resolution 1 took 1.01 s for
 the first four-plane slab including process startup and 0.15 s thereafter.
@@ -50,7 +50,7 @@ four-plane slab from the first request versus 0.34–0.38 s through native-chunk
 Dask in the earlier production run. The synthetic Imaris-header graph that
 points to the same Luxendo data also took about 0.10 s. Results are in
 `docs/performance-h5-production-processes.json`. The separate
-`examples/benchmark_h5_process_lanes.py` records the 1/2/4/8-lane comparison
+`benchmarks/benchmark_h5_process_lanes.py` records the 1/2/4/8-lane comparison
 at IMS resolutions 0 and 1 and on Luxendo. All figures can benefit from the
 OS file cache and exclude a live OpenGL canvas.
 The synthetic graph validates dispatch and pixels, but the upstream reader
@@ -76,7 +76,7 @@ tasks stop between layer reads. The task remains bounded by the lookahead
 depth. Native non-Dask arrays are deduplicated only for identical indices,
 because reading one thin slice does not guarantee its full chunk stays cached.
 
-`examples/benchmark_h5_prefetch_dedup.py` compares the former concurrent
+`benchmarks/benchmark_h5_prefetch_dedup.py` compares the former concurrent
 frame-based pattern against this grouping on the supplied files. With three
 lookahead frames, `single tile.ims` resolution 3 made **48 versus 16** HDF5
 dataset reads; Embryo8b `Data_4_4_4` made **192 versus 64**. Both grouped
@@ -99,7 +99,7 @@ the guarded uncompressed bypass above. The production run confirmed exact
 pixels and approximately 0.10 s service latency; a forced four-process Luxendo
 run reached 0.06 s after a 0.91 s first request and used about 557 MiB of
 child-process memory, so it is not the default.
-`examples/benchmark_h5_block_overread.py` and
+`benchmarks/benchmark_h5_block_overread.py` and
 `docs/performance-lux-forced-processes.json` preserve these comparisons.
 
 An earlier affected headless suite passed **145 tests**, including the new
@@ -139,7 +139,7 @@ with a fresh workspace temp directory passed the complete suite.
 
 ## Real-file evidence
 
-`examples/benchmark_h5_interactions.py` exercises the production controller
+`benchmarks/benchmark_h5_interactions.py` exercises the production controller
 with a headless `ViewerModel` and small Imaris/Luxendo pyramid levels. Its
 latest JSON is `docs/performance-after-second-optimizations.json`.
 
@@ -154,7 +154,7 @@ first optimization pass. The new call count is one section projection per
 sweep and zero endpoint screenshots in the headless probe. These timings can
 benefit from the OS disk cache and do not include Qt painting or GPU upload.
 
-Before the direct HDF5 bypass, `examples/benchmark_async_h5_projection.py`
+Before the direct HDF5 bypass, `benchmarks/benchmark_async_h5_projection.py`
 directly exercised the Qt worker
 with real bounded slabs, including the full-resolution Embryo8b `Data`
 dataset. On one run the four-plane full-resolution Luxendo projection took

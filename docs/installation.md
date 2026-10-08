@@ -10,7 +10,7 @@ conda activate napari-anim
 
 # napari + a Qt backend. This is the step that is easy to get wrong:
 # the plugin does NOT pull in a Qt backend of its own.
-python -m pip install "napari[pyqt6]>=0.5"
+python -m pip install "napari[pyqt6]>=0.8"
 
 git clone https://github.com/janfpl/napari-animation.git
 cd napari-animation
@@ -29,16 +29,17 @@ In napari: **Plugins → napari-animation → Wizard**.
 **Install napari yourself, before the plugin.** `setup.cfg` lists plain
 `napari`, which has no Qt backend as a dependency — install only the plugin and
 you get a working import but no GUI. `napari[pyqt6]` pulls the backend in.
-PyQt5 also works, but napari 0.8 warns that system theme detection needs Qt6.
+PyQt5 also works (the test suite is run with it), but napari 0.8 warns that
+system theme detection needs Qt6 and that PyQt5 support is deprecated.
 
-**Python 3.11 is fine, but not the floor.** The package declares
-`python_requires = >=3.9`. napari 0.5+ is what actually constrains you.
+**Python 3.11 is the floor.** napari 0.8, the oldest napari this fork
+supports, requires it, and the package declares `python_requires = >=3.11`.
 
-**The napari floor matters.** This fork requires **napari >= 0.5** —
-`layer.projection_mode` and `dims.margin_left/right` do not exist before that,
-and the ortho slicer uses both. It is developed and tested against **napari
-0.8.0**. The declared floor used to be `0.4.8`, which would let pip resolve a
-napari too old to run the code; that has been corrected.
+**The napari floor matters.** This fork requires **napari >= 0.8** — the
+resolution controls use `Image.locked_data_level`, which first appeared in
+0.8, and the dock listens for the layer list's units event (napari 0.7+). It
+is developed and tested against **napari 0.8.0**. The declared floor used to
+be `0.5.0`, which would let pip resolve a napari too old to run the code.
 
 **Install from a git clone, not a tarball.** Versioning uses
 `setuptools_scm`, which reads the git history. Installing from a directory with
@@ -56,7 +57,7 @@ warns loudly when it happens.
 
 ```bash
 python -m pip install -e ".[testing]"
-python -m pytest napari_animation/_tests -q
+python -m pytest napari_animation -q
 ```
 
 Tests that open a viewer or take a screenshot need a working OpenGL context.

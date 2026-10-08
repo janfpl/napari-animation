@@ -35,9 +35,9 @@ The state-application/reconciliation audit, alternating prefetch-depth and data-
 From the inner repository directory, with the parent virtual environment:
 
 ```powershell
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/new-reference --samples 0 --repeat 3 --width 1280 --height 720 --lossless --profile --legacy-viewport --eager-clip-planes
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/new-optimized --samples 0 --repeat 3 --width 1280 --height 720 --lossless --profile
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/new-qt --samples 0 --repeat 1 --width 1280 --height 720 --lossless --qt --timeout 300
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/new-reference --samples 0 --repeat 3 --width 1280 --height 720 --lossless --profile --legacy-viewport --eager-clip-planes
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/new-optimized --samples 0 --repeat 3 --width 1280 --height 720 --lossless --profile
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/new-qt --samples 0 --repeat 1 --width 1280 --height 720 --lossless --qt --timeout 300
 ```
 
 Each output directory must be new. Raw benchmarks and event-level logs are in `.performance-audit/720p-correct-reference`, `720p-correct-optimized`, and `720p-correct-qt`. A curated performance log and JSON sidecar accompany the video in `outputs/ortho-720p`.

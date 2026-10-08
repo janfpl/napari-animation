@@ -45,6 +45,17 @@ coverage.xml
 *,cover
 .hypothesis/
 .napari_cache
+.pytest_cache/
+.napari-test-cache/
+
+# Render logs written next to exported animations, and benchmark scratch
+*.render_log.txt
+*.render_perf.json
+.performance-audit/
+
+# Virtual environments
+.venv/
+venv/
 
 # Translations
 *.mo

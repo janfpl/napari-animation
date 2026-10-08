@@ -26,9 +26,15 @@ but feedback and contributions are welcome.
 
 ## Installation
 
-You can clone this repository with install locally with
+Requires Python 3.11 or newer and napari 0.8 or newer with a Qt backend.
+Clone this repository and install it locally with
 
+    pip install "napari[pyqt5]"
     pip install -e .
+
+See [docs/installation.md](docs/installation.md) for details, and
+[docs/user-guide.md](docs/user-guide.md) for the 3D scene objects (clipping
+planes, ortho slices, scroll-throughs).
 
 ## Examples
 Examples can be found in our [examples](examples) folder. Simple examples for both interactive and headless 
@@ -248,25 +254,30 @@ animated (e.g. a slab that sweeps through z or grows over the movie).
 
 ## Is everything animate-able?
 
-Unfortunately, not yet! Currently differences in the following objects are tracked by the `Animation` class
+Not everything, but most of what shapes the rendered view. Keyframes capture:
 
-- `Viewer.camera`
-- `Viewer.dims`
-- `Layer.scale`
-- `Layer.translate`
-- `Layer.rotate`
-- `Layer.shear`
-- `layer.opacity`
-- `Layer.blending`
-- `Layer.visible`
+- `Viewer.camera` (angles are interpolated spherically, zoom logarithmically)
+- `Viewer.dims`, including switching between 2D and 3D at a keyframe
+- layer transforms: `scale`, `translate`, `rotate`, `shear`, `affine`
+- layer display: `opacity`, `blending`, `visible`, `contrast_limits`,
+  `gamma`, `colormap`, `rendering`, `iso_threshold`, `attenuation`,
+  `interpolation2d` / `interpolation3d`, and the pyramid level
+- image `depiction` and `plane` (position, normal and thickness)
+- the ortho slicer's optical section
+- scene objects: clipping planes and ortho slices, whose geometry is
+  interpolated and which can be switched on or off per keyframe
 
-Support for more layer attributes will be added in future releases.
+Discrete values (2D/3D mode, colormap, rendering mode, visibility) switch on
+arrival at a keyframe rather than being blended. Layer data itself is not
+stored; saved keyframe files record each layer's source path instead.
 
 ## Contributing
 
 Contributions are very welcome and a detailed contributing guide is coming soon. 
 
-Tests are run with `pytest`.
+Tests are run with `pytest` (`pip install -e ".[testing]"`). Performance
+benchmarks are in [benchmarks](benchmarks), and design, review and
+performance notes from development are in [docs/dev-notes](docs/dev-notes).
 
 We use [`pre-commit`](https://pre-commit.com) to sort imports with
 [`isort`](https://github.com/timothycrosley/isort), format code with

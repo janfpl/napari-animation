@@ -78,10 +78,10 @@ For each proposed change: compare unchanged source JSON/settings, warmed and fre
 Run from the inner repository directory using the parent virtual environment. Use a new output directory for every invocation:
 
 ```powershell
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/ortho-next --samples 7 --repeat 2
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/ortho-next-qt --samples 7 --repeat 2 --qt
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/ortho-next --samples 7 --repeat 2
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/ortho-next-qt --samples 7 --repeat 2 --qt
 # After output correctness is established: full timeline at the desired size.
-../.venv/Scripts/python.exe examples/profile_saved_animation.py ../animation.json .performance-audit/ortho-full --samples 0 --repeat 3 --width 1920 --height 1080
+../.venv/Scripts/python.exe benchmarks/profile_saved_animation.py ../animation.json .performance-audit/ortho-full --samples 0 --repeat 3 --width 1920 --height 1080
 ```
 
 The harness refuses an existing output directory, never edits the input JSON, records its SHA-256, saves movies/sidecars/metadata and a first-frame preview, and supports `--prefetch 0`, `--no-diagnose` and a Qt cancellation deadline. It now creates a visible native viewer by default; `--hidden` retains the old diagnostic behavior.
