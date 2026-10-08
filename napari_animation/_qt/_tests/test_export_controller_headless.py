@@ -1,7 +1,5 @@
 """Qt event-loop export without an OpenGL canvas."""
 
-from pathlib import Path
-
 import imageio.v2 as iio
 import numpy as np
 import pytest
@@ -21,7 +19,7 @@ class HeadlessViewer(ViewerModel):
         return frame
 
 
-def test_export_pump_keeps_qt_alive_and_orders_frames():
+def test_export_pump_keeps_qt_alive_and_orders_frames(tmp_path):
     app = QApplication.instance() or QApplication([])
     viewer = HeadlessViewer(ndisplay=2)
     viewer.add_image(np.zeros((4, 16, 16), dtype=np.uint8), name="volume")
@@ -32,7 +30,7 @@ def test_export_pump_keeps_qt_alive_and_orders_frames():
     animation.capture_keyframe(steps=3)
     before = tuple(viewer.dims.point)
 
-    output = Path(".performance-audit/export-pump-test").resolve()
+    output = tmp_path / "export-pump-test"
     controller = QtExportController(
         animation,
         {"path": str(output), "prefetch": 0, "dask_cache": None,
@@ -69,7 +67,7 @@ def test_export_pump_keeps_qt_alive_and_orders_frames():
     assert app is not None
 
 
-def test_full_writer_queue_does_not_block_qt(monkeypatch):
+def test_full_writer_queue_does_not_block_qt(tmp_path, monkeypatch):
     import time
 
     app = QApplication.instance() or QApplication([])
@@ -86,7 +84,7 @@ def test_full_writer_queue_does_not_block_qt(monkeypatch):
     animation.capture_keyframe(steps=1)
     viewer.dims.set_point(0, 9)
     animation.capture_keyframe(steps=9)
-    output = Path(".performance-audit/export-pump-slow-test").resolve()
+    output = tmp_path / "export-pump-slow-test"
     controller = QtExportController(
         animation, {"path": str(output), "prefetch": 0,
                     "dask_cache": None, "diagnose": False},
@@ -160,7 +158,7 @@ def test_video_export_pads_frames_without_resampling(tmp_path, monkeypatch):
 
 
 def test_preset_renders_at_requested_size_and_preserves_video_dimensions(
-    monkeypatch,
+    tmp_path, monkeypatch,
 ):
     app = QApplication.instance() or QApplication([])
     screenshots = []
@@ -180,7 +178,7 @@ def test_preset_renders_at_requested_size_and_preserves_video_dimensions(
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
     controller = QtExportController(animation, {
-        "path": str(Path(".performance-audit/preset-dimensions.mp4").resolve()),
+        "path": str(tmp_path / "preset-dimensions.mp4"),
         "render_size": (18, 30),
         "prefetch": 0, "dask_cache": None, "diagnose": False,
     })
@@ -216,7 +214,7 @@ def test_preset_renders_at_requested_size_and_preserves_video_dimensions(
         animation.close()
 
 
-def test_unavailable_video_writer_falls_back_to_png(monkeypatch):
+def test_unavailable_video_writer_falls_back_to_png(tmp_path, monkeypatch):
     app = QApplication.instance() or QApplication([])
     viewer = HeadlessViewer(ndisplay=2)
     viewer.add_image(np.zeros((3, 16, 16), dtype=np.uint8))
@@ -224,7 +222,7 @@ def test_unavailable_video_writer_falls_back_to_png(monkeypatch):
     animation.capture_keyframe(steps=1)
     viewer.dims.set_point(0, 2)
     animation.capture_keyframe(steps=2)
-    path = Path(".performance-audit/export-pump-fallback.mp4").resolve()
+    path = tmp_path / "export-pump-fallback.mp4"
     controller = QtExportController(
         animation, {"path": str(path), "prefetch": 0,
                     "dask_cache": None, "diagnose": False},
@@ -245,7 +243,7 @@ def test_unavailable_video_writer_falls_back_to_png(monkeypatch):
     assert app is not None
 
 
-def test_video_verification_runs_off_qt_thread(monkeypatch):
+def test_video_verification_runs_off_qt_thread(tmp_path, monkeypatch):
     import threading
     import time
 
@@ -265,7 +263,7 @@ def test_video_verification_runs_off_qt_thread(monkeypatch):
             pass
 
     controller = QtExportController(animation, {
-        "path": str(Path(".performance-audit/verify-thread.mp4").resolve()),
+        "path": str(tmp_path / "verify-thread.mp4"),
         "prefetch": 0, "dask_cache": None,
     })
     monkeypatch.setattr(controller, "_open_writer", Writer)
@@ -301,7 +299,9 @@ def test_video_verification_runs_off_qt_thread(monkeypatch):
     assert app is not None
 
 
-def test_export_restores_frame_after_edits_and_uses_frozen_timeline(monkeypatch):
+def test_export_restores_frame_after_edits_and_uses_frozen_timeline(
+    tmp_path, monkeypatch
+):
     app = QApplication.instance() or QApplication([])
     viewer = HeadlessViewer(ndisplay=2)
     viewer.add_image(np.zeros((4, 16, 16), dtype=np.uint8), name="volume")
@@ -312,7 +312,7 @@ def test_export_restores_frame_after_edits_and_uses_frozen_timeline(monkeypatch)
     animation.capture_keyframe(steps=3)
     before = tuple(viewer.dims.point)
     controller = QtExportController(animation, {
-        "path": str(Path(".performance-audit/review-frozen-export.mp4").resolve()),
+        "path": str(tmp_path / "review-frozen-export.mp4"),
         "prefetch": 0, "dask_cache": None, "diagnose": False,
     })
     captured = []
@@ -353,7 +353,7 @@ def test_export_restores_frame_after_edits_and_uses_frozen_timeline(monkeypatch)
         animation.close()
 
 
-def test_export_progress_blocks_viewer_edits_and_cancel_restores():
+def test_export_progress_blocks_viewer_edits_and_cancel_restores(tmp_path):
     from types import SimpleNamespace
     from typing import ClassVar
     from qtpy.QtCore import Qt
@@ -375,7 +375,7 @@ def test_export_progress_blocks_viewer_edits_and_cancel_restores():
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
     controller = QtExportController(animation, {
-        "path": str(Path(".performance-audit/review-progress-export").resolve()),
+        "path": str(tmp_path / "review-progress-export"),
         "prefetch": 0, "dask_cache": None, "diagnose": False,
     })
     loop = QEventLoop()
@@ -399,7 +399,9 @@ def test_export_progress_blocks_viewer_edits_and_cancel_restores():
 
 
 @pytest.mark.parametrize("edit", ("add", "remove", "replace"))
-def test_export_reports_source_changes_before_capture(monkeypatch, edit):
+def test_export_reports_source_changes_before_capture(
+    tmp_path, monkeypatch, edit
+):
     app = QApplication.instance() or QApplication([])
     viewer = HeadlessViewer(ndisplay=2)
     source = viewer.add_image(np.zeros((4, 16, 16), dtype=np.uint8))
@@ -408,7 +410,7 @@ def test_export_reports_source_changes_before_capture(monkeypatch, edit):
     viewer.dims.set_point(0, 3)
     animation.capture_keyframe(steps=3)
     controller = QtExportController(animation, {
-        "path": str(Path(".performance-audit/review-source-edit.mp4").resolve()),
+        "path": str(tmp_path / "review-source-edit.mp4"),
         "prefetch": 0, "dask_cache": None, "diagnose": False,
     })
     captured = []
@@ -447,3 +449,57 @@ def test_export_reports_source_changes_before_capture(monkeypatch, edit):
         assert app is not None
     finally:
         animation.close()
+
+
+def test_failed_start_releases_export_state(tmp_path, monkeypatch):
+    """A start that fails part-way must not leave an export half-running."""
+    from types import SimpleNamespace
+    from typing import ClassVar
+
+    from dask.callbacks import Callback
+    from qtpy.QtWidgets import QWidget
+
+    import napari_animation._qt.export_controller as export_controller
+
+    app = QApplication.instance() or QApplication([])
+    qt_window = QWidget()
+
+    class WindowViewer(HeadlessViewer):
+        window: ClassVar = SimpleNamespace(
+            _qt_window=qt_window,
+            _qt_viewer=SimpleNamespace(dims=SimpleNamespace(stop=lambda: None)),
+        )
+
+    class FailingSession:
+        def __init__(self, *_args):
+            pass
+
+        def __enter__(self):
+            raise RuntimeError("Cannot export from a canvas with an empty size.")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(export_controller, "ExportCaptureSession", FailingSession)
+    viewer = WindowViewer(ndisplay=2)
+    viewer.add_image(np.zeros((2, 16, 16), np.uint8))
+    animation = Animation(viewer)
+    animation.capture_keyframe(steps=1)
+    animation.capture_keyframe(steps=1)
+    callbacks = set(Callback.active)
+    controller = QtExportController(animation, {
+        "path": str(tmp_path / "failed.mp4"), "prefetch": 2,
+        "dask_cache": 10**7, "diagnose": False,
+    })
+    try:
+        with pytest.raises(RuntimeError, match="empty size"):
+            controller.start()
+        assert controller._progress is None
+        assert controller._prefetcher is None
+        assert set(Callback.active) == callbacks
+        assert not viewer._napari_animation_export_exact
+        assert not controller._writer_thread.is_alive()
+        assert app is not None
+    finally:
+        animation.close()
+        qt_window.close()

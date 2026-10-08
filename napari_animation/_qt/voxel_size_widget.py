@@ -25,6 +25,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ..layer_registry import OBJECT_ID_METADATA
+
 if TYPE_CHECKING:
     from ..animation import Animation
 
@@ -107,11 +109,17 @@ class VoxelSizeWidget(QGroupBox):
     # ------------------------------------------------------------- helpers
 
     def _image_layers(self):
-        """Layers that have a spatial scale worth editing."""
+        """Layers that have a spatial scale worth editing.
+
+        Layers managed by scene objects (slice planes, 2D projections) are
+        excluded: they derive their transform from their source layer, so
+        they follow its voxel size instead of being edited directly.
+        """
         return [
             layer
             for layer in self.viewer.layers
             if getattr(layer, "ndim", 0) >= 2
+            and not layer.metadata.get(OBJECT_ID_METADATA)
         ]
 
     def _selected_layer(self):

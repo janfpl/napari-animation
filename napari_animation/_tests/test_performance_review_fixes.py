@@ -196,7 +196,9 @@ def test_render_waits_for_exact_multiscale_projection(app, monkeypatch):
         service.shutdown()
 
 
-def test_animate_uses_exact_projections_with_gui_service(app, monkeypatch):
+def test_animate_uses_exact_projections_with_gui_service(
+    app, monkeypatch, tmp_path
+):
     import napari_animation.animation as animation_module
 
     viewer, section, _scene, _renderer, data = setup_section(gui=True, multiscale=True)
@@ -221,7 +223,7 @@ def test_animate_uses_exact_projections_with_gui_service(app, monkeypatch):
 
     monkeypatch.setattr(animation_module.imageio, "get_writer", lambda *a, **k: Writer())
     try:
-        animation.animate("unused-review-test.mp4", prefetch=0, dask_cache=None, diagnose=False, perf_log=False)
+        animation.animate(str(tmp_path / "review-test.mp4"), prefetch=0, dask_cache=None, diagnose=False, perf_log=False)
         assert len(captured) == 2
         for frame, z in zip(captured, (2, 6)):
             np.testing.assert_array_equal(frame, data[z])
@@ -237,7 +239,9 @@ def test_boolean_mean_preserves_fractional_values(axis):
     np.testing.assert_array_equal(actual, np.mean(data, axis=axis))
 
 
-def test_gui_export_matches_exact_opengl_frames(make_napari_viewer, monkeypatch):
+def test_gui_export_matches_exact_opengl_frames(
+    make_napari_viewer, monkeypatch, tmp_path
+):
     from napari_animation._qt.export_controller import QtExportController
     from napari_animation.video_padding import pad_video_frame
 
@@ -269,7 +273,7 @@ def test_gui_export_matches_exact_opengl_frames(make_napari_viewer, monkeypatch)
             pass
 
     controller = QtExportController(animation, {
-        "path": "unused-opengl-review-test.mp4", "prefetch": 0,
+        "path": str(tmp_path / "opengl-review-test.mp4"), "prefetch": 0,
         "dask_cache": None, "diagnose": False,
     })
     monkeypatch.setattr(controller, "_open_writer", Writer)

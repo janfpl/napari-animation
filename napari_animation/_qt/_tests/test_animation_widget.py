@@ -169,3 +169,41 @@ def test_animation_widget_has_keyframe_io_and_ortho(make_napari_viewer, qtbot):
 
     ortho.viewComboBox.setCurrentText("YZ")
     assert aw.animation.ortho_slicer.axis == view_to_axis("YZ", ndim)
+
+
+def test_ortho_panel_follows_the_selected_keyframe(qtbot):
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+    animation = widget.animation
+    panel = widget.orthoSlicerWidget
+    panel.setChecked(True)
+    panel.thicknessSpinBox.setValue(5)
+    animation.capture_keyframe(steps=1)
+    panel.setChecked(False)
+    panel.thicknessSpinBox.setValue(1)
+    animation.capture_keyframe(steps=1)
+
+    animation.set_to_keyframe(0)
+
+    assert panel.isChecked()
+    assert panel.thicknessSpinBox.value() == 5
+    # an edit in the panel keeps the restored optical section switched on
+    panel.projectionComboBox.setCurrentText("mean")
+    assert animation.ortho_slicer.enabled
+    assert animation.ortho_slicer.thickness == 5
+
+
+def test_voxel_size_panel_ignores_section_layers(qtbot):
+    from napari_animation.scene import OrthoSlice
+
+    viewer = _HeadlessViewer()
+    viewer.dims.ndisplay = 3
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+    widget.animation.add_scene_object(OrthoSlice(name="Ortho", source="img"))
+
+    combo = widget.voxelSizeWidget.layerComboBox
+    assert [combo.itemText(index) for index in range(combo.count())] == ["img"]

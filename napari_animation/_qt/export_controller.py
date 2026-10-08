@@ -99,42 +99,75 @@ class QtExportController(QObject):
             view=self._working_view,
         )
         self._source_bindings = self._viewer_sources()
-        self._cache_cm = dask_cache_context(self.options.get("dask_cache", "auto"))
-        self._cache_cm.__enter__()
-        self._prefetcher = SlicePrefetcher(
-            animation.viewer, self._frames,
-            depth=self.options.get("prefetch", 4),
-            workers=self.options.get("prefetch_workers", 4),
-        )
-        self._perf.metadata.update(
-            prefetch_enabled=self._prefetcher.enabled,
-            prefetch_skip_reason=self._prefetcher.skip_reason,
-        )
-        self._writer_thread = threading.Thread(
-            target=self._consume, name="napari-animation-qt-writer", daemon=True
-        )
         self._previous_exact = getattr(animation.viewer, "_napari_animation_export_exact", False)
-        animation.viewer._napari_animation_export_exact = True
-        service_for_viewer(animation.viewer).retain_sections(set())
-        window = getattr(animation.viewer, "window", None)
-        qt_window = getattr(window, "_qt_window", None)
-        if qt_window is not None:
-            qt_viewer = getattr(window, "_qt_viewer", None)
-            if qt_viewer is not None:
-                qt_viewer.dims.stop()
-            self._progress = QProgressDialog(
-                "Exporting animation…", "Cancel", 0, self._total, qt_window
+        try:
+            cache_cm = dask_cache_context(self.options.get("dask_cache", "auto"))
+            cache_cm.__enter__()
+            self._cache_cm = cache_cm
+            self._prefetcher = SlicePrefetcher(
+                animation.viewer, self._frames,
+                depth=self.options.get("prefetch", 4),
+                workers=self.options.get("prefetch_workers", 4),
             )
-            self._progress.setWindowTitle("Export animation")
-            self._progress.setWindowModality(Qt.WindowModal)
-            self._progress.setAutoClose(False)
-            self._progress.setAutoReset(False)
-            self._progress.canceled.connect(self.cancel)
-            self._progress.show()
-        self._capture_session = ExportCaptureSession(animation.viewer, render_size)
-        self._capture_session.__enter__()
-        self._writer_thread.start()
+            self._perf.metadata.update(
+                prefetch_enabled=self._prefetcher.enabled,
+                prefetch_skip_reason=self._prefetcher.skip_reason,
+            )
+            self._writer_thread = threading.Thread(
+                target=self._consume, name="napari-animation-qt-writer", daemon=True
+            )
+            animation.viewer._napari_animation_export_exact = True
+            service_for_viewer(animation.viewer).retain_sections(set())
+            window = getattr(animation.viewer, "window", None)
+            qt_window = getattr(window, "_qt_window", None)
+            if qt_window is not None:
+                qt_viewer = getattr(window, "_qt_viewer", None)
+                if qt_viewer is not None:
+                    qt_viewer.dims.stop()
+                self._progress = QProgressDialog(
+                    "Exporting animation…", "Cancel", 0, self._total, qt_window
+                )
+                self._progress.setWindowTitle("Export animation")
+                self._progress.setWindowModality(Qt.WindowModal)
+                self._progress.setAutoClose(False)
+                self._progress.setAutoReset(False)
+                self._progress.canceled.connect(self.cancel)
+                self._progress.show()
+            self._capture_session = ExportCaptureSession(animation.viewer, render_size)
+            self._capture_session.__enter__()
+            self._writer_thread.start()
+        except BaseException:
+            self._abort_start()
+            raise
         QTimer.singleShot(0, self._step)
+
+    def _abort_start(self):
+        """Undo a partly completed :meth:`start`; the caller reports the error.
+
+        Without this a failed start leaves a modal progress dialog open, the
+        export cache registered and interactive section refinement disabled.
+        """
+        self._done = True
+        if self._progress is not None:
+            self._progress.close()
+            self._progress.deleteLater()
+            self._progress = None
+        if self._capture_session is not None:
+            self._capture_session.close()
+            self._capture_session = None
+        if self._prefetcher is not None:
+            self._prefetcher.shutdown()
+            self._prefetcher = None
+        if self._cache_cm is not None:
+            self._cache_cm.__exit__(None, None, None)
+            self._cache_cm = None
+        viewer = self.animation.viewer
+        viewer._napari_animation_export_exact = self._previous_exact
+        try:
+            # retain_sections() above retired the interactive 2D section
+            self.animation.renderer.apply_working(ortho=self._working_ortho)
+        except Exception as error:  # noqa: BLE001 - keep the original error
+            logger.warning("Could not restore the scene after export: %s", error)
 
     def _open_writer(self):
         from ..animation import COMPAT_ENCODER, H264_SUFFIXES, VIDEO_SUFFIXES

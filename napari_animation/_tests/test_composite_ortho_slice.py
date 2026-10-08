@@ -447,3 +447,28 @@ def test_omitted_composite_retires_callbacks_and_can_be_restored():
     assert green.colormap.name == 'yellow'
     green.plane.position = (2, 4, 4)
     np.testing.assert_allclose(red.plane.position, (2, 4, 4))
+
+
+def test_native_edit_after_selecting_a_keyframe_leaves_it_unchanged():
+    """Selecting a keyframe must not let the live section share its state."""
+    viewer = _viewer()
+    section, _, green_id = _section(viewer)
+    animation = Animation(viewer)
+    animation.add_scene_object(section)
+    for _ in range(2):
+        animation.key_frames.append(KeyFrame(
+            ViewerState.from_viewer(viewer, scene=animation.scene.to_dict()),
+            np.zeros((30, 30, 4), np.uint8), steps=1,
+        ))
+    animation.set_to_keyframe(1)
+    animation.set_to_keyframe(0)
+    stored = animation.key_frames[0].viewer_state.scene[section.id]["channels"]
+    green = LayerRegistry(viewer).find_managed(
+        f"{section.id}::channel::{green_id}", "section_3d"
+    )
+
+    green.colormap = "magenta"  # a native napari edit of one channel's plane
+
+    live = animation.scene[0].channels[green_id]
+    assert live["appearance_mode"] == "custom"
+    assert stored[green_id].get("appearance_mode", "source") == "source"

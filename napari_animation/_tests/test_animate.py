@@ -178,6 +178,34 @@ def test_failed_render_closes_writer_and_restores_scene(tmp_path, stub_animation
     assert animation.viewer.camera.zoom == pytest.approx(7.5)
 
 
+def test_failed_setup_stops_the_writer(tmp_path, stub_animation, monkeypatch):
+    import threading
+
+    import imageio
+
+    closed = []
+
+    class Writer:
+        def append_data(self, frame):
+            pass
+
+        def close(self):
+            closed.append(True)
+
+    monkeypatch.setattr(imageio, "get_writer", lambda *args, **kwargs: Writer())
+    with pytest.raises(ValueError):
+        # an invalid cache size fails after the writer thread has started
+        stub_animation.animate(
+            str(tmp_path / "failed.mp4"), dask_cache="plenty",
+            diagnose=False, prefetch=0,
+        )
+    assert closed == [True]
+    assert not any(
+        thread.name == "napari-animation-writer"
+        for thread in threading.enumerate()
+    )
+
+
 def test_estimated_resolution_matches_encoded_video(
     tmp_path, stub_animation, monkeypatch, caplog
 ):

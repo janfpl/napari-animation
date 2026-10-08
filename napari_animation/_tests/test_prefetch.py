@@ -330,8 +330,9 @@ def test_dask_cache_context_reports_shared_budget(monkeypatch):
         assert nbytes == 1024
 
 
-def test_direct_animation_releases_shared_cache_on_viewer_close(monkeypatch):
-    import napari
+def test_direct_animation_releases_shared_cache_on_viewer_close(
+    make_napari_viewer, monkeypatch
+):
     from qtpy.QtWidgets import QApplication
 
     from napari_animation import Animation
@@ -339,7 +340,9 @@ def test_direct_animation_releases_shared_cache_on_viewer_close(monkeypatch):
 
     monkeypatch.setenv("NAPARI_ANIMATION_INTERACTIVE_CACHE_MB", "1")
     before = prefetch._INTERACTIVE_CACHE_USERS
-    viewer = napari.Viewer(show=False)
+    # A bare napari.Viewer() re-registers every plugin's commands, which
+    # fails once the fixture-managed test viewers have registered them.
+    viewer = make_napari_viewer()
     animation = Animation(viewer)
     assert prefetch._INTERACTIVE_CACHE_USERS == before + 1
     viewer.close()

@@ -98,12 +98,22 @@ class LayerRegistry:
                 return layer
         return None
 
+    @classmethod
+    def managed_metadata(cls, object_id: str, role: str) -> dict:
+        """Metadata identifying a renderer-owned layer.
+
+        Pass it when creating the layer, so listeners of napari's
+        ``layers.events.inserted`` already see the layer as managed.
+        """
+        return {
+            OBJECT_ID_METADATA: object_id,
+            MANAGED_ROLE_METADATA: role,
+            cls.metadata_key: cls.managed_id(object_id, role),
+        }
+
     def mark_managed(self, layer, object_id: str, role: str) -> str:
-        layer.metadata[OBJECT_ID_METADATA] = object_id
-        layer.metadata[MANAGED_ROLE_METADATA] = role
-        source_id = self.managed_id(object_id, role)
-        layer.metadata[self.metadata_key] = source_id
-        return source_id
+        layer.metadata.update(self.managed_metadata(object_id, role))
+        return self.managed_id(object_id, role)
 
     def unique_name(self, preferred: str, exclude=None) -> str:
         names = {

@@ -404,7 +404,8 @@ def load_animation(
         in the saved file (for layers not already present in the viewer).
     """
     path = Path(path)
-    with open(path) as f:
+    # Saved as UTF-8; don't depend on the platform's locale encoding.
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
     version = str(data.get("version", "0"))

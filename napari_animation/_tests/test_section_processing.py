@@ -259,3 +259,40 @@ def test_reopening_animation_creates_fresh_projection_service():
     second = Animation(viewer)
     assert service_for_viewer(viewer) is not old_service
     second.close()
+
+
+def test_cached_queued_request_does_not_strand_the_queue():
+    """A queued read answered from the cache must not stall reads behind it."""
+    from qtpy.QtCore import QEventLoop, QTimer
+    from qtpy.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    volume = CountingVolume(np.arange(4 * 5 * 6).reshape(4, 5, 6), delay=0.03)
+    service = ProjectionService(asynchronous=True)
+    published = []
+    shared = ("source", 0, id(volume), 0, (), 0, 1, 2, "max")
+    other = ("source", 0, id(volume), 0, (), 0, 2, 3, "max")
+    service.begin_batch()
+    service.request(
+        "first", shared, volume, 0, 1, 2, "max",
+        lambda _result: published.append("first"),
+    )
+    # another section showing the same slab is answered from the cache once
+    # the first read completes; the read queued behind it must still run
+    service.request(
+        "second", shared, volume, 0, 1, 2, "max",
+        lambda _result: published.append("second"),
+    )
+    service.request(
+        "third", other, volume, 0, 2, 3, "max",
+        lambda _result: published.append("third"),
+    )
+    service.end_batch()
+    loop = QEventLoop()
+    service.when_idle(loop.quit)
+    QTimer.singleShot(5000, loop.quit)
+    loop.exec_()
+    assert published == ["first", "second", "third"]
+    assert volume.reads == 2
+    service.shutdown()
+    assert app is not None

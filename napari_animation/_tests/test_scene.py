@@ -324,6 +324,24 @@ def test_layers_toggle_per_keyframe(viewer):
     assert viewer.layers["img"].visible is False
 
 
+def test_layer_edits_reach_keyframes_after_a_rename(viewer):
+    """Keyframes are keyed by source ID, so a renamed layer is still found."""
+    animation = Animation(viewer)
+    animation.capture_keyframe()
+    animation.capture_keyframe()
+    viewer.layers["img"].name = "renamed"
+
+    animation.set_voxel_size("renamed", (2, 1, 1))
+    animation.set_layer_visible(1, "renamed", False)
+
+    states = [
+        next(iter(key_frame.viewer_state.layers.values()))
+        for key_frame in animation.key_frames
+    ]
+    assert [list(state["scale"]) for state in states] == [[2, 1, 1]] * 2
+    assert [state["visible"] for state in states] == [True, False]
+
+
 def test_enabled_switches_on_arrival_not_mid_transition(viewer):
     animation = Animation(viewer)
     animation.capture_keyframe(steps=5)

@@ -14,6 +14,7 @@ from qtpy.QtWidgets import (
 from ..ortho_slicer import (
     ORTHO_VIEWS,
     PROJECTION_MODES,
+    axis_to_view,
     physical_step,
     view_to_axis,
 )
@@ -102,7 +103,42 @@ class OrthoSlicerWidget(QGroupBox):
         self.animation.viewer.dims.events.current_step.connect(
             self._on_dims_changed
         )
+        # selecting a frame restores the slicer captured in it
+        self.animation.events.state_applied.connect(
+            self._sync_widgets_from_slicer
+        )
 
+        self._update_enabled_state()
+        self._update_section_label()
+
+    def _sync_widgets_from_slicer(self, event=None):
+        """Show the slicer state restored from the selected frame.
+
+        Otherwise the controls keep their old values, and the next edit here
+        would push all of them back -- e.g. switching off a section that the
+        selected keyframe has switched on.
+        """
+        slicer = self.animation.ortho_slicer
+        view = (
+            axis_to_view(slicer.axis, self.animation.viewer.dims.ndim)
+            if slicer.axis is not None else None
+        )
+        controls = (
+            self, self.viewComboBox, self.thicknessSpinBox,
+            self.modeComboBox, self.projectionComboBox,
+        )
+        for control in controls:
+            control.blockSignals(True)
+        try:
+            self.setChecked(bool(slicer.enabled))
+            self.thicknessSpinBox.setValue(int(round(slicer.thickness)))
+            self.modeComboBox.setCurrentText(slicer.mode)
+            self.projectionComboBox.setCurrentText(slicer.projection_mode)
+            if view is not None:
+                self.viewComboBox.setCurrentText(view)
+        finally:
+            for control in controls:
+                control.blockSignals(False)
         self._update_enabled_state()
         self._update_section_label()
 

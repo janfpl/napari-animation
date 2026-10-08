@@ -3,13 +3,12 @@ import time
 from napari_animation.perf import PerfLogger
 
 
-def test_interaction_trace_writes_threaded_phase_json():
+def test_interaction_trace_writes_threaded_phase_json(tmp_path):
     import json
-    from pathlib import Path
 
     from napari_animation.perf import InteractionTrace
 
-    path = Path(".performance-audit/interaction-trace-test.json")
+    path = tmp_path / "interaction-trace-test.json"
     trace = InteractionTrace(path)
     with trace.timer("callback"):
         pass

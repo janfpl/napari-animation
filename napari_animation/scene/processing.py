@@ -319,16 +319,24 @@ class ProjectionService:
         ):
             self.cache.put(key, result)
             request[9](result)
-        pending = self._batch_pending.pop(0) if self._batch_pending else self._pending
-        if pending is self._pending:
-            self._pending = None
-        if pending is not None:
+        # Publish queued requests that are already cached and start the first
+        # one that needs a read. Stopping after a cache hit would strand the
+        # rest of the queue, since no read would remain to complete it.
+        while self._active is None:
+            pending = (
+                self._batch_pending.pop(0) if self._batch_pending
+                else self._pending
+            )
+            if pending is None:
+                break
+            if pending is self._pending:
+                self._pending = None
             cached = self.cache.get(pending[0])
-            if cached is not None:
-                if self._generations.get(pending[1]) == pending[2]:
-                    pending[9](cached)
-            else:
+            if cached is None:
                 self._start(pending)
+                break
+            if self._generations.get(pending[1]) == pending[2]:
+                pending[9](cached)
         if self._active is None and self._pending is None and not self._batch_pending:
             callbacks, self._idle_callbacks = self._idle_callbacks, []
             for callback in callbacks:

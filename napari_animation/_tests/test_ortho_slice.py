@@ -110,6 +110,18 @@ def test_voxel_size_change_updates_existing_section_units(viewer):
     assert viewer.layers.extent.units is not None
 
 
+def test_voxel_size_change_moves_existing_section_with_its_source(viewer):
+    animation = Animation(viewer)
+    section = animation.add_scene_object(OrthoSlice(name="Ortho", source="img"))
+    backing = LayerRegistry(viewer).find_managed(section.id, "section_3d")
+
+    animation.set_voxel_size("img", (5, 1, 1))
+
+    np.testing.assert_allclose(
+        backing.extent.world, viewer.layers["img"].extent.world
+    )
+
+
 def test_projection_maps_onto_the_rendering_mode(viewer):
     scene = Scene()
     scene.append(OrthoSlice(name="Ortho", source="img", projection="mean"))

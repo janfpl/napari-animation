@@ -17,6 +17,7 @@ Two properties make the keyframing work:
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, ClassVar, Dict, Iterator, List, Tuple, Type
 from uuid import uuid4
@@ -86,8 +87,13 @@ class SceneObject:
 
     @staticmethod
     def from_dict(state: dict) -> "SceneObject":
-        """Rebuild a scene object from a dict written by :meth:`to_dict`."""
-        state = dict(state)
+        """Rebuild a scene object from a dict written by :meth:`to_dict`.
+
+        The state is deep-copied: ``state`` is usually a keyframe snapshot,
+        and an object sharing its nested dicts (e.g. ``channels``) would
+        silently rewrite that keyframe when edited in place.
+        """
+        state = deepcopy(state)
         kind = state.pop("kind", None)
         cls = _KINDS.get(kind)
         if cls is None:

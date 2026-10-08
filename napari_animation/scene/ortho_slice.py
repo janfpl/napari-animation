@@ -719,6 +719,7 @@ class OrthoSlice(SceneObject):
             units=tuple(source.units[-3:]),
             depiction="plane",
             rendering=PROJECTION_TO_RENDERING.get(self.projection, "mip"),
+            metadata=registry.managed_metadata(self.id, "section_3d"),
         )
         registry.mark_managed(layer, self.id, "section_3d")
         layer._napari_animation_data_binding = None if placeholder else binding
@@ -1211,6 +1212,7 @@ class OrthoSlice(SceneObject):
                 units=tuple(backing_layer.units[-3:]),
                 opacity=backing_layer.opacity,
                 contrast_limits=tuple(backing_layer.contrast_limits),
+                metadata=registry.managed_metadata(self.id, "section_2d"),
             )
             registry.mark_managed(output, self.id, "section_2d")
         else:

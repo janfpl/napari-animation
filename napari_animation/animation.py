@@ -787,8 +787,18 @@ class Animation:
                                 managed.units = tuple(layer.units[-managed.ndim:])
 
         self._rewrite_keyframe_layer_state(
-            layer_name, scale=new_scale, units=new_units
+            layer, scale=new_scale, units=new_units
         )
+        # Section layers copy their source's transform when the scene is
+        # rendered. Nothing else re-renders here, so without this an existing
+        # slice keeps showing the slab at the old spacing.
+        if self.scene:
+            self.renderer.apply_working(
+                ortho=(
+                    self.ortho_slicer.to_dict()
+                    if self.ortho_slicer.enabled else None
+                )
+            )
         return tuple(new_scale)
 
     def invalidate_source(self, layer_name_or_id):
@@ -807,21 +817,32 @@ class Animation:
         layer.events.data(value=layer.data)
         self.apply_working_state()
 
-    def _rewrite_keyframe_layer_state(self, layer_name, **values):
+    @staticmethod
+    def _keyframe_layer_key(layer_states, layer):
+        """Key of ``layer``'s entry in a captured layer map, or ``None``.
+
+        Captured states are keyed by stable source ID, so a layer renamed
+        after a keyframe was captured is still found. The display name is
+        only matched for entries that predate source IDs.
+        """
+        source_id = LayerRegistry.ensure_id(layer)
+        for key, properties in layer_states.items():
+            if key == source_id or (
+                not properties.get("source_id")
+                and properties.get("name", key) == layer.name
+            ):
+                return key
+        return None
+
+    def _rewrite_keyframe_layer_state(self, layer, **values):
         """Overwrite one layer's captured properties in every keyframe."""
         changed = False
         for key_frame in self.key_frames:
             state = key_frame.viewer_state
-            if layer_name not in state.layers:
+            state_key = self._keyframe_layer_key(state.layers, layer)
+            if state_key is None:
                 continue
             layers = {k: dict(v) for k, v in state.layers.items()}
-            state_key = layer_name
-            if state_key not in layers:
-                state_key = next(
-                    key
-                    for key, layer_state in layers.items()
-                    if layer_state.get("name") == layer_name
-                )
             for key, value in values.items():
                 if value is not None and key in layers[state_key]:
                     layers[state_key][key] = list(value)
@@ -836,18 +857,19 @@ class Animation:
         """Show or hide a napari layer at a single keyframe."""
         key_frame = self.key_frames[keyframe_index]
         state = key_frame.viewer_state
-        if layer_name not in state.layers:
+        state_key = None
+        if layer_name in self.viewer.layers:
+            state_key = self._keyframe_layer_key(
+                state.layers, self.viewer.layers[layer_name]
+            )
+        if state_key is None and layer_name in state.layers:
+            # a layer captured under this name but no longer in the viewer
+            state_key = state.layers._resolve_key(layer_name)
+        if state_key is None:
             raise KeyError(
                 f"No layer {layer_name!r} in keyframe {keyframe_index}"
             )
         layers = {k: dict(v) for k, v in state.layers.items()}
-        state_key = layer_name
-        if state_key not in layers:
-            state_key = next(
-                key
-                for key, layer_state in layers.items()
-                if layer_state.get("name") == layer_name
-            )
         layers[state_key]["visible"] = bool(visible)
         key_frame.viewer_state = replace(state, layers=layers)
         self._frames._rebuild_frame_index()
@@ -1303,32 +1325,39 @@ class Animation:
         print(f"Rendering {n_frames} frames -> {target}")
         logger.info("Rendering %d frames -> %s", n_frames, target)
 
-        # opportunistic dask cache so prefetched chunks are reused by the
-        # main-thread read (kept active for the whole render below).
+        # The writer thread is running from here on, so any failure -- even
+        # while setting up the cache or prefetcher -- must reach the
+        # ``finally`` below to stop it and close the writer.
         cache_cm = dask_cache_context(dask_cache)
-        cache_bytes = cache_cm.__enter__()
-        if cache_bytes:
-            print(f"dask cache enabled: {cache_bytes / 1e9:.1f} GB")
-
-        # warm the cache for upcoming frames' data slices on background threads
-        prefetcher = SlicePrefetcher(
-            self.viewer,
-            self._frames,
-            depth=prefetch,
-            workers=prefetch_workers,
-        )
-        perf.metadata.update(
-            prefetch_enabled=prefetcher.enabled,
-            prefetch_skip_reason=prefetcher.skip_reason,
-        )
-        if prefetcher.enabled:
-            print(
-                f"Prefetching up to {prefetcher.depth} frame(s) ahead on "
-                f"{prefetch_workers} thread(s)"
-            )
-
+        cache_entered = False
+        prefetcher = None
         render_error = None
         try:
+            # opportunistic dask cache so prefetched chunks are reused by the
+            # main-thread read (kept active for the whole render below).
+            cache_bytes = cache_cm.__enter__()
+            cache_entered = True
+            if cache_bytes:
+                print(f"dask cache enabled: {cache_bytes / 1e9:.1f} GB")
+
+            # warm the cache for upcoming frames' data slices on background
+            # threads
+            prefetcher = SlicePrefetcher(
+                self.viewer,
+                self._frames,
+                depth=prefetch,
+                workers=prefetch_workers,
+            )
+            perf.metadata.update(
+                prefetch_enabled=prefetcher.enabled,
+                prefetch_skip_reason=prefetcher.skip_reason,
+            )
+            if prefetcher.enabled:
+                print(
+                    f"Prefetching up to {prefetcher.depth} frame(s) ahead on "
+                    f"{prefetch_workers} thread(s)"
+                )
+
             with ExportCaptureSession(self.viewer, render_size), tqdm(total=n_frames) as pbar:
                 for ind in range(n_frames):
                     if write_errors:
@@ -1368,11 +1397,13 @@ class Animation:
         finally:
             # signal the writer to finish and wait for the queue to drain
             with perf.timer("pipeline.drain"):
-                prefetcher.shutdown()
+                if prefetcher is not None:
+                    prefetcher.shutdown()
                 frame_queue.put(None)
                 print("Waiting for encoder to finish writing queued frames...")
                 writer_thread.join()
-            cache_cm.__exit__(None, None, None)
+            if cache_entered:
+                cache_cm.__exit__(None, None, None)
             if writer is not None:
                 print("Finalizing video container (muxing)...")
                 logger.info("Finalizing video container for %s", path)
@@ -1457,7 +1488,7 @@ class Animation:
         try:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().isoformat(timespec="seconds")
-            with open(log_path, "w") as f:
+            with open(log_path, "w", encoding="utf-8") as f:
                 f.write(
                     f"napari-animation render log\n"
                     f"timestamp: {timestamp}\n"
