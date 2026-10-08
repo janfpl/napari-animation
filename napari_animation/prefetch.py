@@ -49,9 +49,12 @@ def acquire_interactive_cache():
     """
     global _INTERACTIVE_CACHE, _INTERACTIVE_CACHE_USERS
     try:
-        size_mb = max(0, int(os.environ.get(
-            "NAPARI_ANIMATION_INTERACTIVE_CACHE_MB", "512"
-        )))
+        size_mb = max(
+            0,
+            int(
+                os.environ.get("NAPARI_ANIMATION_INTERACTIVE_CACHE_MB", "512")
+            ),
+        )
     except ValueError:
         size_mb = 512
     if size_mb == 0:
@@ -173,7 +176,8 @@ def _all_sources_resident(viewer, frames):
     from .interpolation import Interpolation
 
     sources = [
-        layer for layer in viewer.layers
+        layer
+        for layer in viewer.layers
         if not getattr(layer, "metadata", {}).get(OBJECT_ID_METADATA)
     ]
     if not sources:
@@ -182,9 +186,10 @@ def _all_sources_resident(viewer, frames):
         array = _layer_level_array(layer)
         if array is None or not _resident_full_view(layer, array):
             return False
-        if getattr(layer, "multiscale", False) and getattr(
-            layer, "locked_data_level", None
-        ) is None:
+        if (
+            getattr(layer, "multiscale", False)
+            and getattr(layer, "locked_data_level", None) is None
+        ):
             return False
         source_id = getattr(layer, "metadata", {}).get(SOURCE_ID_METADATA)
         if source_id is None:
@@ -200,10 +205,13 @@ def _all_sources_resident(viewer, frames):
         ]
         if not all(
             resolve_interpolation(frames.state_interpolation_map, path)
-            is Interpolation.STEP_END for path in paths
+            is Interpolation.STEP_END
+            for path in paths
         ):
             return False
-        states = tuple(keyframe.viewer_state for keyframe in frames._key_frames)
+        states = tuple(
+            keyframe.viewer_state for keyframe in frames._key_frames
+        )
     elif type(frames) in (list, tuple):
         states = frames  # Already materialized; do not copy or expand them.
     else:
@@ -216,7 +224,11 @@ def _all_sources_resident(viewer, frames):
             if ndisplay is None or int(ndisplay) < layer.ndim:
                 return False
             layer_states = getattr(frame, "layers", None)
-            state = layer_states.get(source_id) if layer_states is not None else None
+            state = (
+                layer_states.get(source_id)
+                if layer_states is not None
+                else None
+            )
             if state is None or state.get(
                 "locked_data_level", getattr(layer, "locked_data_level", None)
             ) != getattr(layer, "locked_data_level", None):
@@ -251,18 +263,21 @@ def read_keys(viewer, dims):
                 continue
             layer_ndim = getattr(layer, "ndim", arr.ndim)
             offset = ndim - layer_ndim
-            if (
-                all(axis + offset in displayed for axis in range(layer_ndim))
-                and _resident_full_view(layer, arr)
-            ):
+            if all(
+                axis + offset in displayed for axis in range(layer_ndim)
+            ) and _resident_full_view(layer, arr):
                 # A static 3D volume in a 3D view has already been read in
                 # full for napari. Re-reading every HDF5/Dask chunk cannot
                 # warm a smaller future slice and only consumes I/O and RAM.
                 continue
             data_point = None
             if callable(getattr(layer, "world_to_data", None)):
-                world_point = np.asarray(point[offset:offset + layer_ndim], float)
-                data_point = np.asarray(layer.world_to_data(world_point), float)
+                world_point = np.asarray(
+                    point[offset : offset + layer_ndim], float
+                )
+                data_point = np.asarray(
+                    layer.world_to_data(world_point), float
+                )
                 if getattr(layer, "multiscale", False):
                     factors = np.asarray(
                         layer.downsample_factors[layer.data_level], float
@@ -275,9 +290,15 @@ def read_keys(viewer, dims):
                     index.append(slice(None))
                 else:
                     index.append(
-                        int(np.clip(round(data_point[ax]), 0, arr.shape[ax] - 1))
-                        if data_point is not None else
-                        _axis_index(point, ranges, global_ax, arr.shape[ax])
+                        int(
+                            np.clip(
+                                round(data_point[ax]), 0, arr.shape[ax] - 1
+                            )
+                        )
+                        if data_point is not None
+                        else _axis_index(
+                            point, ranges, global_ax, arr.shape[ax]
+                        )
                     )
             keys.append((arr, tuple(index)))
         except Exception:  # noqa: BLE001 - best effort per layer
@@ -302,8 +323,11 @@ def _read_signature(array, index):
         is_dask = False
     if not is_dask:
         return id(array), tuple(
-            ("slice", part.start, part.stop, part.step)
-            if isinstance(part, slice) else int(part)
+            (
+                ("slice", part.start, part.stop, part.step)
+                if isinstance(part, slice)
+                else int(part)
+            )
             for part in index
         )
     coordinates = []
@@ -312,15 +336,15 @@ def _read_signature(array, index):
             if selected != slice(None):
                 # read_keys currently uses full slices; retain exact identity
                 # if a future caller supplies a partial or stepped slice.
-                coordinates.append((
-                    "slice", selected.start, selected.stop, selected.step
-                ))
+                coordinates.append(
+                    ("slice", selected.start, selected.stop, selected.step)
+                )
             else:
                 coordinates.append("all")
         else:
-            chunk = int(np.searchsorted(
-                np.cumsum(parts), int(selected), side="right"
-            ))
+            chunk = int(
+                np.searchsorted(np.cumsum(parts), int(selected), side="right")
+            )
             coordinates.append(chunk)
     return id(array), tuple(coordinates)
 
@@ -333,12 +357,16 @@ class SlicePrefetcher:
         self.frames = frames
         self.depth = max(0, int(depth))
         try:
-            resident = _all_sources_resident(viewer, frames) if self.depth else False
+            resident = (
+                _all_sources_resident(viewer, frames) if self.depth else False
+            )
         except Exception as error:  # noqa: BLE001 - read-ahead is best effort
             logger.warning("Could not assess resident sources: %s", error)
             resident = False
         self.enabled = self.depth > 0 and not resident
-        self.skip_reason = "resident_full_volume" if resident and self.depth else None
+        self.skip_reason = (
+            "resident_full_volume" if resident and self.depth else None
+        )
         self._submitted = set()
         self._futures = {}
         self._lock = Lock()
@@ -379,13 +407,18 @@ class SlicePrefetcher:
                     future.cancel()
                     self._futures.pop(signature, None)
             for signature, keys in unique.items():
-                if signature not in self._futures and len(self._futures) < self.depth:
+                if (
+                    signature not in self._futures
+                    and len(self._futures) < self.depth
+                ):
                     cancel = Event()
                     self._futures[signature] = (
-                        self._pool.submit(self._warm_keys, keys, cancel), cancel
+                        self._pool.submit(self._warm_keys, keys, cancel),
+                        cancel,
                     )
             self._submitted = {
-                index for index, signature in frames.items()
+                index
+                for index, signature in frames.items()
                 if not signature or signature in self._futures
             }
 

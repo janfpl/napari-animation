@@ -12,23 +12,39 @@ import pytest
 from napari.components import ViewerModel
 from qtpy.QtCore import QTimer
 
-from napari_animation import Animation, KeyFrame, ViewerState, import_luxendo_folder
+from napari_animation import (
+    Animation,
+    KeyFrame,
+    ViewerState,
+    import_luxendo_folder,
+)
 from napari_animation._qt import AnimationWidget
 from napari_animation.luxendo import (
-    LUXENDO_METADATA, ImportCancelled, add_luxendo_channel, prepare_luxendo_folder,
-    read_luxendo_channel, scan_luxendo_files,
+    LUXENDO_METADATA,
+    ImportCancelled,
+    add_luxendo_channel,
+    prepare_luxendo_folder,
+    read_luxendo_channel,
+    scan_luxendo_files,
 )
 from napari_animation.scene.h5_process import describe_h5_volume
 
 
 @pytest.fixture
 def channel_file(tmp_path):
-    def create(name="ch0.lux.h5", channel=0, scale=(0.7, 0.3, 0.2),
-               pyramid=True, metadata=True, encoding="scalar"):
+    def create(
+        name="ch0.lux.h5",
+        channel=0,
+        scale=(0.7, 0.3, 0.2),
+        pyramid=True,
+        metadata=True,
+        encoding="scalar",
+    ):
         path = tmp_path / name
         path.parent.mkdir(parents=True, exist_ok=True)
         processing = dict(
-            channel=channel, channel_description="561" if channel == 0 else "488",
+            channel=channel,
+            channel_description="561" if channel == 0 else "488",
             voxel_size_um=dict(zip(("depth", "height", "width"), scale)),
         )
         raw = json.dumps(dict(processingInformation=processing)).encode()
@@ -42,10 +58,17 @@ def channel_file(tmp_path):
             factors = (1, 2, 4, 8, 16) if pyramid else (1,)
             for factor in factors:
                 shape = tuple(max(1, size // factor) for size in (16, 32, 48))
-                data = np.arange(np.prod(shape), dtype=np.uint16).reshape(shape)
-                key = "Data" if factor == 1 else f"Data_{factor}_{factor}_{factor}"
+                data = np.arange(np.prod(shape), dtype=np.uint16).reshape(
+                    shape
+                )
+                key = (
+                    "Data"
+                    if factor == 1
+                    else f"Data_{factor}_{factor}_{factor}"
+                )
                 file.create_dataset(key, data=data, chunks=True)
         return path
+
     return create
 
 
@@ -65,7 +88,11 @@ def test_metadata_and_pyramids_stay_lazy(channel_file, monkeypatch, encoding):
     assert channel.scale == (0.7, 0.3, 0.2)
     assert all(isinstance(array, da.Array) for array in channel.arrays)
     assert [array.shape for array in channel.arrays] == [
-        (16, 32, 48), (8, 16, 24), (4, 8, 12), (2, 4, 6), (1, 2, 3),
+        (16, 32, 48),
+        (8, 16, 24),
+        (4, 8, 12),
+        (2, 4, 6),
+        (1, 2, 3),
     ]
     image_reads = [(name, key) for name, key in reads if name != "/metadata"]
     assert len(image_reads) == 1
@@ -75,10 +102,14 @@ def test_metadata_and_pyramids_stay_lazy(channel_file, monkeypatch, encoding):
     descriptor = describe_h5_volume(channel.arrays[0])
     assert descriptor[:3] == (str(path), "/Data", (16, 32, 48))
     expected = np.arange(16 * 32 * 48, dtype=np.uint16).reshape(16, 32, 48)
-    np.testing.assert_array_equal(channel.arrays[0][2:4].compute(), expected[2:4])
+    np.testing.assert_array_equal(
+        channel.arrays[0][2:4].compute(), expected[2:4]
+    )
 
 
-def test_folder_channels_recursion_headers_and_rejections(channel_file, tmp_path):
+def test_folder_channels_recursion_headers_and_rejections(
+    channel_file, tmp_path
+):
     channel_file()
     channel_file("sub/ch1.h5", channel=1, scale=(1.4, 0.6, 0.4))
     channel_file("main_st-1_bdv.h5", metadata=False)
@@ -89,7 +120,8 @@ def test_folder_channels_recursion_headers_and_rejections(channel_file, tmp_path
     plan = prepare_luxendo_folder(tmp_path)
     assert len(plan.channels) == 2
     assert {channel.scale for channel in plan.channels} == {
-        (0.7, 0.3, 0.2), (1.4, 0.6, 0.4),
+        (0.7, 0.3, 0.2),
+        (1.4, 0.6, 0.4),
     }
     assert len(plan.skipped) == 2
     assert any("missing embedded" in reason for reason in plan.skipped)
@@ -123,7 +155,8 @@ def test_corrupt_metadata_and_pyramid_are_reported(channel_file, tmp_path):
 def test_file_survives_derived_arrays_then_closes(channel_file):
     channel = read_luxendo_channel(channel_file())
     dataset = next(
-        value for value in channel.arrays[0].dask.values()
+        value
+        for value in channel.arrays[0].dask.values()
         if isinstance(value, h5py.Dataset)
     )
     file_id = dataset.file.id
@@ -137,7 +170,9 @@ def test_file_survives_derived_arrays_then_closes(channel_file):
     assert not file_id.valid
 
 
-def test_import_sets_per_channel_scale_and_deduplicates(channel_file, tmp_path):
+def test_import_sets_per_channel_scale_and_deduplicates(
+    channel_file, tmp_path
+):
     channel_file()
     channel_file("ch1.h5", channel=1, scale=(1.4, 0.6, 0.4), pyramid=False)
     viewer = ViewerModel()
@@ -171,10 +206,12 @@ def test_saved_keyframes_reopen_luxendo_channels(channel_file, tmp_path):
     viewer = ViewerModel()
     import_luxendo_folder(viewer, tmp_path)
     animation = Animation(viewer)
-    animation.key_frames.append(KeyFrame(
-        viewer_state=ViewerState.from_viewer(viewer),
-        thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
-    ))
+    animation.key_frames.append(
+        KeyFrame(
+            viewer_state=ViewerState.from_viewer(viewer),
+            thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
+        )
+    )
     path = animation.save_keyframes(tmp_path / "animation.json")
     assert json.loads(path.read_text())["layers"][0]["reader"] == "luxendo"
     restored = Animation(ViewerModel())
@@ -185,13 +222,17 @@ def test_saved_keyframes_reopen_luxendo_channels(channel_file, tmp_path):
         assert layer.name == "ch0 — 561"
         np.testing.assert_allclose(layer.scale, (0.7, 0.3, 0.2))
         assert isinstance(layer.data[0], da.Array)
-        np.testing.assert_array_equal(layer.data[0][0].compute(), viewer.layers[0].data[0][0].compute())
+        np.testing.assert_array_equal(
+            layer.data[0][0].compute(), viewer.layers[0].data[0][0].compute()
+        )
     finally:
         animation.close()
         restored.close()
 
 
-def test_gui_import_runs_preparation_off_thread(channel_file, tmp_path, qtbot, monkeypatch):
+def test_gui_import_runs_preparation_off_thread(
+    channel_file, tmp_path, qtbot, monkeypatch
+):
     import napari_animation.luxendo as backend
 
     channel_file()
@@ -203,7 +244,10 @@ def test_gui_import_runs_preparation_off_thread(channel_file, tmp_path, qtbot, m
     widget.voxelSizeWidget.unitsComboBox.setCurrentText("nm")
     main_thread = threading.get_ident()
     prepare_threads, install_threads, heartbeats = [], [], []
-    prepare, install = backend.prepare_luxendo_folder, backend.add_luxendo_channel
+    prepare, install = (
+        backend.prepare_luxendo_folder,
+        backend.add_luxendo_channel,
+    )
 
     def slow_prepare(*args, **kwargs):
         prepare_threads.append(threading.get_ident())
@@ -243,7 +287,9 @@ def test_gui_import_runs_preparation_off_thread(channel_file, tmp_path, qtbot, m
 
 
 @pytest.mark.parametrize("close", [False, True])
-def test_cancel_or_close_discards_late_import(channel_file, tmp_path, qtbot, monkeypatch, close):
+def test_cancel_or_close_discards_late_import(
+    channel_file, tmp_path, qtbot, monkeypatch, close
+):
     import napari_animation.luxendo as backend
 
     channel_file()

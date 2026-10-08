@@ -32,7 +32,12 @@ def project_slab(volume, axis, start, stop, projection, cancel=None):
     decompression of the same HDF5 chunks across projection-axis subreads.
     """
     return project_slab_core(
-        volume, axis, start, stop, projection, cancel,
+        volume,
+        axis,
+        start,
+        stop,
+        projection,
+        cancel,
         target_read_bytes=_TARGET_READ_BYTES,
         cancel_error=CancelledProjection,
     )
@@ -120,19 +125,23 @@ class ProjectionService:
         if self._pending is not None and self._pending[0][0] == source_id:
             self._pending = None
         self._batch_pending = [
-            request for request in self._batch_pending
+            request
+            for request in self._batch_pending
             if request[0][0] != source_id
         ]
 
     def cancel_section(self, section_id):
         self.begin_section(section_id)
-        self._generations[section_id] = self._generations.get(section_id, 0) + 1
+        self._generations[section_id] = (
+            self._generations.get(section_id, 0) + 1
+        )
         if self._active is not None and self._active[1] == section_id:
             self._active[3].set()
         if self._pending is not None and self._pending[1] == section_id:
             self._pending = None
         self._batch_pending = [
-            request for request in self._batch_pending
+            request
+            for request in self._batch_pending
             if request[1] != section_id
         ]
 
@@ -160,12 +169,22 @@ class ProjectionService:
 
     def retain_sections(self, section_ids):
         """Retire work for sections absent from the current rendered view."""
-        for section_id in set(self._section_revisions) | set(self._generations):
+        for section_id in set(self._section_revisions) | set(
+            self._generations
+        ):
             if section_id not in section_ids:
                 self.cancel_section(section_id)
 
     def request(
-        self, section_id, key, volume, axis, start, stop, projection, publish,
+        self,
+        section_id,
+        key,
+        volume,
+        axis,
+        start,
+        stop,
+        projection,
+        publish,
         on_error=None,
     ):
         if self._closed:
@@ -183,7 +202,8 @@ class ProjectionService:
             publish(result)
             return
         if (
-            self._active is not None and self._active[0] == key
+            self._active is not None
+            and self._active[0] == key
             and self._active[1] == section_id
             and not self._active[3].is_set()
         ):
@@ -194,7 +214,8 @@ class ProjectionService:
             self._active[10] = on_error
             return
         if (
-            self._pending is not None and self._pending[0] == key
+            self._pending is not None
+            and self._pending[0] == key
             and self._pending[1] == section_id
         ):
             self._pending[2] = generation
@@ -202,8 +223,17 @@ class ProjectionService:
             self._pending[10] = on_error
             return
         request = [
-            key, section_id, generation, threading.Event(), volume, axis,
-            start, stop, projection, publish, on_error,
+            key,
+            section_id,
+            generation,
+            threading.Event(),
+            volume,
+            axis,
+            start,
+            stop,
+            projection,
+            publish,
+            on_error,
         ]
         if self._active is None:
             self._start(request)
@@ -243,18 +273,26 @@ class ProjectionService:
     def _project(self, request):
         """Use parallel HDF5 lanes only for an eligible direct source."""
         volume, axis, start, stop, projection, cancel = (
-            request[4], request[5], request[6], request[7], request[8],
+            request[4],
+            request[5],
+            request[6],
+            request[7],
+            request[8],
             request[3],
         )
         from .h5_process import (
-            H5ProcessProjector, describe_h5_volume,
-            direct_uncompressed_read, process_lanes, project_h5_direct,
+            H5ProcessProjector,
+            describe_h5_volume,
+            direct_uncompressed_read,
+            process_lanes,
+            project_h5_direct,
         )
 
         descriptor = describe_h5_volume(volume)
         lanes = (
             process_lanes(descriptor, axis, start, stop)
-            if descriptor is not None and not self._process_failed else 0
+            if descriptor is not None and not self._process_failed
+            else 0
         )
         if lanes >= 2:
             source = (request[0][:3], descriptor, lanes)
@@ -274,7 +312,8 @@ class ProjectionService:
             except Exception as error:  # spawn/pickle/reader fallback
                 logger.warning(
                     "Parallel HDF5 projection unavailable; using one "
-                    "reader: %s", error,
+                    "reader: %s",
+                    error,
                 )
                 self._process_failed = True
                 if self._process_projector is not None:
@@ -314,7 +353,9 @@ class ProjectionService:
                 if request[10] is not None:
                     request[10](error)
         if (
-            not self._closed and error is None and not request[3].is_set()
+            not self._closed
+            and error is None
+            and not request[3].is_set()
             and self._generations.get(section_id) == generation
         ):
             self.cache.put(key, result)
@@ -324,7 +365,8 @@ class ProjectionService:
         # rest of the queue, since no read would remain to complete it.
         while self._active is None:
             pending = (
-                self._batch_pending.pop(0) if self._batch_pending
+                self._batch_pending.pop(0)
+                if self._batch_pending
                 else self._pending
             )
             if pending is None:
@@ -337,13 +379,21 @@ class ProjectionService:
                 break
             if self._generations.get(pending[1]) == pending[2]:
                 pending[9](cached)
-        if self._active is None and self._pending is None and not self._batch_pending:
+        if (
+            self._active is None
+            and self._pending is None
+            and not self._batch_pending
+        ):
             callbacks, self._idle_callbacks = self._idle_callbacks, []
             for callback in callbacks:
                 callback()
 
     def when_idle(self, callback):
-        if self._active is None and self._pending is None and not self._batch_pending:
+        if (
+            self._active is None
+            and self._pending is None
+            and not self._batch_pending
+        ):
             callback()
         else:
             self._idle_callbacks.append(callback)
@@ -368,7 +418,9 @@ def service_for_viewer(viewer):
         try:
             from qtpy.QtWidgets import QApplication
 
-            asynchronous = QApplication.instance() is not None and hasattr(viewer, "window")
+            asynchronous = QApplication.instance() is not None and hasattr(
+                viewer, "window"
+            )
         except ImportError:
             asynchronous = False
         service = ProjectionService(

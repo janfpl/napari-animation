@@ -5,10 +5,7 @@ import time
 import numpy as np
 import pytest
 
-from napari_animation.scene.processing import (
-    ProjectionService,
-    project_slab,
-)
+from napari_animation.scene.processing import ProjectionService, project_slab
 
 
 class CountingVolume:
@@ -29,7 +26,9 @@ class CountingVolume:
 @pytest.mark.parametrize("axis", (0, 1, 2))
 @pytest.mark.parametrize("projection", ("max", "min", "mean"))
 @pytest.mark.parametrize("dtype", (np.uint16, np.float32))
-def test_bounded_projection_matches_numpy(axis, projection, dtype, monkeypatch):
+def test_bounded_projection_matches_numpy(
+    axis, projection, dtype, monkeypatch
+):
     import napari_animation.scene.processing as processing
 
     monkeypatch.setattr(processing, "_TARGET_READ_BYTES", 100)
@@ -69,9 +68,25 @@ def test_async_scrub_only_publishes_latest():
     loop = QEventLoop()
     for request_index in range(100):
         start = request_index % 5
-        key = ("source", 0, id(volume), request_index, (), 0, start, start + 1, "max")
+        key = (
+            "source",
+            0,
+            id(volume),
+            request_index,
+            (),
+            0,
+            start,
+            start + 1,
+            "max",
+        )
         service.request(
-            "section", key, volume, 0, start, start + 1, "max",
+            "section",
+            key,
+            volume,
+            0,
+            start,
+            start + 1,
+            "max",
             lambda result, i=request_index: published.append((i, result)),
         )
     service.when_idle(loop.quit)
@@ -112,10 +127,18 @@ def test_process_start_failure_falls_back_to_worker(monkeypatch):
 
     app = QApplication.instance() or QApplication([])
     volume = CountingVolume(np.arange(4 * 5 * 6).reshape(4, 5, 6))
-    monkeypatch.setattr(backend, "describe_h5_volume", lambda _volume: (
-        "missing.ims", "/Data", volume.shape, volume.dtype.str,
-        (2, 5, 6), "gzip",
-    ))
+    monkeypatch.setattr(
+        backend,
+        "describe_h5_volume",
+        lambda _volume: (
+            "missing.ims",
+            "/Data",
+            volume.shape,
+            volume.dtype.str,
+            (2, 5, 6),
+            "gzip",
+        ),
+    )
     monkeypatch.setattr(backend, "process_lanes", lambda *_args: 4)
 
     class FailingProjector:
@@ -165,17 +188,33 @@ def test_process_readers_close_on_source_switch_and_shutdown(monkeypatch):
 
     monkeypatch.setattr(backend, "H5ProcessProjector", Projector)
     monkeypatch.setattr(backend, "process_lanes", lambda *_args: 4)
-    monkeypatch.setattr(backend, "describe_h5_volume", lambda volume: (
-        volume.source, "/Data", volume.shape, volume.dtype.str,
-        (2, 5, 6), "gzip",
-    ))
+    monkeypatch.setattr(
+        backend,
+        "describe_h5_volume",
+        lambda volume: (
+            volume.source,
+            "/Data",
+            volume.shape,
+            volume.dtype.str,
+            (2, 5, 6),
+            "gzip",
+        ),
+    )
     service = ProjectionService()
     for index in range(2):
         volume = CountingVolume(np.zeros((4, 5, 6), dtype=np.uint16))
         volume.source = f"source-{index}.ims"
         request = [
-            (volume.source, 0, id(volume)), "section", index,
-            threading.Event(), volume, 0, 1, 2, "max", None,
+            (volume.source, 0, id(volume)),
+            "section",
+            index,
+            threading.Event(),
+            volume,
+            0,
+            1,
+            2,
+            "max",
+            None,
         ]
         assert service._project(request).shape == (5, 6)
     assert len(created) == 2
@@ -207,6 +246,7 @@ def test_removed_section_cannot_publish_late_result():
 
 def test_multiscale_section_previews_then_refines():
     from typing import ClassVar
+
     from napari.components import ViewerModel
     from qtpy.QtCore import QEventLoop, QTimer
     from qtpy.QtWidgets import QApplication
@@ -223,8 +263,11 @@ def test_multiscale_section_previews_then_refines():
     coarse = full[::2, ::2, ::2]
     viewer.add_image([full, coarse], name="volume", multiscale=True)
     section = OrthoSlice(
-        name="section", source="volume", source_level=0,
-        position=(4, 0, 0), thickness=2,
+        name="section",
+        source="volume",
+        source_level=0,
+        position=(4, 0, 0),
+        thickness=2,
     )
     scene = Scene()
     scene.append(section)
@@ -234,7 +277,9 @@ def test_multiscale_section_previews_then_refines():
 
     def remember():
         layer = LayerRegistry(viewer).find_managed(section.id, "section_2d")
-        observed.append(None if layer is None else tuple(np.squeeze(layer.data).shape))
+        observed.append(
+            None if layer is None else tuple(np.squeeze(layer.data).shape)
+        )
 
     QTimer.singleShot(100, remember)
     QTimer.singleShot(800, loop.quit)
@@ -274,17 +319,35 @@ def test_cached_queued_request_does_not_strand_the_queue():
     other = ("source", 0, id(volume), 0, (), 0, 2, 3, "max")
     service.begin_batch()
     service.request(
-        "first", shared, volume, 0, 1, 2, "max",
+        "first",
+        shared,
+        volume,
+        0,
+        1,
+        2,
+        "max",
         lambda _result: published.append("first"),
     )
     # another section showing the same slab is answered from the cache once
     # the first read completes; the read queued behind it must still run
     service.request(
-        "second", shared, volume, 0, 1, 2, "max",
+        "second",
+        shared,
+        volume,
+        0,
+        1,
+        2,
+        "max",
         lambda _result: published.append("second"),
     )
     service.request(
-        "third", other, volume, 0, 2, 3, "max",
+        "third",
+        other,
+        volume,
+        0,
+        2,
+        3,
+        "max",
         lambda _result: published.append("third"),
     )
     service.end_batch()

@@ -3,13 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qtpy.QtCore import QTimer
-from qtpy.QtWidgets import (
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
-    QLabel,
-    QSpinBox,
-)
+from qtpy.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel, QSpinBox
 
 from ..ortho_slicer import (
     ORTHO_VIEWS,
@@ -121,11 +115,15 @@ class OrthoSlicerWidget(QGroupBox):
         slicer = self.animation.ortho_slicer
         view = (
             axis_to_view(slicer.axis, self.animation.viewer.dims.ndim)
-            if slicer.axis is not None else None
+            if slicer.axis is not None
+            else None
         )
         controls = (
-            self, self.viewComboBox, self.thicknessSpinBox,
-            self.modeComboBox, self.projectionComboBox,
+            self,
+            self.viewComboBox,
+            self.thicknessSpinBox,
+            self.modeComboBox,
+            self.projectionComboBox,
         )
         for control in controls:
             control.blockSignals(True)

@@ -70,9 +70,7 @@ class FrameWidget(QWidget):
         if active_keyframe is None:
             return
         index = self.animation.key_frames.index(active_keyframe)
-        self.animation.set_keyframe_timing(
-            index, ease=self.get_easing_func()
-        )
+        self.animation.set_keyframe_timing(index, ease=self.get_easing_func())
 
     def get_easing_func(self):
         return Easing[self.easeComboBox.currentText().upper()]

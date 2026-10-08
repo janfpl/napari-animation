@@ -102,9 +102,12 @@ def test_cancelling_the_save_dialog_is_a_no_op(qtbot):
     widget = AnimationWidget(viewer)
     qtbot.addWidget(widget)
 
-    with patch.object(
-        SaveDialogWidget, "getAnimationParameters", return_value=None
-    ), patch.object(widget.animation, "animate") as animate:
+    with (
+        patch.object(
+            SaveDialogWidget, "getAnimationParameters", return_value=None
+        ),
+        patch.object(widget.animation, "animate") as animate,
+    ):
         widget._save_callback()
 
     animate.assert_not_called()

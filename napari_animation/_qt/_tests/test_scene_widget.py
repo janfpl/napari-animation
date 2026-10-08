@@ -130,9 +130,13 @@ def test_slice_channel_all_and_none_respect_search(scene_widget, animation):
     section = animation.scene[-1]
     editor.channelSearch.setText("second")
     editor.channelAllButton.click()
-    assert sum(binding["enabled"] for binding in section.channels.values()) == 2
+    assert (
+        sum(binding["enabled"] for binding in section.channels.values()) == 2
+    )
     editor.channelNoneButton.click()
-    assert sum(binding["enabled"] for binding in section.channels.values()) == 1
+    assert (
+        sum(binding["enabled"] for binding in section.channels.values()) == 1
+    )
 
 
 def test_missing_channel_relinks_only_when_selected(scene_widget, animation):
@@ -144,9 +148,7 @@ def test_missing_channel_relinks_only_when_selected(scene_widget, animation):
     old_id = section.source_id
     original = animation.viewer.layers["img"]
     animation.viewer.layers.remove(original)
-    replacement = animation.viewer.add_image(
-        np.ones((10, 20, 20)), name="img"
-    )
+    replacement = animation.viewer.add_image(np.ones((10, 20, 20)), name="img")
     new_id = animation.layer_registry.source_id(replacement)
     assert old_id != new_id
     editor.read(section)

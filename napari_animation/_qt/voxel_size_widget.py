@@ -161,7 +161,9 @@ class VoxelSizeWidget(QGroupBox):
         self.spinBoxes["Z"].setEnabled(layer.ndim >= 3)
 
         unit = str(next(iter(getattr(layer, "units", []) or []), "")).lower()
-        unit = {"micrometer": "um", "nanometer": "nm", "millimeter": "mm"}.get(unit, unit)
+        unit = {"micrometer": "um", "nanometer": "nm", "millimeter": "mm"}.get(
+            unit, unit
+        )
         for index, candidate in enumerate(UNITS):
             if unit.startswith(candidate.rstrip("s")) or unit == candidate:
                 self.unitsComboBox.setCurrentIndex(index)

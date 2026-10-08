@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from collections import OrderedDict
+from copy import deepcopy
 from dataclasses import asdict
 from fnmatch import fnmatchcase
 from typing import TYPE_CHECKING, Dict, Iterator, Optional, Sequence, Tuple
@@ -87,6 +87,7 @@ def _normalized_scene_pair(left, right):
             left_params.get("channels") is not None
             or right_params.get("channels") is not None
         ):
+
             def bindings(params):
                 existing = params.get("channels")
                 if existing is not None:
@@ -94,21 +95,27 @@ def _normalized_scene_pair(left, right):
                 source_id = params.get("source_id") or params.get("source")
                 if not source_id:
                     return {}
-                return {source_id: {
-                    "source_id": source_id,
-                    "source_name": params.get("source"),
-                    "enabled": True,
-                    "source_level": params.get("source_level", 0),
-                }}
+                return {
+                    source_id: {
+                        "source_id": source_id,
+                        "source_name": params.get("source"),
+                        "enabled": True,
+                        "source_level": params.get("source_level", 0),
+                    }
+                }
 
             left_channels = bindings(left_params)
             right_channels = bindings(right_params)
             for source_id in set(left_channels) | set(right_channels):
                 if source_id not in left_channels:
-                    left_channels[source_id] = deepcopy(right_channels[source_id])
+                    left_channels[source_id] = deepcopy(
+                        right_channels[source_id]
+                    )
                     left_channels[source_id]["enabled"] = False
                 if source_id not in right_channels:
-                    right_channels[source_id] = deepcopy(left_channels[source_id])
+                    right_channels[source_id] = deepcopy(
+                        left_channels[source_id]
+                    )
                     right_channels[source_id]["enabled"] = False
             left_params["channels"] = left_channels
             right_params["channels"] = right_channels
@@ -119,6 +126,7 @@ def _normalized_scene_pair(left, right):
 
 def _normalized_layer_pair(left, right):
     """Align layer maps by stable source ID before walking their leaves."""
+
     def canonical(mapping):
         result = {}
         for key, value in (mapping or {}).items():
@@ -352,7 +360,9 @@ class FrameSequence(Sequence[ViewerState]):
                 source_ids.add(left.get("source_id") or left.get("source"))
                 source_ids.update(
                     source_id
-                    for source_id, channel in (left.get("channels") or {}).items()
+                    for source_id, channel in (
+                        left.get("channels") or {}
+                    ).items()
                     if channel.get("enabled", False)
                 )
                 source_changed = any(
@@ -376,7 +386,11 @@ class FrameSequence(Sequence[ViewerState]):
                         if key in left:
                             right[key] = deepcopy(left[key])
                     if "scale" in left and "scale" in right:
-                        if np.any(np.asarray(left["scale"]) * np.asarray(right["scale"]) <= 0):
+                        if np.any(
+                            np.asarray(left["scale"])
+                            * np.asarray(right["scale"])
+                            <= 0
+                        ):
                             right["scale"] = deepcopy(left["scale"])
 
         visited = set()
@@ -384,7 +398,8 @@ class FrameSequence(Sequence[ViewerState]):
             # LUT dictionaries are one discrete colormap value, not numeric
             # leaves. The other endpoint may even be a registered name.
             if (
-                len(keys) >= 6 and keys[0] == "scene"
+                len(keys) >= 6
+                and keys[0] == "scene"
                 and keys[2] == "channels"
                 and keys[4:6] == ["appearance", "colormap"]
             ):
@@ -401,22 +416,31 @@ class FrameSequence(Sequence[ViewerState]):
             interpolation_fraction = (
                 raw_fraction
                 if raw_fraction is not None
-                and interp_func in {Interpolation.STEP_START, Interpolation.STEP_END}
+                and interp_func
+                in {Interpolation.STEP_START, Interpolation.STEP_END}
                 else fraction
             )
-            nested_set(state, keys, interp_func(v0, v1, interpolation_fraction))
+            nested_set(
+                state, keys, interp_func(v0, v1, interpolation_fraction)
+            )
 
         # Appearance mode and its payload form one discrete transition.
         # Walking leaves cannot interpolate a custom dictionary into None.
-        boundary_fraction = raw_fraction if raw_fraction is not None else fraction
+        boundary_fraction = (
+            raw_fraction if raw_fraction is not None else fraction
+        )
         for object_id, left in (from_state.get("scene") or {}).items():
             right = to_state["scene"][object_id]
             for source_id, channel in (left.get("channels") or {}).items():
                 target = right["channels"][source_id]
-                if channel.get("appearance_mode", "source") != target.get("appearance_mode", "source"):
+                if channel.get("appearance_mode", "source") != target.get(
+                    "appearance_mode", "source"
+                ):
                     selected = channel if boundary_fraction < 1 else target
                     output = state["scene"][object_id]["channels"][source_id]
-                    output["appearance_mode"] = selected.get("appearance_mode", "source")
+                    output["appearance_mode"] = selected.get(
+                        "appearance_mode", "source"
+                    )
                     output["appearance"] = deepcopy(selected.get("appearance"))
 
         return ViewerState(**state)

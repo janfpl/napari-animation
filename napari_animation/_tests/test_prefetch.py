@@ -3,13 +3,13 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from napari_animation.layer_registry import SOURCE_ID_METADATA
 from napari_animation.prefetch import (
     SlicePrefetcher,
     dask_cache_context,
     read_keys,
     resolve_cache_bytes,
 )
-from napari_animation.layer_registry import SOURCE_ID_METADATA
 
 
 class CountingArray:
@@ -67,7 +67,10 @@ def test_read_keys_skips_resident_full_volume_but_keeps_unloaded_volume():
     source = np.arange(8 * 8 * 8).reshape(8, 8, 8)
     array = da.from_array(source, chunks=(4, 8, 8))
     layer = SimpleNamespace(
-        data=array, ndim=3, multiscale=False, data_level=0,
+        data=array,
+        ndim=3,
+        multiscale=False,
+        data_level=0,
         loaded=True,
         _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
     )
@@ -84,13 +87,18 @@ def test_read_keys_skips_resident_full_volume_but_keeps_unloaded_volume():
 def test_prefetcher_disables_only_an_entirely_resident_3d_sequence():
     source = np.zeros((8, 8, 8), dtype=np.uint8)
     layer = SimpleNamespace(
-        data=source, ndim=3, multiscale=False, loaded=True,
+        data=source,
+        ndim=3,
+        multiscale=False,
+        loaded=True,
         metadata={SOURCE_ID_METADATA: "source"},
         _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
     )
     viewer = SimpleNamespace(layers=[layer])
     dims = _dims([0, 0, 0], [(0, 7, 1)] * 3, ndisplay=3)
-    frames = [SimpleNamespace(dims=dims, layers={"source": {}}) for _ in range(3)]
+    frames = [
+        SimpleNamespace(dims=dims, layers={"source": {}}) for _ in range(3)
+    ]
 
     prefetcher = SlicePrefetcher(viewer, frames, depth=4)
     assert not prefetcher.enabled
@@ -115,13 +123,19 @@ def test_resident_prefetch_check_does_not_materialize_interpolated_states():
 
     source = np.zeros((8, 8, 8), dtype=np.uint8)
     layer = SimpleNamespace(
-        data=source, ndim=3, multiscale=False, loaded=True,
+        data=source,
+        ndim=3,
+        multiscale=False,
+        loaded=True,
         metadata={SOURCE_ID_METADATA: "source"},
         _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
     )
     dims = _dims([0, 0, 0], [(0, 7, 1)] * 3, ndisplay=3)
     other = SimpleNamespace(
-        data=source, ndim=3, multiscale=False, loaded=True,
+        data=source,
+        ndim=3,
+        multiscale=False,
+        loaded=True,
         metadata={SOURCE_ID_METADATA: "other"},
         _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
     )
@@ -155,8 +169,10 @@ def test_read_keys_multiscale_uses_current_level():
     assert array is a1
 
 
-@pytest.mark.parametrize('loaded', [False, True])
-@pytest.mark.parametrize('path', ['dims.ndisplay', 'layers.source.locked_data_level'])
+@pytest.mark.parametrize("loaded", [False, True])
+@pytest.mark.parametrize(
+    "path", ["dims.ndisplay", "layers.source.locked_data_level"]
+)
 def test_custom_residency_rules_keep_frames_lazy(loaded, path):
     from napari_animation.frame_sequence import FrameSequence
     from napari_animation.interpolation import Interpolation
@@ -164,16 +180,26 @@ def test_custom_residency_rules_keep_frames_lazy(loaded, path):
     from napari_animation.viewer_state import ViewerState
 
     source = np.zeros((8, 8, 8), dtype=np.uint8)
-    layer = SimpleNamespace(data=source, ndim=3, loaded=loaded,
-                            metadata={SOURCE_ID_METADATA: 'source'},
-                            _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
-    state = ViewerState(camera={}, dims={'ndisplay': 3}, layers={'source': {}})
+    layer = SimpleNamespace(
+        data=source,
+        ndim=3,
+        loaded=loaded,
+        metadata={SOURCE_ID_METADATA: "source"},
+        _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
+    )
+    state = ViewerState(camera={}, dims={"ndisplay": 3}, layers={"source": {}})
     keys = KeyFrameList()
-    keys.extend([KeyFrame(state, np.zeros((1, 1, 3)), steps=1),
-                 KeyFrame(state, np.zeros((1, 1, 3)), steps=1000)])
+    keys.extend(
+        [
+            KeyFrame(state, np.zeros((1, 1, 3)), steps=1),
+            KeyFrame(state, np.zeros((1, 1, 3)), steps=1000),
+        ]
+    )
     frames = FrameSequence(keys)
     frames.state_interpolation_map[path] = Interpolation.DEFAULT
-    prefetcher = SlicePrefetcher(SimpleNamespace(layers=[layer]), frames, depth=4)
+    prefetcher = SlicePrefetcher(
+        SimpleNamespace(layers=[layer]), frames, depth=4
+    )
     try:
         assert prefetcher.enabled
         assert not frames._cache
@@ -189,21 +215,33 @@ def test_residency_check_does_not_iterate_unknown_lazy_sequence():
             return 1000
 
         def __getitem__(self, index):
-            raise AssertionError('Residency check must not evaluate lazy frames')
+            raise AssertionError(
+                "Residency check must not evaluate lazy frames"
+            )
 
     source = np.zeros((8, 8, 8), dtype=np.uint8)
-    layer = SimpleNamespace(data=source, ndim=3, loaded=True,
-                            metadata={SOURCE_ID_METADATA: 'source'},
-                            _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
+    layer = SimpleNamespace(
+        data=source,
+        ndim=3,
+        loaded=True,
+        metadata={SOURCE_ID_METADATA: "source"},
+        _slice=SimpleNamespace(image=SimpleNamespace(view=source)),
+    )
     from napari_animation.prefetch import _all_sources_resident
-    assert not _all_sources_resident(SimpleNamespace(layers=[layer]), LazyFrames())
+
+    assert not _all_sources_resident(
+        SimpleNamespace(layers=[layer]), LazyFrames()
+    )
 
 
 def test_read_keys_applies_layer_transform_and_pyramid_factor():
     a0 = CountingArray(np.zeros((12, 16, 16)))
     a1 = CountingArray(np.zeros((6, 8, 8)))
     layer = SimpleNamespace(
-        data=[a0, a1], ndim=3, multiscale=True, data_level=1,
+        data=[a0, a1],
+        ndim=3,
+        multiscale=True,
+        data_level=1,
         downsample_factors=[(1, 1, 1), (2, 2, 2)],
         world_to_data=lambda point: np.asarray(point) / (2, 3, 4),
     )
@@ -264,9 +302,9 @@ def test_scroll_frames_sharing_dask_chunk_get_one_prefetch_read():
     layer = SimpleNamespace(data=array, ndim=3, multiscale=False)
     viewer = SimpleNamespace(layers=[layer])
     frames = [
-        SimpleNamespace(dims=_dims(
-            [z, 0, 0], [(0, 7, 1), (0, 7, 1), (0, 7, 1)]
-        ))
+        SimpleNamespace(
+            dims=_dims([z, 0, 0], [(0, 7, 1), (0, 7, 1), (0, 7, 1)])
+        )
         for z in range(4)
     ]
     pf = SlicePrefetcher(viewer, frames, depth=3, workers=3)
@@ -309,6 +347,7 @@ def test_dask_cache_context_disabled_yields_zero():
 
 def test_dask_cache_context_enabled_caches_results(monkeypatch):
     import dask.array as da
+
     import napari_animation.prefetch as prefetch
 
     monkeypatch.setattr(prefetch, "_INTERACTIVE_CACHE", None)
@@ -322,9 +361,12 @@ def test_dask_cache_context_enabled_caches_results(monkeypatch):
 def test_dask_cache_context_reports_shared_budget(monkeypatch):
     import napari_animation.prefetch as prefetch
 
-    fake = SimpleNamespace(cache=SimpleNamespace(
-        available_bytes=1024, total_bytes=42,
-    ))
+    fake = SimpleNamespace(
+        cache=SimpleNamespace(
+            available_bytes=1024,
+            total_bytes=42,
+        )
+    )
     monkeypatch.setattr(prefetch, "_INTERACTIVE_CACHE", fake)
     with dask_cache_context(10**7) as nbytes:
         assert nbytes == 1024
@@ -335,8 +377,8 @@ def test_direct_animation_releases_shared_cache_on_viewer_close(
 ):
     from qtpy.QtWidgets import QApplication
 
-    from napari_animation import Animation
     import napari_animation.prefetch as prefetch
+    from napari_animation import Animation
 
     monkeypatch.setenv("NAPARI_ANIMATION_INTERACTIVE_CACHE_MB", "1")
     before = prefetch._INTERACTIVE_CACHE_USERS

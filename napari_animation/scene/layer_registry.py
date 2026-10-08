@@ -6,6 +6,6 @@ this import path available for callers that naturally discover it next to
 ``SceneRenderer``.
 """
 
-from ..layer_registry import LayerRegistry, SourceRecord, SOURCE_ID_METADATA
+from ..layer_registry import SOURCE_ID_METADATA, LayerRegistry, SourceRecord
 
 __all__ = ["LayerRegistry", "SourceRecord", "SOURCE_ID_METADATA"]

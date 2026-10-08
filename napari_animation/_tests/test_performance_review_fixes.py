@@ -13,7 +13,7 @@ from qtpy.QtWidgets import QApplication
 from napari_animation import Animation, KeyFrame, ViewerState
 from napari_animation.layer_registry import LayerRegistry
 from napari_animation.scene import OrthoSlice, Scene, SceneRenderer
-from napari_animation.scene.processing import service_for_viewer, project_slab
+from napari_animation.scene.processing import project_slab, service_for_viewer
 
 
 class Viewer(ViewerModel):
@@ -53,11 +53,15 @@ def setup_section(gui=False, multiscale=False):
     data = np.arange(8 * 16 * 16, dtype=np.uint16).reshape(8, 16, 16)
     viewer.add_image(
         [data, data[::2, ::2, ::2]] if multiscale else data,
-        name="volume", multiscale=multiscale,
+        name="volume",
+        multiscale=multiscale,
     )
     section = OrthoSlice(
-        name="section", source="volume", source_level=0,
-        position=(4, 0, 0), thickness=1,
+        name="section",
+        source="volume",
+        source_level=0,
+        position=(4, 0, 0),
+        thickness=1,
     )
     scene = Scene()
     scene.append(section)
@@ -68,12 +72,19 @@ def setup_section(gui=False, multiscale=False):
 
 def test_cached_keyframe_switch_publishes_selected_section(monkeypatch):
     viewer, first, _scene, _renderer, _data = setup_section()
-    monkeypatch.setattr(Viewer, "screenshot", lambda *a, **k: np.zeros((30, 30, 4), np.uint8))
+    monkeypatch.setattr(
+        Viewer, "screenshot", lambda *a, **k: np.zeros((30, 30, 4), np.uint8)
+    )
     animation = Animation(viewer)
     animation.add_scene_object(first)
-    second = animation.add_scene_object(OrthoSlice(
-        name="second", source="volume", position=(6, 0, 0), thickness=1,
-    ))
+    second = animation.add_scene_object(
+        OrthoSlice(
+            name="second",
+            source="volume",
+            position=(6, 0, 0),
+            thickness=1,
+        )
+    )
     try:
         for section in (first, second):
             animation.set_active_section(section.id)
@@ -96,7 +107,9 @@ def test_scroll_through_moves_active_section_pixels():
         animation.add_scroll_through(axis=0, start=0, stop=7, steps=7)
         for index in (0, 3, 7):
             animation.set_movie_frame_index(index)
-            output = LayerRegistry(viewer).find_managed(section.id, "section_2d")
+            output = LayerRegistry(viewer).find_managed(
+                section.id, "section_2d"
+            )
             assert viewer.dims.point[0] == index
             np.testing.assert_array_equal(np.squeeze(output.data), data[index])
     finally:
@@ -105,9 +118,13 @@ def test_scroll_through_moves_active_section_pixels():
 
 @pytest.mark.parametrize("action", ("disable", "remove", "empty", "close"))
 def test_refinement_cannot_revive_retired_sections(app, monkeypatch, action):
-    viewer, section, scene, renderer, _data = setup_section(gui=True, multiscale=True)
+    viewer, section, scene, renderer, _data = setup_section(
+        gui=True, multiscale=True
+    )
     delayed = []
-    monkeypatch.setattr(QTimer, "singleShot", lambda _ms, callback: delayed.append(callback))
+    monkeypatch.setattr(
+        QTimer, "singleShot", lambda _ms, callback: delayed.append(callback)
+    )
     renderer.apply_working()
     wait_for_projection(viewer)
     assert delayed
@@ -138,11 +155,17 @@ def test_refinement_cannot_revive_retired_sections(app, monkeypatch, action):
 
 
 def test_cached_snapshot_invalidates_previous_refinement(app, monkeypatch):
-    viewer, section, scene, _renderer, data = setup_section(gui=True, multiscale=True)
+    viewer, section, scene, _renderer, data = setup_section(
+        gui=True, multiscale=True
+    )
     delayed = []
-    monkeypatch.setattr(QTimer, "singleShot", lambda _ms, callback: delayed.append(callback))
+    monkeypatch.setattr(
+        QTimer, "singleShot", lambda _ms, callback: delayed.append(callback)
+    )
     state_a = ViewerState.from_viewer(
-        viewer, scene=scene.to_dict(), view={"active_section_id": section.id},
+        viewer,
+        scene=scene.to_dict(),
+        view={"active_section_id": section.id},
     )
     scene_b = deepcopy(state_a.scene)
     scene_b[section.id]["position"] = (6, 0, 0)
@@ -167,11 +190,16 @@ def test_cached_snapshot_invalidates_previous_refinement(app, monkeypatch):
 
 def test_render_waits_for_exact_multiscale_projection(app, monkeypatch):
     import time
+
     import napari_animation.scene.processing as processing
 
-    viewer, section, scene, _renderer, data = setup_section(gui=True, multiscale=True)
+    viewer, section, scene, _renderer, data = setup_section(
+        gui=True, multiscale=True
+    )
     state = ViewerState.from_viewer(
-        viewer, scene=scene.to_dict(), view={"active_section_id": section.id},
+        viewer,
+        scene=scene.to_dict(),
+        view={"active_section_id": section.id},
     )
     original = processing.project_slab
 
@@ -186,8 +214,14 @@ def test_render_waits_for_exact_multiscale_projection(app, monkeypatch):
         np.testing.assert_array_equal(actual, data[4])
         assert service.asynchronous
         assert not viewer._napari_animation_export_exact
-        monkeypatch.setattr(processing, "project_slab", lambda *a, **k: (_ for _ in ()).throw(OSError("read failed")))
-        service.cache.invalidate_source(LayerRegistry(viewer).source_id(viewer.layers["volume"]))
+        monkeypatch.setattr(
+            processing,
+            "project_slab",
+            lambda *a, **k: (_ for _ in ()).throw(OSError("read failed")),
+        )
+        service.cache.invalidate_source(
+            LayerRegistry(viewer).source_id(viewer.layers["volume"])
+        )
         with pytest.raises(OSError, match="read failed"):
             state.render(viewer)
         assert service.asynchronous
@@ -201,17 +235,26 @@ def test_animate_uses_exact_projections_with_gui_service(
 ):
     import napari_animation.animation as animation_module
 
-    viewer, section, _scene, _renderer, data = setup_section(gui=True, multiscale=True)
+    viewer, section, _scene, _renderer, data = setup_section(
+        gui=True, multiscale=True
+    )
     animation = Animation(viewer)
     animation.scene.append(section)
     animation.active_section_id = section.id
     animation.renderer.active_section_id = section.id
     for z in (2, 6):
         section.position = (z, 0, 0)
-        animation.key_frames.append(KeyFrame(
-            ViewerState.from_viewer(viewer, scene=animation.scene.to_dict(), view={"active_section_id": section.id}),
-            np.zeros((30, 30, 4), np.uint8), steps=1,
-        ))
+        animation.key_frames.append(
+            KeyFrame(
+                ViewerState.from_viewer(
+                    viewer,
+                    scene=animation.scene.to_dict(),
+                    view={"active_section_id": section.id},
+                ),
+                np.zeros((30, 30, 4), np.uint8),
+                steps=1,
+            )
+        )
     captured = []
 
     class Writer:
@@ -221,9 +264,17 @@ def test_animate_uses_exact_projections_with_gui_service(
         def close(self):
             pass
 
-    monkeypatch.setattr(animation_module.imageio, "get_writer", lambda *a, **k: Writer())
+    monkeypatch.setattr(
+        animation_module.imageio, "get_writer", lambda *a, **k: Writer()
+    )
     try:
-        animation.animate(str(tmp_path / "review-test.mp4"), prefetch=0, dask_cache=None, diagnose=False, perf_log=False)
+        animation.animate(
+            str(tmp_path / "review-test.mp4"),
+            prefetch=0,
+            dask_cache=None,
+            diagnose=False,
+            perf_log=False,
+        )
         assert len(captured) == 2
         for frame, z in zip(captured, (2, 6)):
             np.testing.assert_array_equal(frame, data[z])
@@ -247,21 +298,33 @@ def test_gui_export_matches_exact_opengl_frames(
 
     viewer = make_napari_viewer(ndisplay=2)
     data = np.arange(8 * 16 * 16, dtype=np.uint16).reshape(8, 16, 16)
-    viewer.add_image([data, data[::2, ::2, ::2]], name="volume", multiscale=True)
+    viewer.add_image(
+        [data, data[::2, ::2, ::2]], name="volume", multiscale=True
+    )
     animation = Animation(viewer)
     section = OrthoSlice(
-        name="section", source="volume", source_level=0,
-        position=(2, 0, 0), thickness=1,
+        name="section",
+        source="volume",
+        source_level=0,
+        position=(2, 0, 0),
+        thickness=1,
     )
     animation.scene.append(section)
     animation.active_section_id = section.id
     animation.renderer.active_section_id = section.id
     for z in (2, 6):
         section.position = (z, 0, 0)
-        animation.key_frames.append(KeyFrame(
-            ViewerState.from_viewer(viewer, scene=animation.scene.to_dict(), view={"active_section_id": section.id}),
-            np.zeros((30, 30, 4), np.uint8), steps=1,
-        ))
+        animation.key_frames.append(
+            KeyFrame(
+                ViewerState.from_viewer(
+                    viewer,
+                    scene=animation.scene.to_dict(),
+                    view={"active_section_id": section.id},
+                ),
+                np.zeros((30, 30, 4), np.uint8),
+                steps=1,
+            )
+        )
     expected = [state.render(viewer) for state in animation._frames]
     captured = []
 
@@ -272,14 +335,21 @@ def test_gui_export_matches_exact_opengl_frames(
         def close(self):
             pass
 
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "opengl-review-test.mp4"), "prefetch": 0,
-        "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "opengl-review-test.mp4"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     monkeypatch.setattr(controller, "_open_writer", Writer)
     loop = QEventLoop()
     results = []
-    controller.finished.connect(lambda path, error: (results.append(error), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (results.append(error), loop.quit())
+    )
     timeout = QTimer()
     timeout.setSingleShot(True)
     timeout.timeout.connect(loop.quit)

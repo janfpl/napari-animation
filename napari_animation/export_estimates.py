@@ -23,7 +23,13 @@ class ExportEstimate:
 
 
 def estimate_export(
-    frame_size, frame_count, fps, scale, quality, suffix, video_block_size=16,
+    frame_size,
+    frame_count,
+    fps,
+    scale,
+    quality,
+    suffix,
+    video_block_size=16,
 ):
     """Estimate output using an input (width, height) in screenshot pixels."""
     suffix = suffix.lower()
@@ -53,7 +59,9 @@ def estimate_export(
     else:
         return ExportEstimate((width, height), duration, None, quality_applies)
     size_range = (pixels * low / 8, pixels * high / 8) if frame_count else None
-    return ExportEstimate((width, height), duration, size_range, quality_applies)
+    return ExportEstimate(
+        (width, height), duration, size_range, quality_applies
+    )
 
 
 def format_size_range(size_range):

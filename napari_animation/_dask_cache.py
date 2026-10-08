@@ -43,14 +43,18 @@ class ConcurrentCache(Cache):
         duration = default_timer() - starts.pop(key)
         dependencies = state["dependencies"][key]
         if dependencies:
-            duration += max(durations.get(dependency, 0) for dependency in dependencies)
+            duration += max(
+                durations.get(dependency, 0) for dependency in dependencies
+            )
         durations[key] = duration
         nbytes = self._nbytes(value) + overhead + sys.getsizeof(key) * 4
         with self._cache_lock:
             if self._enabled and key not in self.cache.data:
                 # Cachey counts a second put for the same key twice. Another
                 # scheduler may have cached this identical chunk meanwhile.
-                self.cache.put(key, value, cost=duration / nbytes / 1e9, nbytes=nbytes)
+                self.cache.put(
+                    key, value, cost=duration / nbytes / 1e9, nbytes=nbytes
+                )
 
     def _finish(self, dsk, state, errored):
         if state is not None:
@@ -63,7 +67,9 @@ class ConcurrentCache(Cache):
 
     def _activate_callback(self):
         callbacks = Callback.active
-        if not any(callbacks is previous for previous in self._registration_sets):
+        if not any(
+            callbacks is previous for previous in self._registration_sets
+        ):
             self._registration_sets.append(callbacks)
         callbacks.add(self._callback)
 

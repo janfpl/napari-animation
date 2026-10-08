@@ -33,8 +33,12 @@ def test_export_pump_keeps_qt_alive_and_orders_frames(tmp_path):
     output = tmp_path / "export-pump-test"
     controller = QtExportController(
         animation,
-        {"path": str(output), "prefetch": 0, "dask_cache": None,
-         "diagnose": False},
+        {
+            "path": str(output),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
     )
     loop = QEventLoop()
     result = []
@@ -43,7 +47,9 @@ def test_export_pump_keeps_qt_alive_and_orders_frames(tmp_path):
     pulse.setInterval(5)
     pulse.timeout.connect(lambda: heartbeats.append(1))
     pulse.start()
-    controller.finished.connect(lambda path, error: (result.append((path, error)), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (result.append((path, error)), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     controller.start()
     loop.exec_()
@@ -57,12 +63,16 @@ def test_export_pump_keeps_qt_alive_and_orders_frames(tmp_path):
     assert tuple(viewer.dims.point) == before
     assert viewer._napari_animation_export_exact is False
     import json
+
     performance = json.loads((output / "render_perf.json").read_text())
     assert performance["metadata"]["status"] == "complete"
     assert performance["counters"]["frames_written"] == 4
     assert performance["phases"]["screenshot"]["count"] == 4
-    assert {event["frame"] for event in performance["events"]
-            if event["phase"] == "encode/write"} == {0, 1, 2, 3}
+    assert {
+        event["frame"]
+        for event in performance["events"]
+        if event["phase"] == "encode/write"
+    } == {0, 1, 2, 3}
     assert heartbeats
     assert app is not None
 
@@ -86,8 +96,13 @@ def test_full_writer_queue_does_not_block_qt(tmp_path, monkeypatch):
     animation.capture_keyframe(steps=9)
     output = tmp_path / "export-pump-slow-test"
     controller = QtExportController(
-        animation, {"path": str(output), "prefetch": 0,
-                    "dask_cache": None, "diagnose": False},
+        animation,
+        {
+            "path": str(output),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
     )
     loop = QEventLoop()
     ticks = []
@@ -96,7 +111,9 @@ def test_full_writer_queue_does_not_block_qt(tmp_path, monkeypatch):
     pulse.setInterval(10)
     pulse.timeout.connect(lambda: ticks.append(time.perf_counter()))
     pulse.start()
-    controller.finished.connect(lambda path, error: (result.append(error), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (result.append(error), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     controller.start()
     loop.exec_()
@@ -122,10 +139,15 @@ def test_video_export_pads_frames_without_resampling(tmp_path, monkeypatch):
     animation = Animation(viewer)
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "padded.mp4"),
-        "prefetch": 0, "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "padded.mp4"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     captured = []
 
     class Writer:
@@ -158,7 +180,8 @@ def test_video_export_pads_frames_without_resampling(tmp_path, monkeypatch):
 
 
 def test_preset_renders_at_requested_size_and_preserves_video_dimensions(
-    tmp_path, monkeypatch,
+    tmp_path,
+    monkeypatch,
 ):
     app = QApplication.instance() or QApplication([])
     screenshots = []
@@ -177,11 +200,16 @@ def test_preset_renders_at_requested_size_and_preserves_video_dimensions(
     animation = Animation(viewer)
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "preset-dimensions.mp4"),
-        "render_size": (18, 30),
-        "prefetch": 0, "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "preset-dimensions.mp4"),
+            "render_size": (18, 30),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     frames = []
 
     class Writer:
@@ -224,16 +252,24 @@ def test_unavailable_video_writer_falls_back_to_png(tmp_path, monkeypatch):
     animation.capture_keyframe(steps=2)
     path = tmp_path / "export-pump-fallback.mp4"
     controller = QtExportController(
-        animation, {"path": str(path), "prefetch": 0,
-                    "dask_cache": None, "diagnose": False},
+        animation,
+        {
+            "path": str(path),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
     )
     monkeypatch.setattr(
-        controller, "_open_writer",
+        controller,
+        "_open_writer",
         lambda: (_ for _ in ()).throw(RuntimeError("encoder unavailable")),
     )
     loop = QEventLoop()
     results = []
-    controller.finished.connect(lambda output, error: (results.append((output, error)), loop.quit()))
+    controller.finished.connect(
+        lambda output, error: (results.append((output, error)), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     controller.start()
     loop.exec_()
@@ -262,12 +298,18 @@ def test_video_verification_runs_off_qt_thread(tmp_path, monkeypatch):
         def close(self):
             pass
 
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "verify-thread.mp4"),
-        "prefetch": 0, "dask_cache": None,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "verify-thread.mp4"),
+            "prefetch": 0,
+            "dask_cache": None,
+        },
+    )
     monkeypatch.setattr(controller, "_open_writer", Writer)
-    monkeypatch.setattr(controller._diagnostics, "describe_environment", lambda: None)
+    monkeypatch.setattr(
+        controller._diagnostics, "describe_environment", lambda: None
+    )
     monkeypatch.setattr(controller._diagnostics, "report", lambda: "verified")
     verify_threads = []
 
@@ -311,10 +353,15 @@ def test_export_restores_frame_after_edits_and_uses_frozen_timeline(
     viewer.dims.set_point(0, 3)
     animation.capture_keyframe(steps=3)
     before = tuple(viewer.dims.point)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "review-frozen-export.mp4"),
-        "prefetch": 0, "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "review-frozen-export.mp4"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     captured = []
 
     class Writer:
@@ -339,7 +386,9 @@ def test_export_restores_frame_after_edits_and_uses_frozen_timeline(
     monkeypatch.setattr(controller, "_await_capture", edit_before_capture)
     loop = QEventLoop()
     results = []
-    controller.finished.connect(lambda path, error: (results.append(error), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (results.append(error), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     try:
         controller.start()
@@ -356,6 +405,7 @@ def test_export_restores_frame_after_edits_and_uses_frozen_timeline(
 def test_export_progress_blocks_viewer_edits_and_cancel_restores(tmp_path):
     from types import SimpleNamespace
     from typing import ClassVar
+
     from qtpy.QtCore import Qt
     from qtpy.QtWidgets import QWidget
 
@@ -366,7 +416,9 @@ def test_export_progress_blocks_viewer_edits_and_cancel_restores(tmp_path):
     class WindowViewer(HeadlessViewer):
         window: ClassVar = SimpleNamespace(
             _qt_window=qt_window,
-            _qt_viewer=SimpleNamespace(dims=SimpleNamespace(stop=lambda: stopped.append(True))),
+            _qt_viewer=SimpleNamespace(
+                dims=SimpleNamespace(stop=lambda: stopped.append(True))
+            ),
         )
 
     viewer = WindowViewer(ndisplay=2)
@@ -374,13 +426,20 @@ def test_export_progress_blocks_viewer_edits_and_cancel_restores(tmp_path):
     animation = Animation(viewer)
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "review-progress-export"),
-        "prefetch": 0, "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "review-progress-export"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     loop = QEventLoop()
     results = []
-    controller.finished.connect(lambda path, error: (results.append(error), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (results.append(error), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     try:
         controller.start()
@@ -409,10 +468,15 @@ def test_export_reports_source_changes_before_capture(
     animation.capture_keyframe(steps=1)
     viewer.dims.set_point(0, 3)
     animation.capture_keyframe(steps=3)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "review-source-edit.mp4"),
-        "prefetch": 0, "dask_cache": None, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "review-source-edit.mp4"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
     captured = []
 
     class Writer:
@@ -437,7 +501,9 @@ def test_export_reports_source_changes_before_capture(
     monkeypatch.setattr(controller, "_await_capture", edit_before_capture)
     results = []
     loop = QEventLoop()
-    controller.finished.connect(lambda path, error: (results.append(error), loop.quit()))
+    controller.finished.connect(
+        lambda path, error: (results.append(error), loop.quit())
+    )
     QTimer.singleShot(5000, loop.quit)
     try:
         controller.start()
@@ -467,7 +533,9 @@ def test_failed_start_releases_export_state(tmp_path, monkeypatch):
     class WindowViewer(HeadlessViewer):
         window: ClassVar = SimpleNamespace(
             _qt_window=qt_window,
-            _qt_viewer=SimpleNamespace(dims=SimpleNamespace(stop=lambda: None)),
+            _qt_viewer=SimpleNamespace(
+                dims=SimpleNamespace(stop=lambda: None)
+            ),
         )
 
     class FailingSession:
@@ -475,22 +543,31 @@ def test_failed_start_releases_export_state(tmp_path, monkeypatch):
             pass
 
         def __enter__(self):
-            raise RuntimeError("Cannot export from a canvas with an empty size.")
+            raise RuntimeError(
+                "Cannot export from a canvas with an empty size."
+            )
 
         def close(self):
             pass
 
-    monkeypatch.setattr(export_controller, "ExportCaptureSession", FailingSession)
+    monkeypatch.setattr(
+        export_controller, "ExportCaptureSession", FailingSession
+    )
     viewer = WindowViewer(ndisplay=2)
     viewer.add_image(np.zeros((2, 16, 16), np.uint8))
     animation = Animation(viewer)
     animation.capture_keyframe(steps=1)
     animation.capture_keyframe(steps=1)
     callbacks = set(Callback.active)
-    controller = QtExportController(animation, {
-        "path": str(tmp_path / "failed.mp4"), "prefetch": 2,
-        "dask_cache": 10**7, "diagnose": False,
-    })
+    controller = QtExportController(
+        animation,
+        {
+            "path": str(tmp_path / "failed.mp4"),
+            "prefetch": 2,
+            "dask_cache": 10**7,
+            "diagnose": False,
+        },
+    )
     try:
         with pytest.raises(RuntimeError, match="empty size"):
             controller.start()

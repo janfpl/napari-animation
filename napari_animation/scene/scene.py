@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING, Dict, Iterator, List, Optional
 
 from napari.utils.events import SelectableEventedList
 
-from ..ortho_slicer import OrthoSlicer
 from ..layer_registry import LayerRegistry
+from ..ortho_slicer import OrthoSlicer
 from .base import SceneObject
 
 if TYPE_CHECKING:
@@ -58,9 +58,7 @@ def _validate_active_2d_section(viewer, objects, active_section_id=None):
     if getattr(viewer.dims, "ndisplay", 3) >= 3:
         return
     candidates = [
-        obj
-        for obj in objects
-        if obj.kind == "ortho_slice" and obj.enabled
+        obj for obj in objects if obj.kind == "ortho_slice" and obj.enabled
     ]
     if not candidates:
         return
@@ -113,6 +111,7 @@ def composite_clipping_planes(
             layer.experimental_clipping_planes = desired
 
     from ..native_clipping import sync_native_clipping
+
     sync_native_clipping(viewer)
 
 
@@ -131,7 +130,8 @@ def apply_scene_state(
     """
     contributions: Dict[str, List[dict]] = defaultdict(list)
     objects = (
-        list(prepared_objects) if prepared_objects is not None
+        list(prepared_objects)
+        if prepared_objects is not None
         else list(_objects_from_state(scene_state))
     )
     has_ortho_slice = any(obj.kind == "ortho_slice" for obj in objects)
@@ -154,9 +154,7 @@ def apply_scene_state(
         # applied even when disabled, so an object that is switched off can
         # hide the layer it owns
         if scene_object.kind == "ortho_slice":
-            scene_object.apply(
-                viewer, active_section_id=active_section_id
-            )
+            scene_object.apply(viewer, active_section_id=active_section_id)
         else:
             scene_object.apply(viewer)
         if not scene_object.enabled:
@@ -216,7 +214,11 @@ class Scene(SelectableEventedList[SceneObject]):
                 for field in fields(restored_object):
                     if field.name == "id":
                         continue
-                    setattr(current, field.name, getattr(restored_object, field.name))
+                    setattr(
+                        current,
+                        field.name,
+                        getattr(restored_object, field.name),
+                    )
                 if old_name != current.name:
                     # Backing layers are owned by the object.  Rename only the
                     # layer carrying this object's ownership marker; a source
@@ -273,9 +275,7 @@ class Scene(SelectableEventedList[SceneObject]):
             OrthoSlicer._reset_margins(viewer)
         for scene_object in self:
             if scene_object.kind == "ortho_slice":
-                scene_object.apply(
-                    viewer, active_section_id=active_section_id
-                )
+                scene_object.apply(viewer, active_section_id=active_section_id)
             else:
                 scene_object.apply(viewer)
             if not scene_object.enabled:

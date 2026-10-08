@@ -8,7 +8,11 @@ from napari.components import ViewerModel
 
 from napari_animation import Animation
 from napari_animation.scene import OrthoSlice
-from napari_animation.scene.processing import exact_render, project_slab, service_for_viewer
+from napari_animation.scene.processing import (
+    exact_render,
+    project_slab,
+    service_for_viewer,
+)
 
 
 def setup_section(viewer, axis=0):
@@ -18,10 +22,14 @@ def setup_section(viewer, axis=0):
     position = np.asarray((2, 2, 2)) * source.scale
     normal = np.eye(3)[axis]
     with exact_render(viewer):
-        section = animation.add_scene_object(OrthoSlice(
-            source=source.name, position=tuple(position), normal=tuple(normal),
-            thickness=float(source.scale[axis]),
-        ))
+        section = animation.add_scene_object(
+            OrthoSlice(
+                source=source.name,
+                position=tuple(position),
+                normal=tuple(normal),
+                thickness=float(source.scale[axis]),
+            )
+        )
         animation.set_active_section(section.id)
         animation.snap_2d(capture=False)
     output = animation.layer_registry.find_managed(section.id, "section_2d")
@@ -29,13 +37,17 @@ def setup_section(viewer, axis=0):
 
 
 @pytest.mark.parametrize("axis", [0, 1, 2])
-def test_slider_keeps_last_projection_visible_until_replacement(axis, monkeypatch):
+def test_slider_keeps_last_projection_visible_until_replacement(
+    axis, monkeypatch
+):
     viewer = ViewerModel(ndisplay=2)
     animation, section, source, output = setup_section(viewer, axis)
     service = service_for_viewer(viewer)
     previous = np.asarray(output._data_view).copy()
     requests, visibility = [], []
-    output.events.visible.connect(lambda event: visibility.append(output.visible))
+    output.events.visible.connect(
+        lambda event: visibility.append(output.visible)
+    )
     monkeypatch.setattr(
         service, "request", lambda *args, **kwargs: requests.append(args)
     )
@@ -54,7 +66,9 @@ def test_slider_keeps_last_projection_visible_until_replacement(axis, monkeypatc
         assert viewer.dims.point[axis] == pytest.approx(4 * source.scale[axis])
         np.testing.assert_array_equal(output._data_view, previous)
         latest[-1](project_slab(*latest[2:7]))
-        np.testing.assert_array_equal(output._data_view, section.projection_oracle(viewer))
+        np.testing.assert_array_equal(
+            output._data_view, section.projection_oracle(viewer)
+        )
         assert output.visible and visibility == []
     finally:
         animation.close()
@@ -64,11 +78,15 @@ def test_cached_scroll_never_emits_visibility_toggles():
     viewer = ViewerModel(ndisplay=2)
     animation, section, source, output = setup_section(viewer)
     visibility = []
-    output.events.visible.connect(lambda event: visibility.append(output.visible))
+    output.events.visible.connect(
+        lambda event: visibility.append(output.visible)
+    )
     try:
         for step in (3, 2, 3, 2):
             viewer.dims.set_point(0, step * source.scale[0])
-            np.testing.assert_array_equal(output._data_view, section.projection_oracle(viewer))
+            np.testing.assert_array_equal(
+                output._data_view, section.projection_oracle(viewer)
+            )
         assert visibility == []
     finally:
         animation.close()
@@ -84,9 +102,12 @@ def test_section_still_hides_when_it_should(transition):
         elif transition == "3d":
             viewer.dims.ndisplay = 3
         elif transition == "other":
-            other = animation.add_scene_object(OrthoSlice(
-                source=source.name, position=section.position,
-            ))
+            other = animation.add_scene_object(
+                OrthoSlice(
+                    source=source.name,
+                    position=section.position,
+                )
+            )
             animation.set_active_section(other.id)
         else:
             section.position = (100, 0, 0)
@@ -96,7 +117,9 @@ def test_section_still_hides_when_it_should(transition):
         animation.close()
 
 
-def test_native_gui_preserves_section_while_read_is_blocked(make_napari_viewer, qtbot, monkeypatch):
+def test_native_gui_preserves_section_while_read_is_blocked(
+    make_napari_viewer, qtbot, monkeypatch
+):
     viewer = make_napari_viewer(ndisplay=2)
     animation, section, source, output = setup_section(viewer)
     service = service_for_viewer(viewer)
@@ -104,7 +127,9 @@ def test_native_gui_preserves_section_while_read_is_blocked(make_napari_viewer, 
     original = service._project
     previous = np.asarray(output._data_view).copy()
     visibility = []
-    output.events.visible.connect(lambda event: visibility.append(output.visible))
+    output.events.visible.connect(
+        lambda event: visibility.append(output.visible)
+    )
 
     def delayed(request):
         started.set()
@@ -121,7 +146,9 @@ def test_native_gui_preserves_section_while_read_is_blocked(make_napari_viewer, 
         assert visibility == []
         release.set()
         expected = section.projection_oracle(viewer)
-        qtbot.waitUntil(lambda: np.array_equal(output._data_view, expected), timeout=5000)
+        qtbot.waitUntil(
+            lambda: np.array_equal(output._data_view, expected), timeout=5000
+        )
         assert output.visible and visibility == []
     finally:
         release.set()

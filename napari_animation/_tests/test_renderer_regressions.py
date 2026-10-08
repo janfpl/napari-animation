@@ -9,16 +9,18 @@ from napari.components import ViewerModel
 from napari_animation import Animation, ViewerState
 from napari_animation.frame_sequence import FrameSequence
 from napari_animation.key_frame import KeyFrameList
-from napari_animation.layer_registry import LayerRegistry, SOURCE_ID_METADATA
+from napari_animation.layer_registry import SOURCE_ID_METADATA, LayerRegistry
 from napari_animation.scene import OrthoSlice
 
 
 def _viewer(data=None, **kwargs):
     viewer = ViewerModel()
     viewer.add_image(
-        np.arange(6 * 7 * 9, dtype=float).reshape(6, 7, 9)
-        if data is None
-        else data,
+        (
+            np.arange(6 * 7 * 9, dtype=float).reshape(6, 7, 9)
+            if data is None
+            else data
+        ),
         name="volume",
         **kwargs,
     )
@@ -53,13 +55,18 @@ def test_managed_name_collision_never_claims_user_layer():
 
     assert np.max(user.data) == 999
     assert "napari_animation.object_id" not in user.metadata
-    assert LayerRegistry(viewer).find_managed(section.id, "section_3d") is not user
+    assert (
+        LayerRegistry(viewer).find_managed(section.id, "section_3d")
+        is not user
+    )
 
 
 def test_stable_source_wins_after_rename_and_name_reuse():
     viewer = _viewer()
     animation = Animation(viewer)
-    section = animation.add_scene_object(OrthoSlice(name="section", source="volume"))
+    section = animation.add_scene_object(
+        OrthoSlice(name="section", source="volume")
+    )
     original = viewer.layers["volume"]
     original.name = "renamed"
     replacement = viewer.add_image(np.zeros((6, 7, 9)), name="volume")
@@ -79,7 +86,10 @@ def test_duplicate_live_ids_are_repaired_before_capture():
     snapshot = ViewerState.from_viewer(viewer)
 
     assert len(snapshot.layers) == 2
-    assert len({layer.metadata[SOURCE_ID_METADATA] for layer in viewer.layers}) == 2
+    assert (
+        len({layer.metadata[SOURCE_ID_METADATA] for layer in viewer.layers})
+        == 2
+    )
 
 
 @pytest.mark.parametrize(
@@ -195,7 +205,9 @@ def test_four_dimensional_source_uses_three_dimensional_managed_layers():
 def test_empty_snapshot_hides_all_managed_layers():
     viewer = _viewer()
     animation = Animation(viewer)
-    section = animation.add_scene_object(OrthoSlice(name="section", source="volume"))
+    section = animation.add_scene_object(
+        OrthoSlice(name="section", source="volume")
+    )
     backing = LayerRegistry(viewer).find_managed(section.id, "section_3d")
     state = ViewerState.from_viewer(
         viewer, scene={}, view={"active_section_id": None}

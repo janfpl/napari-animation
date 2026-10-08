@@ -8,11 +8,8 @@ from typing import Optional
 import numpy as np
 from napari.utils.transforms import Affine, CompositeAffine
 
+from ..layer_registry import OBJECT_ID_METADATA, LayerRegistry
 from ..perf import timed_render
-from ..layer_registry import (
-    LayerRegistry,
-    OBJECT_ID_METADATA,
-)
 from .base import SceneObject
 from .scene import Scene, apply_scene_state
 
@@ -65,7 +62,8 @@ class SceneRenderer:
         saved = self._source_visibility
         keep_ids = set(keep_ids)
         self._source_visibility = {
-            source_id: visible for source_id, visible in saved.items()
+            source_id: visible
+            for source_id, visible in saved.items()
             if source_id in keep_ids
         }
         for source_id, visible in saved.items():
@@ -85,12 +83,16 @@ class SceneRenderer:
             return set()
         return {
             self.registry.source_id(source)
-            for source in active_obj.source_layers(self.viewer, include_disabled=True)
+            for source in active_obj.source_layers(
+                self.viewer, include_disabled=True
+            )
         }
 
     def _suppressed_source_id(self, active_obj, ndisplay=None):
         """Compatibility helper for callers needing the first source."""
-        return next(iter(self._suppressed_source_ids(active_obj, ndisplay)), None)
+        return next(
+            iter(self._suppressed_source_ids(active_obj, ndisplay)), None
+        )
 
     def _objects(self, scene_state=_UNSET):
         if scene_state is _UNSET:
@@ -106,7 +108,10 @@ class SceneRenderer:
         return objects
 
     def preflight(
-        self, scene_state=_UNSET, ndisplay=None, active_section_id=_UNSET,
+        self,
+        scene_state=_UNSET,
+        ndisplay=None,
+        active_section_id=_UNSET,
         layer_states=None,
     ):
         objects = self._objects(scene_state)
@@ -119,7 +124,9 @@ class SceneRenderer:
             else active_section_id
         )
         sections = [obj for obj in objects if obj.kind == "ortho_slice"]
-        if active is not None and not any(obj.id == active for obj in sections):
+        if active is not None and not any(
+            obj.id == active for obj in sections
+        ):
             raise ValueError(f"Active section {active!r} is missing")
         active_obj = next((obj for obj in sections if obj.id == active), None)
         if active is None:
@@ -131,7 +138,8 @@ class SceneRenderer:
                 target_ndisplay = ndisplay or self.viewer.dims.ndisplay
                 targets = (
                     obj._channel_sections(self.viewer)
-                    if obj.channels is not None else (obj,)
+                    if obj.channels is not None
+                    else (obj,)
                 )
                 if obj.channels is not None:
                     obj.validate(self.viewer)
@@ -139,23 +147,31 @@ class SceneRenderer:
                     linear_matrix = None
                     source = target.source_layer(self.viewer)
                     if source is not None and layer_states:
-                        state = layer_states.get(self.registry.source_id(source))
+                        state = layer_states.get(
+                            self.registry.source_id(source)
+                        )
                         if state is not None:
                             transform = CompositeAffine(
                                 ndim=source.ndim,
                                 scale=state.get("scale", source.scale),
-                                translate=state.get("translate", source.translate),
+                                translate=state.get(
+                                    "translate", source.translate
+                                ),
                                 rotate=state.get("rotate", source.rotate),
                                 shear=state.get("shear", source.shear),
                             )
                             extra = Affine(
                                 affine_matrix=np.asarray(
-                                    state.get("affine", source.affine.affine_matrix),
+                                    state.get(
+                                        "affine", source.affine.affine_matrix
+                                    ),
                                     dtype=float,
                                 ),
                                 ndim=source.ndim,
                             )
-                            linear_matrix = extra.linear_matrix @ transform.linear_matrix
+                            linear_matrix = (
+                                extra.linear_matrix @ transform.linear_matrix
+                            )
                     target.validate(
                         self.viewer,
                         for_2d=target_ndisplay < 3 and obj is active_obj,
@@ -164,11 +180,18 @@ class SceneRenderer:
         return objects, active_obj
 
     @timed_render("scene.prepare")
-    def prepare_snapshot(self, scene_state, active_section_id=_UNSET, ndisplay=None,
-                         layer_states=None):
+    def prepare_snapshot(
+        self,
+        scene_state,
+        active_section_id=_UNSET,
+        ndisplay=None,
+        layer_states=None,
+    ):
         """Create deterministic managed layers before appearance is restored."""
         objects, active = self.preflight(
-            scene_state, active_section_id=active_section_id, ndisplay=ndisplay,
+            scene_state,
+            active_section_id=active_section_id,
+            ndisplay=ndisplay,
             layer_states=layer_states,
         )
         for obj in objects:
@@ -182,19 +205,27 @@ class SceneRenderer:
     def _reconcile(self, objects, active_obj):
         desired = {obj.id for obj in objects}
         desired.update(
-            child.id for obj in objects if obj.kind == "ortho_slice"
-            and obj.channels is not None
+            child.id
+            for obj in objects
+            if obj.kind == "ortho_slice" and obj.channels is not None
             for child in obj._channel_sections(self.viewer)
         )
-        service = getattr(self.viewer, "_napari_animation_projection_service", None)
+        service = getattr(
+            self.viewer, "_napari_animation_projection_service", None
+        )
         if service is not None:
             service.retain_sections(
-                {child.id for child in active_obj._channel_sections(self.viewer)}
+                {
+                    child.id
+                    for child in active_obj._channel_sections(self.viewer)
+                }
                 if active_obj is not None and self.viewer.dims.ndisplay < 3
                 else set()
             )
         for layer in self.viewer.layers:
-            bindings = getattr(layer, "_napari_animation_composite_appearance", {})
+            bindings = getattr(
+                layer, "_napari_animation_composite_appearance", {}
+            )
             for section_id in tuple(bindings):
                 if section_id not in desired:
                     _, callback, emitters = bindings.pop(section_id)
@@ -203,7 +234,9 @@ class SceneRenderer:
             metadata = getattr(layer, "metadata", {})
             object_id = metadata.get(OBJECT_ID_METADATA)
             if object_id and object_id not in desired:
-                binding = getattr(layer, "_napari_animation_plane_listener", None)
+                binding = getattr(
+                    layer, "_napari_animation_plane_listener", None
+                )
                 if binding is not None:
                     _, callback, emitters = binding
                     for emitter in emitters:
@@ -211,9 +244,13 @@ class SceneRenderer:
                     delattr(layer, "_napari_animation_plane_listener")
                 layer.visible = False
         if self.viewer.dims.ndisplay < 3 and active_obj is not None:
-            for source in active_obj.source_layers(self.viewer, include_disabled=True):
+            for source in active_obj.source_layers(
+                self.viewer, include_disabled=True
+            ):
                 source_id = self.registry.source_id(source)
-                self._source_visibility.setdefault(source_id, bool(source.visible))
+                self._source_visibility.setdefault(
+                    source_id, bool(source.visible)
+                )
                 if source.visible:
                     source.visible = False
 
@@ -249,8 +286,11 @@ class SceneRenderer:
             else active_section_id
         )
         objects, active = (
-            prepared if prepared is not None else self.preflight(
-                scene_state, ndisplay=self.viewer.dims.ndisplay,
+            prepared
+            if prepared is not None
+            else self.preflight(
+                scene_state,
+                ndisplay=self.viewer.dims.ndisplay,
                 active_section_id=active_id,
             )
         )

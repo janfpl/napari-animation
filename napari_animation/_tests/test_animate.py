@@ -147,13 +147,17 @@ def test_animate_perf_report_printed(tmp_path, stub_animation, capsys):
     assert "screenshot" in report and "encode/write" in report
 
 
-def test_failed_render_closes_writer_and_restores_scene(tmp_path, stub_animation, monkeypatch):
+def test_failed_render_closes_writer_and_restores_scene(
+    tmp_path, stub_animation, monkeypatch
+):
     import imageio
 
     from napari_animation.scene import OrthoSlice
 
     animation = stub_animation
-    section = animation.add_scene_object(OrthoSlice(source="img", position=(4, 5, 6)))
+    section = animation.add_scene_object(
+        OrthoSlice(source="img", position=(4, 5, 6))
+    )
     animation.set_active_section(section.id)
     before = animation.scene.to_dict()
     animation.viewer.camera.zoom = 7.5
@@ -169,10 +173,14 @@ def test_failed_render_closes_writer_and_restores_scene(tmp_path, stub_animation
     def fail_screenshot(*args, **kwargs):
         raise RuntimeError("screenshot failed")
 
-    monkeypatch.setattr(imageio, "get_writer", lambda *args, **kwargs: Writer())
+    monkeypatch.setattr(
+        imageio, "get_writer", lambda *args, **kwargs: Writer()
+    )
     monkeypatch.setattr(type(animation.viewer), "screenshot", fail_screenshot)
     with pytest.raises(RuntimeError, match="screenshot failed"):
-        animation.animate(str(tmp_path / "failed.mp4"), diagnose=False, prefetch=0)
+        animation.animate(
+            str(tmp_path / "failed.mp4"), diagnose=False, prefetch=0
+        )
     assert closed == [True]
     assert animation.scene.to_dict() == before
     assert animation.viewer.camera.zoom == pytest.approx(7.5)
@@ -192,12 +200,16 @@ def test_failed_setup_stops_the_writer(tmp_path, stub_animation, monkeypatch):
         def close(self):
             closed.append(True)
 
-    monkeypatch.setattr(imageio, "get_writer", lambda *args, **kwargs: Writer())
+    monkeypatch.setattr(
+        imageio, "get_writer", lambda *args, **kwargs: Writer()
+    )
     with pytest.raises(ValueError):
         # an invalid cache size fails after the writer thread has started
         stub_animation.animate(
-            str(tmp_path / "failed.mp4"), dask_cache="plenty",
-            diagnose=False, prefetch=0,
+            str(tmp_path / "failed.mp4"),
+            dask_cache="plenty",
+            diagnose=False,
+            prefetch=0,
         )
     assert closed == [True]
     assert not any(
@@ -214,13 +226,19 @@ def test_estimated_resolution_matches_encoded_video(
     from napari_animation.export_estimates import estimate_export
 
     monkeypatch.setattr(
-        type(stub_animation.viewer), "screenshot",
+        type(stub_animation.viewer),
+        "screenshot",
         lambda *args, **kwargs: np.zeros((63, 79, 4), dtype=np.uint8),
     )
     path = tmp_path / "estimate-resolution.mp4"
     stub_animation.animate(
-        str(path), fps=20, quality=5, scale_factor=0.5,
-        diagnose=False, prefetch=0, dask_cache=None,
+        str(path),
+        fps=20,
+        quality=5,
+        scale_factor=0.5,
+        diagnose=False,
+        prefetch=0,
+        dask_cache=None,
     )
     expected = estimate_export(
         (79, 63), len(stub_animation._frames), 20, 0.5, 5, ".mp4"
@@ -247,16 +265,23 @@ def test_preset_video_dimensions_ignore_extension_case(
     monkeypatch.setattr(type(stub_animation.viewer), "screenshot", screenshot)
     path = tmp_path / f"preset{suffix}"
     stub_animation.animate(
-        str(path), render_size=(18, 30), diagnose=False, perf_log=False,
-        prefetch=0, dask_cache=None,
+        str(path),
+        render_size=(18, 30),
+        diagnose=False,
+        perf_log=False,
+        prefetch=0,
+        dask_cache=None,
     )
     with imageio.get_reader(path) as reader:
         assert reader.get_data(0).shape == (18, 30, 3)
     assert "resizing from" not in caplog.text
 
 
-def test_failed_capture_saves_partial_performance(tmp_path, stub_animation, monkeypatch):
+def test_failed_capture_saves_partial_performance(
+    tmp_path, stub_animation, monkeypatch
+):
     import json
+
     import napari_animation.animation as module
 
     def fail(*args, **kwargs):
@@ -272,12 +297,17 @@ def test_failed_capture_saves_partial_performance(tmp_path, stub_animation, monk
     assert data["counters"].get("frames_written", 0) == 0
 
 
-def test_successful_capture_writes_structured_performance(tmp_path, stub_animation):
+def test_successful_capture_writes_structured_performance(
+    tmp_path, stub_animation
+):
     import json
+
     output = tmp_path / "frames"
     stub_animation.animate(str(output), diagnose=False)
     data = json.loads((output / "render_perf.json").read_text())
     assert data["metadata"]["status"] == "complete"
     assert data["counters"]["frames_written"] == len(stub_animation._frames)
-    assert data["phases"]["queue.put_wait"]["count"] == len(stub_animation._frames)
+    assert data["phases"]["queue.put_wait"]["count"] == len(
+        stub_animation._frames
+    )
     assert data["frames_per_second"] > 0

@@ -19,7 +19,6 @@ import dask.array as da
 import h5py
 import numpy as np
 
-
 LUXENDO_METADATA = "napari_animation.luxendo"
 _PYRAMID = re.compile(r"^Data_(\d+)_(\d+)_(\d+)$")
 _COLORS = ("magenta", "green", "cyan", "yellow", "red", "blue")
@@ -48,9 +47,14 @@ class LuxendoChannel:
         return (
             self.arrays if multiscale else self.arrays[0],
             dict(
-                name=self.name, scale=self.scale, units=("um",) * 3,
-                axis_labels=("Z", "Y", "X"), rgb=False,
-                multiscale=multiscale, blending="additive", colormap=color,
+                name=self.name,
+                scale=self.scale,
+                units=("um",) * 3,
+                axis_labels=("Z", "Y", "X"),
+                rgb=False,
+                multiscale=multiscale,
+                blending="additive",
+                colormap=color,
                 contrast_limits=self.contrast_limits,
                 metadata={LUXENDO_METADATA: self.metadata},
             ),
@@ -89,11 +93,15 @@ def _decode_metadata(dataset):
         raise ValueError("invalid processingInformation metadata")
     voxel = processing.get("voxel_size_um", {})
     try:
-        scale = tuple(float(voxel[key]) for key in ("depth", "height", "width"))
+        scale = tuple(
+            float(voxel[key]) for key in ("depth", "height", "width")
+        )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("missing Z/Y/X voxel_size_um metadata") from error
     if not all(np.isfinite(value) and value > 0 for value in scale):
-        raise ValueError("voxel sizes must be finite, positive micrometer values")
+        raise ValueError(
+            "voxel sizes must be finite, positive micrometer values"
+        )
     return processing, scale
 
 
@@ -120,11 +128,15 @@ def read_luxendo_channel(path, cancel=None):
                 if min(factors) >= 1 and max(factors) > 1:
                     candidates.append((name, factors))
         previous = native.shape
-        for name, factors in sorted(candidates, key=lambda entry: np.prod(entry[1])):
+        for name, factors in sorted(
+            candidates, key=lambda entry: np.prod(entry[1])
+        ):
             dataset = file[name]
             if (
-                not isinstance(dataset, h5py.Dataset) or dataset.ndim != 3
-                or dataset.dtype != native.dtype or min(dataset.shape) < 1
+                not isinstance(dataset, h5py.Dataset)
+                or dataset.ndim != 3
+                or dataset.dtype != native.dtype
+                or min(dataset.shape) < 1
                 or not all(a <= b for a, b in zip(dataset.shape, previous))
                 or dataset.shape == previous
             ):
@@ -141,7 +153,11 @@ def read_luxendo_channel(path, cancel=None):
         )
         sample = np.asarray(coarse[roi])
         finite = sample[np.isfinite(sample)]
-        low, high = (float(finite.min()), float(finite.max())) if finite.size else (0.0, 1.0)
+        low, high = (
+            (float(finite.min()), float(finite.max()))
+            if finite.size
+            else (0.0, 1.0)
+        )
         if low == high:
             low, high = (0.0, high) if high > 0 else (low, low + 1.0)
         _check_cancel(cancel)
@@ -150,24 +166,40 @@ def read_luxendo_channel(path, cancel=None):
         for name, _factors in levels:
             dataset = file[name]
             dataset._napari_animation_file_lease = lease
-            chunks = dataset.chunks or tuple(min(size, limit) for size, limit in zip(dataset.shape, (16, 256, 256)))
-            arrays.append(da.from_array(
-                dataset, chunks=chunks, asarray=False, lock=True,
-                meta=np.empty((0, 0, 0), dtype=dataset.dtype),
-            ))
+            chunks = dataset.chunks or tuple(
+                min(size, limit)
+                for size, limit in zip(dataset.shape, (16, 256, 256))
+            )
+            arrays.append(
+                da.from_array(
+                    dataset,
+                    chunks=chunks,
+                    asarray=False,
+                    lock=True,
+                    meta=np.empty((0, 0, 0), dtype=dataset.dtype),
+                )
+            )
         channel_id = processing.get("channel_id", processing.get("channel"))
         description = str(processing.get("channel_description") or "").strip()
-        name = f"ch{channel_id}" if channel_id is not None and str(channel_id) != "" else ""
+        name = (
+            f"ch{channel_id}"
+            if channel_id is not None and str(channel_id) != ""
+            else ""
+        )
         name = " — ".join(value for value in (name, description) if value)
         metadata = {
-            "path": str(path), "voxel_size_zyx_um": scale,
-            "channel": channel_id, "channel_description": description,
+            "path": str(path),
+            "voxel_size_zyx_um": scale,
+            "channel": channel_id,
+            "channel_description": description,
             "time_point": processing.get("time_point"),
             "stack": processing.get("stack"),
             "pyramid_datasets": [name for name, _ in levels],
             "pyramid_factors_xyz": [factors for _, factors in levels],
         }
-        return LuxendoChannel(path, name or path.name, scale, arrays, metadata, (low, high))
+        return LuxendoChannel(
+            path, name or path.name, scale, arrays, metadata, (low, high)
+        )
     except BaseException:
         file.close()
         raise
@@ -182,7 +214,11 @@ def scan_luxendo_files(directory, recursive=True):
     for root, _dirs, names in os.walk(directory, followlinks=False):
         for name in names:
             lower = name.lower()
-            if lower.endswith(".h5") and not lower.startswith("main") and not lower.endswith("_bdv.h5"):
+            if (
+                lower.endswith(".h5")
+                and not lower.startswith("main")
+                and not lower.endswith("_bdv.h5")
+            ):
                 path = Path(root) / name
                 if not path.is_symlink():
                     files.append(path)
@@ -202,7 +238,9 @@ def prepare_luxendo_folder(directory, recursive=True, cancel=None):
             skipped.append(f"{path.name}: {error}")
     _check_cancel(cancel)
     if not channels:
-        detail = "\n".join(skipped) or "No per-channel .lux.h5 or .h5 files found."
+        detail = (
+            "\n".join(skipped) or "No per-channel .lux.h5 or .h5 files found."
+        )
         raise ValueError(detail)
     from collections import Counter
 
@@ -254,5 +292,7 @@ def import_luxendo_folder(viewer, directory, recursive=True):
             viewer.layers.remove(layer)
         raise
     if plan.skipped:
-        warnings.warn("Skipped Luxendo files:\n" + "\n".join(plan.skipped), stacklevel=2)
+        warnings.warn(
+            "Skipped Luxendo files:\n" + "\n".join(plan.skipped), stacklevel=2
+        )
     return added

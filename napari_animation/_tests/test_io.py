@@ -233,7 +233,9 @@ def test_version_one_files_migrate(tmp_path, model_animation):
     assert model_animation.key_frames[0].viewer_state.scene is None
 
 
-def test_invalid_file_does_not_clear_current_animation(tmp_path, model_animation):
+def test_invalid_file_does_not_clear_current_animation(
+    tmp_path, model_animation
+):
     model_animation.key_frames.append(_make_keyframe(model_animation.viewer))
     path = tmp_path / "invalid.json"
     path.write_text(

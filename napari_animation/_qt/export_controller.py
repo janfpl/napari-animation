@@ -16,19 +16,19 @@ from dataclasses import replace
 from pathlib import Path
 
 import imageio
-from qtpy.QtCore import QObject, QTimer, Signal, Qt
+from qtpy.QtCore import QObject, Qt, QTimer, Signal
 from qtpy.QtWidgets import QProgressDialog
 
 from ..diagnostics import RenderDiagnostics
-from ..perf import PerfLogger
 from ..frame_sequence import FrameSequence
 from ..key_frame import KeyFrameList
 from ..ortho_slicer import OrthoSlicer
+from ..perf import PerfLogger
 from ..prefetch import SlicePrefetcher, dask_cache_context
 from ..render_capture import ExportCaptureSession, capture_export_frame
 from ..scene.processing import service_for_viewer
-from ..viewer_state import ViewerState
 from ..video_padding import pad_video_frame
+from ..viewer_state import ViewerState
 
 logger = logging.getLogger("napari_animation")
 
@@ -69,8 +69,12 @@ class QtExportController(QObject):
         if render_size is not None:
             if not self.options.get("canvas_only", True):
                 raise ValueError("Render size requires Canvas only.")
-            if len(render_size) != 2 or any(value <= 0 for value in render_size):
-                raise ValueError("Render size must be (height, width) with positive values.")
+            if len(render_size) != 2 or any(
+                value <= 0 for value in render_size
+            ):
+                raise ValueError(
+                    "Render size must be (height, width) with positive values."
+                )
         animation = self.animation
         self._perf.start()
         self._perf.metadata.update(self.options, export_path="qt")
@@ -84,7 +88,9 @@ class QtExportController(QObject):
             for frame in animation.key_frames
         )
         self._frames = FrameSequence(keyframes)
-        self._frames.state_interpolation_map = dict(animation._frames.state_interpolation_map)
+        self._frames.state_interpolation_map = dict(
+            animation._frames.state_interpolation_map
+        )
         self._total = len(self._frames)
         self._path = Path(self.options["path"])
         self._folder = self._path.absolute().parent / self._path.stem
@@ -99,13 +105,18 @@ class QtExportController(QObject):
             view=self._working_view,
         )
         self._source_bindings = self._viewer_sources()
-        self._previous_exact = getattr(animation.viewer, "_napari_animation_export_exact", False)
+        self._previous_exact = getattr(
+            animation.viewer, "_napari_animation_export_exact", False
+        )
         try:
-            cache_cm = dask_cache_context(self.options.get("dask_cache", "auto"))
+            cache_cm = dask_cache_context(
+                self.options.get("dask_cache", "auto")
+            )
             cache_cm.__enter__()
             self._cache_cm = cache_cm
             self._prefetcher = SlicePrefetcher(
-                animation.viewer, self._frames,
+                animation.viewer,
+                self._frames,
                 depth=self.options.get("prefetch", 4),
                 workers=self.options.get("prefetch_workers", 4),
             )
@@ -114,7 +125,9 @@ class QtExportController(QObject):
                 prefetch_skip_reason=self._prefetcher.skip_reason,
             )
             self._writer_thread = threading.Thread(
-                target=self._consume, name="napari-animation-qt-writer", daemon=True
+                target=self._consume,
+                name="napari-animation-qt-writer",
+                daemon=True,
             )
             animation.viewer._napari_animation_export_exact = True
             service_for_viewer(animation.viewer).retain_sections(set())
@@ -133,7 +146,9 @@ class QtExportController(QObject):
                 self._progress.setAutoReset(False)
                 self._progress.canceled.connect(self.cancel)
                 self._progress.show()
-            self._capture_session = ExportCaptureSession(animation.viewer, render_size)
+            self._capture_session = ExportCaptureSession(
+                animation.viewer, render_size
+            )
             self._capture_session.__enter__()
             self._writer_thread.start()
         except BaseException:
@@ -167,11 +182,17 @@ class QtExportController(QObject):
             # retain_sections() above retired the interactive 2D section
             self.animation.renderer.apply_working(ortho=self._working_ortho)
         except Exception as error:  # noqa: BLE001 - keep the original error
-            logger.warning("Could not restore the scene after export: %s", error)
+            logger.warning(
+                "Could not restore the scene after export: %s", error
+            )
 
     def _open_writer(self):
-        from ..animation import COMPAT_ENCODER, H264_SUFFIXES, VIDEO_SUFFIXES
-        from ..animation import _compat_output_params
+        from ..animation import (
+            COMPAT_ENCODER,
+            H264_SUFFIXES,
+            VIDEO_SUFFIXES,
+            _compat_output_params,
+        )
 
         suffix = self._path.suffix.lower()
         fps = self.options.get("fps", 20)
@@ -191,6 +212,7 @@ class QtExportController(QObject):
 
     def _consume(self):
         from imageio.v2 import imwrite
+
         from ..animation import VIDEO_SUFFIXES
 
         pad_for_video = self._path.suffix.lower() in VIDEO_SUFFIXES
@@ -220,24 +242,31 @@ class QtExportController(QObject):
                     index, frame = item
                     scale = self.options.get("scale_factor")
                     if scale not in (None, 1):
-                        from scipy import ndimage as ndi
                         import numpy as np
+                        from scipy import ndimage as ndi
 
                         with self._perf.timer("scale", frame=index):
-                            frame = ndi.zoom(
-                                frame, (scale, scale, 1)
-                            ).astype(np.uint8)
+                            frame = ndi.zoom(frame, (scale, scale, 1)).astype(
+                                np.uint8
+                            )
                     with self._perf.timer("diagnostics.frame", frame=index):
                         self._diagnostics.record_frame(index, frame)
                     with self._perf.timer("encode/write", frame=index):
                         if self._writer is not None:
                             if pad_for_video:
-                                block_size = 2 if self.options.get("render_size") else 16
-                                frame = pad_video_frame(frame, block_size=block_size)
+                                block_size = (
+                                    2
+                                    if self.options.get("render_size")
+                                    else 16
+                                )
+                                frame = pad_video_frame(
+                                    frame, block_size=block_size
+                                )
                             self._writer.append_data(frame)
                         else:
                             imwrite(
-                                self._folder / f"{self._path.stem}_{index}.png",
+                                self._folder
+                                / f"{self._path.stem}_{index}.png",
                                 frame,
                             )
                     self._perf.count("frames_written")
@@ -279,13 +308,16 @@ class QtExportController(QObject):
         from ..layer_registry import OBJECT_ID_METADATA
 
         return tuple(
-            (id(layer), id(layer.data)) for layer in self.animation.viewer.layers
+            (id(layer), id(layer.data))
+            for layer in self.animation.viewer.layers
             if not layer.metadata.get(OBJECT_ID_METADATA)
         )
 
     def _validate_sources(self):
         if self._viewer_sources() != self._source_bindings:
-            raise RuntimeError("Source layers changed during export; restart the export.")
+            raise RuntimeError(
+                "Source layers changed during export; restart the export."
+            )
 
     def _apply_frame(self):
         self._validate_sources()
@@ -318,8 +350,12 @@ class QtExportController(QObject):
                 self._later(self._step, 15)
                 return
             if self._backpressure_start is not None:
-                self._perf.record("queue.backpressure", time.perf_counter() - self._backpressure_start,
-                                  frame=self._index, start=self._backpressure_start)
+                self._perf.record(
+                    "queue.backpressure",
+                    time.perf_counter() - self._backpressure_start,
+                    frame=self._index,
+                    start=self._backpressure_start,
+                )
                 self._backpressure_start = None
             self._pending_frame = None
             self._index += 1
@@ -371,14 +407,19 @@ class QtExportController(QObject):
         # Wait for the visible layer requests before taking this frame.
         if any(
             not getattr(layer, "loaded", True)
-            for layer in self.animation.viewer.layers if layer.visible
+            for layer in self.animation.viewer.layers
+            if layer.visible
         ):
             self._perf.count("data.not_loaded_polls")
             self._later(lambda: self._capture(generation), 15)
             return
         if self._data_wait_start is not None:
-            self._perf.record("data.await_ready", time.perf_counter() - self._data_wait_start,
-                              frame=self._index, start=self._data_wait_start)
+            self._perf.record(
+                "data.await_ready",
+                time.perf_counter() - self._data_wait_start,
+                frame=self._index,
+                start=self._data_wait_start,
+            )
             self._data_wait_start = None
         try:
             with self._perf.timer("screenshot", frame=self._index):
@@ -428,7 +469,10 @@ class QtExportController(QObject):
             # On an early failure, stop producing and let the writer close.
             self._cancelled = True
             self._generation += 1
-            if self._writer_thread is None or not self._writer_thread.is_alive():
+            if (
+                self._writer_thread is None
+                or not self._writer_thread.is_alive()
+            ):
                 self._finalizing = True
             else:
                 try:
@@ -455,7 +499,9 @@ class QtExportController(QObject):
                 if error is None:
                     error = capture_error
             self._capture_session = None
-        self.animation.viewer._napari_animation_export_exact = self._previous_exact
+        self.animation.viewer._napari_animation_export_exact = (
+            self._previous_exact
+        )
         try:
             with self._perf.timer("restore"):
                 self._working_state.apply(self.animation.viewer)
@@ -468,7 +514,9 @@ class QtExportController(QObject):
                 active = (self._working_view or {}).get("active_section_id")
                 self.animation.active_section_id = active
                 self.animation.renderer.active_section_id = active
-                self.animation.renderer.apply_working(ortho=self._working_ortho)
+                self.animation.renderer.apply_working(
+                    ortho=self._working_ortho
+                )
                 self.animation.viewer.camera.update(self._working_state.camera)
         except Exception as restore_error:
             if error is None:
@@ -477,7 +525,9 @@ class QtExportController(QObject):
         if error is not None and str(error) != "Export cancelled":
             logger.error(
                 "Export failed at frame %s/%s (%s)",
-                self._index + 1, self._total, output,
+                self._index + 1,
+                self._total,
+                output,
                 exc_info=(type(error), error, error.__traceback__),
             )
         if error is None and self._diagnostic_report:
@@ -486,12 +536,14 @@ class QtExportController(QObject):
             self._progress.close()
             self._progress.deleteLater()
             self._progress = None
-        self._perf.metadata.update(status="complete" if error is None else "failed",
-                                   error=str(error) if error else None,
-                                   expected_frames=self._total,
-                                   output_shape=self._diagnostics.first_shape,
-                                   blank_frames=list(self._diagnostics.blank_frames),
-                                   sampled_pixel_range=list(self._diagnostics.value_range))
+        self._perf.metadata.update(
+            status="complete" if error is None else "failed",
+            error=str(error) if error else None,
+            expected_frames=self._total,
+            output_shape=self._diagnostics.first_shape,
+            blank_frames=list(self._diagnostics.blank_frames),
+            sampled_pixel_range=list(self._diagnostics.value_range),
+        )
         self._perf.stop()
         if self._perf.enabled:
             report = self._perf.log_report()

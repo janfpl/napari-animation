@@ -18,7 +18,9 @@ def test_overlapping_finalizers(cache_type):
 
     class PausingCache(cache_type):
         def _posttask(self, key, value, dsk, state, worker_id):
-            if str(key).startswith("finalize-") and current_thread().name.startswith("export"):
+            if str(key).startswith(
+                "finalize-"
+            ) and current_thread().name.startswith("export"):
                 reached.set()
                 assert release.wait(5)
             return super()._posttask(key, value, dsk, state, worker_id)
@@ -29,7 +31,9 @@ def test_overlapping_finalizers(cache_type):
     # global callback suppression for nested/concurrent schedulers.
 
     def compute():
-        return array.compute(scheduler="synchronous", callbacks=[cache._callback])
+        return array.compute(
+            scheduler="synchronous", callbacks=[cache._callback]
+        )
 
     with ThreadPoolExecutor(1, thread_name_prefix="export") as pool:
         future = pool.submit(compute)
@@ -42,7 +46,9 @@ def test_overlapping_finalizers(cache_type):
             with pytest.raises(KeyError, match="finalize-hlgfinalizecompute"):
                 future.result(timeout=5)
         else:
-            np.testing.assert_array_equal(future.result(timeout=5), np.arange(64))
+            np.testing.assert_array_equal(
+                future.result(timeout=5), np.arange(64)
+            )
             assert cache.cache.total_bytes == sum(cache.cache.nbytes.values())
 
 
@@ -60,7 +66,12 @@ def test_concurrent_cache_reuses_tasks():
     cache = ConcurrentCache(10**6)
     for _ in range(2):
         np.testing.assert_array_equal(
-            array.compute(scheduler="synchronous", callbacks=[cache._callback], optimize_graph=False), np.arange(10),
+            array.compute(
+                scheduler="synchronous",
+                callbacks=[cache._callback],
+                optimize_graph=False,
+            ),
+            np.arange(10),
         )
     assert reads == [1]
 
@@ -115,7 +126,9 @@ def test_failed_computation_does_not_poison_the_cache():
     with pytest.raises(ValueError, match="source read failed"):
         fail().compute(callbacks=[cache._callback])
     array = da.from_array(np.arange(16), chunks=4)
-    np.testing.assert_array_equal(array.compute(callbacks=[cache._callback]), np.arange(16))
+    np.testing.assert_array_equal(
+        array.compute(callbacks=[cache._callback]), np.arange(16)
+    )
 
 
 def test_real_parallel_arrays_and_eviction():
@@ -134,9 +147,12 @@ def test_real_parallel_arrays_and_eviction():
     assert cache.cache.total_bytes <= cache.cache.available_bytes
 
 
-def test_gui_hdf5_export_finishes_with_prefetch(make_napari_viewer, qtbot, tmp_path):
+def test_gui_hdf5_export_finishes_with_prefetch(
+    make_napari_viewer, qtbot, tmp_path
+):
     import h5py
     import imageio.v2 as imageio
+
     from napari_animation import Animation
     from napari_animation._qt.export_controller import QtExportController
 
@@ -148,23 +164,37 @@ def test_gui_hdf5_export_finishes_with_prefetch(make_napari_viewer, qtbot, tmp_p
     results = []
     try:
         with h5py.File(path, "w") as file:
-            dataset = file.create_dataset("Data", data=data, chunks=(2, 16, 16), compression="gzip")
+            dataset = file.create_dataset(
+                "Data", data=data, chunks=(2, 16, 16), compression="gzip"
+            )
             array = da.from_array(dataset, chunks=dataset.chunks, lock=True)
             viewer.add_image(array, contrast_limits=(0, 600))
             viewer.reset_view()
             qtbot.wait(100)
             animation.add_scroll_through(start=0, stop=23, steps=8)
             output = tmp_path / "out.mp4"
-            controller = QtExportController(animation, {
-                "path": str(output), "fps": 10, "prefetch": 4,
-                "prefetch_workers": 4, "dask_cache": 1024**2, "diagnose": False,
-            })
-            controller.finished.connect(lambda path, error: results.append(error))
+            controller = QtExportController(
+                animation,
+                {
+                    "path": str(output),
+                    "fps": 10,
+                    "prefetch": 4,
+                    "prefetch_workers": 4,
+                    "dask_cache": 1024**2,
+                    "diagnose": False,
+                },
+            )
+            controller.finished.connect(
+                lambda path, error: results.append(error)
+            )
             controller.start()
             qtbot.waitUntil(lambda: bool(results), timeout=30000)
             assert results == [None]
             with imageio.get_reader(output) as reader:
                 assert reader.count_frames() == len(animation._frames)
-                assert not np.array_equal(reader.get_data(0), reader.get_data(len(animation._frames) - 1))
+                assert not np.array_equal(
+                    reader.get_data(0),
+                    reader.get_data(len(animation._frames) - 1),
+                )
     finally:
         animation.close()

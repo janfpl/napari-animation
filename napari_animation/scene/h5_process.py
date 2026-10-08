@@ -23,11 +23,15 @@ _MIN_PHYSICAL_BYTES = 64 * 1024**2
 
 def _dataset_descriptor(dataset):
     return (
-        os.path.abspath(dataset.file.filename), dataset.name,
+        os.path.abspath(dataset.file.filename),
+        dataset.name,
         tuple(int(size) for size in dataset.shape),
         dataset.dtype.str,
-        tuple(int(size) for size in dataset.chunks)
-        if dataset.chunks else None,
+        (
+            tuple(int(size) for size in dataset.chunks)
+            if dataset.chunks
+            else None
+        ),
         dataset.compression,
     )
 
@@ -91,7 +95,8 @@ def _imaris_reader(volume):
         if (
             getattr(function, "__module__", None) != "dask.array.chunk"
             or getattr(function, "__name__", None) != "getitem"
-            or len(args) != 2 or args[1] != expected
+            or len(args) != 2
+            or args[1] != expected
         ):
             return None
     return os.fspath(reader.filePathComplete), reader.ResolutionLevelLock
@@ -139,7 +144,14 @@ def describe_h5_volume(volume):
         if not dataset.id.valid or dataset.ndim != 3:
             return None
         return _dataset_descriptor(dataset)
-    except (ImportError, AttributeError, KeyError, OSError, TypeError, ValueError):
+    except (
+        ImportError,
+        AttributeError,
+        KeyError,
+        OSError,
+        TypeError,
+        ValueError,
+    ):
         return None
 
 
@@ -151,14 +163,16 @@ def process_lanes(descriptor, axis, start, stop):
             return 0
         chunks = descriptor[4]
         touched = 1
-        for dimension, (length, chunk) in enumerate(zip(descriptor[2], chunks)):
+        for dimension, (length, chunk) in enumerate(
+            zip(descriptor[2], chunks)
+        ):
             if dimension == axis:
                 touched *= (stop - 1) // chunk - start // chunk + 1
             else:
                 touched *= (length + chunk - 1) // chunk
-        physical_bytes = touched * int(np.prod(chunks)) * np.dtype(
-            descriptor[3]
-        ).itemsize
+        physical_bytes = (
+            touched * int(np.prod(chunks)) * np.dtype(descriptor[3]).itemsize
+        )
         if physical_bytes < _MIN_PHYSICAL_BYTES:
             return 0
         requested = 4
@@ -189,10 +203,16 @@ def direct_uncompressed_read(volume, descriptor, axis):
         import dask.array as da
 
         return isinstance(volume, da.Array) and (
-            int(np.prod([
-                len(volume.chunks[dimension])
-                for dimension in range(3) if dimension != axis
-            ])) >= 32
+            int(
+                np.prod(
+                    [
+                        len(volume.chunks[dimension])
+                        for dimension in range(3)
+                        if dimension != axis
+                    ]
+                )
+            )
+            >= 32
         )
     except (ImportError, AttributeError, TypeError):
         return False
@@ -241,9 +261,9 @@ class H5ProcessProjector:
 
         if cancel is not None and cancel.is_set():
             raise CancelledProjection()
-        tasks = list(_tasks(
-            self.descriptor, axis, start, stop, projection, self.lanes
-        ))
+        tasks = list(
+            _tasks(self.descriptor, axis, start, stop, projection, self.lanes)
+        )
         parts = list(self.pool.map(_project_stripe, tasks))
         if cancel is not None and cancel.is_set():
             raise CancelledProjection()

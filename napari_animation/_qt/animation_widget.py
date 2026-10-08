@@ -16,16 +16,16 @@ from qtpy.QtWidgets import (
 )
 
 from ..animation import Animation
-from .frame_widget import FrameWidget
 from .export_controller import QtExportController
+from .frame_widget import FrameWidget
 from .keyframelistcontrol_widget import KeyFrameListControlWidget
 from .keyframeslist_widget import KeyFramesListWidget
+from .luxendo_import_widget import LuxendoImportWidget
 from .ortho_slicer_widget import OrthoSlicerWidget
 from .savedialog_widget import SaveDialogWidget
 from .scene_widget import SceneWidget
 from .scroll_widget import ScrollThroughWidget
 from .voxel_size_widget import VoxelSizeWidget
-from .luxendo_import_widget import LuxendoImportWidget
 
 
 class AnimationWidget(QWidget):
@@ -281,7 +281,10 @@ class AnimationWidget(QWidget):
 
         saveDialogWidget = SaveDialogWidget(self)
         animation_kwargs = saveDialogWidget.getAnimationParameters(
-            self, "Save animation", str(Path.home()), filters,
+            self,
+            "Save animation",
+            str(Path.home()),
+            filters,
             animation=self.animation,
         )
 
@@ -300,7 +303,9 @@ class AnimationWidget(QWidget):
                 def finished(_output, error):
                     self._export_controller = None
                     controller.deleteLater()
-                    self.saveButton.setEnabled(len(self.animation.key_frames) > 1)
+                    self.saveButton.setEnabled(
+                        len(self.animation.key_frames) > 1
+                    )
                     if error is not None and str(error) != "Export cancelled":
                         dialog = QErrorMessage(self)
                         dialog.showMessage(str(error))

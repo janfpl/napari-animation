@@ -158,10 +158,13 @@ def test_scroll_through_returns_its_keyframes(animation):
     assert list(animation.key_frames) == [first, last]
 
 
-def test_endpoint_helpers_do_not_take_synchronous_screenshots(animation, monkeypatch):
+def test_endpoint_helpers_do_not_take_synchronous_screenshots(
+    animation, monkeypatch
+):
     calls = []
     monkeypatch.setattr(
-        HeadlessViewer, "screenshot",
+        HeadlessViewer,
+        "screenshot",
         lambda *args, **kwargs: calls.append(1),
     )
     animation.snap_2d("XY", capture=False)
@@ -313,7 +316,9 @@ def test_new_keyframes_continue_loaded_numbering(animation, tmp_path, helper):
         if helper == "scroll":
             restored.add_scroll_through(start=0, stop=3)
         elif helper == "slice":
-            section = restored.add_scene_object(OrthoSlice(name="section", source="img"))
+            section = restored.add_scene_object(
+                OrthoSlice(name="section", source="img")
+            )
             restored.add_slice_sweep(section, start=0, stop=3)
         else:
             restored.capture_keyframe()

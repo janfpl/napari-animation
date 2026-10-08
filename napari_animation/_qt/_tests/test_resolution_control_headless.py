@@ -14,7 +14,8 @@ def test_scene_editor_exposes_pyramid_level():
     viewer = ViewerModel(ndisplay=3)
     viewer.add_image(
         [np.zeros((8, 16, 16)), np.zeros((4, 8, 8))],
-        name="pyramid", multiscale=True,
+        name="pyramid",
+        multiscale=True,
     )
     animation = Animation(viewer)
     section = animation.add_scene_object(

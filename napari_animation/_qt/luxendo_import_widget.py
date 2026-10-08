@@ -9,8 +9,14 @@ from concurrent.futures import ThreadPoolExecutor
 
 from qtpy.QtCore import QTimer, Signal, Slot
 from qtpy.QtWidgets import (
-    QCheckBox, QFileDialog, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QVBoxLayout,
+    QCheckBox,
+    QFileDialog,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
 )
 
 
@@ -39,7 +45,9 @@ class LuxendoImportWidget(QGroupBox):
         self.importButton = QPushButton("Import channels")
         self.cancelButton = QPushButton("Cancel")
         self.cancelButton.setEnabled(False)
-        self.statusLabel = QLabel("Voxel sizes are read from each image's metadata (µm).")
+        self.statusLabel = QLabel(
+            "Voxel sizes are read from each image's metadata (µm)."
+        )
         self.statusLabel.setWordWrap(True)
         layout = QVBoxLayout(self)
         path_row = QHBoxLayout()
@@ -58,20 +66,29 @@ class LuxendoImportWidget(QGroupBox):
         self.cancelButton.clicked.connect(self._cancel_import)
         self._prepared.connect(self._install_plan)
         self.destroyed.connect(self.shutdown)
-        qt_window = getattr(getattr(self.viewer, "window", None), "_qt_window", None)
+        qt_window = getattr(
+            getattr(self.viewer, "window", None), "_qt_window", None
+        )
         if qt_window is not None:
             qt_window.destroyed.connect(self.shutdown)
 
     def _browse(self):
         path = QFileDialog.getExistingDirectory(
-            self, "Select processed Luxendo folder", self.pathEdit.text(),
+            self,
+            "Select processed Luxendo folder",
+            self.pathEdit.text(),
         )
         if path:
             self.pathEdit.setText(path)
 
     def _set_busy(self, busy):
         self._busy = busy
-        for widget in (self.pathEdit, self.browseButton, self.recursiveCheckBox, self.importButton):
+        for widget in (
+            self.pathEdit,
+            self.browseButton,
+            self.recursiveCheckBox,
+            self.importButton,
+        ):
             widget.setEnabled(not busy)
         self.cancelButton.setEnabled(busy)
 
@@ -80,7 +97,9 @@ class LuxendoImportWidget(QGroupBox):
             return
         path = self.pathEdit.text().strip().strip('"')
         if not path:
-            self.statusLabel.setText("Choose a processed Luxendo folder first.")
+            self.statusLabel.setText(
+                "Choose a processed Luxendo folder first."
+            )
             return
         from ..luxendo import prepare_luxendo_folder
 
@@ -91,9 +110,14 @@ class LuxendoImportWidget(QGroupBox):
         self.statusLabel.setText("Reading channel metadata…")
         self.statusLabel.setToolTip("")
         if self._pool is None:
-            self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="luxendo-import")
+            self._pool = ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix="luxendo-import"
+            )
         self._future = self._pool.submit(
-            prepare_luxendo_folder, path, self.recursiveCheckBox.isChecked(), self._cancel,
+            prepare_luxendo_folder,
+            path,
+            self.recursiveCheckBox.isChecked(),
+            self._cancel,
         )
 
         def ready(future):
@@ -124,7 +148,8 @@ class LuxendoImportWidget(QGroupBox):
 
         existing = loaded_luxendo_paths(self.viewer)
         self._pending = deque(
-            channel for channel in plan.channels
+            channel
+            for channel in plan.channels
             if os.path.normcase(str(channel.path)) not in existing
         )
         self._already_loaded = len(plan.channels) - len(self._pending)
@@ -137,26 +162,37 @@ class LuxendoImportWidget(QGroupBox):
             return
         if self._cancel.is_set():
             self._pending.clear()
-            self._finish(f"Import cancelled; kept {len(self._added)} imported channel(s).")
+            self._finish(
+                f"Import cancelled; kept {len(self._added)} imported channel(s)."
+            )
             return
         if not self._pending:
             message = f"Imported {len(self._added)} channel(s), with voxel sizes in µm."
             if self._already_loaded:
                 message += f" {self._already_loaded} already loaded."
             if self._skipped:
-                message += f" Skipped {len(self._skipped)} file(s):\n" + "\n".join(self._skipped[:3])
+                message += (
+                    f" Skipped {len(self._skipped)} file(s):\n"
+                    + "\n".join(self._skipped[:3])
+                )
             self._finish(message)
             self.statusLabel.setToolTip("\n".join(self._skipped))
             return
         from ..luxendo import add_luxendo_channel
 
         channel = self._pending.popleft()
-        self.statusLabel.setText(f"Adding channel {len(self._added) + 1} of {self._total}: {channel.name}")
+        self.statusLabel.setText(
+            f"Adding channel {len(self._added) + 1} of {self._total}: {channel.name}"
+        )
         try:
-            self._added.append(add_luxendo_channel(self.viewer, channel, len(self._added)))
+            self._added.append(
+                add_luxendo_channel(self.viewer, channel, len(self._added))
+            )
         except Exception as error:
             self._pending.clear()
-            self._finish(f"Import stopped after {len(self._added)} channel(s): {error}")
+            self._finish(
+                f"Import stopped after {len(self._added)} channel(s): {error}"
+            )
             return
         QTimer.singleShot(0, self._add_next)
 

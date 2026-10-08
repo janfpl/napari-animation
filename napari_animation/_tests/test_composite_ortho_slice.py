@@ -21,8 +21,11 @@ def _section(viewer):
     red_id = registry.source_id(viewer.layers["red"])
     green_id = registry.source_id(viewer.layers["green"])
     section = OrthoSlice(
-        name="Overlay", source="red", source_id=red_id,
-        position=(3, 4, 4), thickness=2,
+        name="Overlay",
+        source="red",
+        source_id=red_id,
+        position=(3, 4, 4),
+        thickness=2,
         channels={
             red_id: {"source_id": red_id, "enabled": True},
             green_id: {"source_id": green_id, "enabled": True},
@@ -65,7 +68,9 @@ def test_moving_one_plane_moves_every_channel():
         f"{section.id}::channel::{green_id}", "section_3d"
     )
     green.plane = {
-        "position": (2, 4, 4), "normal": (1, 0, 0), "thickness": 2,
+        "position": (2, 4, 4),
+        "normal": (1, 0, 0),
+        "thickness": 2,
     }
     assert np.isclose(section.position[0], 2)
     assert np.isclose(red.plane.position[0], 2)
@@ -110,7 +115,10 @@ def test_2d_composite_projects_both_and_restores_source_visibility(qtbot):
     green = registry.find_managed(
         f"{section.id}::channel::{green_id}", "section_2d"
     )
-    qtbot.waitUntil(lambda: registry.find_managed(section.id, "section_2d") is not None, timeout=3000)
+    qtbot.waitUntil(
+        lambda: registry.find_managed(section.id, "section_2d") is not None,
+        timeout=3000,
+    )
     red = registry.find_managed(section.id, "section_2d")
     green = registry.find_managed(
         f"{section.id}::channel::{green_id}", "section_2d"
@@ -133,10 +141,12 @@ def test_composite_round_trips_without_serializing_derived_planes(tmp_path):
     animation.add_scene_object(section)
     state = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     assert len(state.layers) == 2
-    animation.key_frames.append(KeyFrame(
-        viewer_state=state,
-        thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
-    ))
+    animation.key_frames.append(
+        KeyFrame(
+            viewer_state=state,
+            thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
+        )
+    )
     path = animation.save_keyframes(tmp_path / "composite.json")
     animation.load_keyframes(path, reload_layers=False)
     restored = animation.key_frames[0].viewer_state.scene[section.id]
@@ -163,8 +173,14 @@ def test_version_two_slice_migrates_its_saved_color(tmp_path):
     restored = animation.key_frames[0].viewer_state
     section_state = restored.scene[section.id]
     source_id = section_state["source_id"]
-    assert section_state["channels"][source_id]["appearance"]["colormap"] == "magenta"
-    assert LayerRegistry.managed_id(section.id, "section_3d") not in restored.layers
+    assert (
+        section_state["channels"][source_id]["appearance"]["colormap"]
+        == "magenta"
+    )
+    assert (
+        LayerRegistry.managed_id(section.id, "section_3d")
+        not in restored.layers
+    )
 
 
 def test_custom_lut_survives_save_and_load(tmp_path):
@@ -180,9 +196,9 @@ def test_custom_lut_survives_save_and_load(tmp_path):
     colors = [[0, 0, 0, 1], [0.2, 0.7, 0.4, 1]]
     layer.colormap = Colormap(colors=colors, name="my stains")
     state = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
-    animation.key_frames.append(KeyFrame(
-        state, np.zeros((30, 30, 4), dtype=np.uint8)
-    ))
+    animation.key_frames.append(
+        KeyFrame(state, np.zeros((30, 30, 4), dtype=np.uint8))
+    )
     path = animation.save_keyframes(tmp_path / "lut.json")
     animation.load_keyframes(path, reload_layers=False)
     restored = animation.key_frames[0].viewer_state.scene[section.id]
@@ -208,7 +224,9 @@ def test_channel_membership_changes_at_destination_keyframe():
     animation.key_frames.append(KeyFrame(first, thumbnail, steps=5))
     animation.key_frames.append(KeyFrame(second, thumbnail, steps=5))
     states = [
-        animation._frames[index].scene[section.id]["channels"][green_id]["enabled"]
+        animation._frames[index].scene[section.id]["channels"][green_id][
+            "enabled"
+        ]
         for index in range(len(animation._frames))
     ]
     assert states == [False] * (len(states) - 1) + [True]
@@ -241,16 +259,22 @@ def test_2d_projection_publishes_a_complete_batch(qtbot, monkeypatch):
         timeout=3000,
     )
     assert registry.find_managed(section.id, "section_2d") is None
-    assert registry.find_managed(
-        f"{section.id}::channel::{green_id}", "section_2d"
-    ) is None
+    assert (
+        registry.find_managed(
+            f"{section.id}::channel::{green_id}", "section_2d"
+        )
+        is None
+    )
     qtbot.waitUntil(
         lambda: registry.find_managed(section.id, "section_2d") is not None,
         timeout=3000,
     )
-    assert registry.find_managed(
-        f"{section.id}::channel::{green_id}", "section_2d"
-    ) is not None
+    assert (
+        registry.find_managed(
+            f"{section.id}::channel::{green_id}", "section_2d"
+        )
+        is not None
+    )
 
 
 def test_failed_channel_does_not_publish_partial_overlay(qtbot, monkeypatch):
@@ -286,12 +310,14 @@ def test_disabled_composite_preserves_channel_selection():
     section.enabled = False
     scene.apply(viewer)
     scene.sync_from_viewer(viewer)
-    assert all(c['enabled'] for c in section.channels.values())
+    assert all(c["enabled"] for c in section.channels.values())
     section.enabled = True
     scene.apply(viewer)
     registry = LayerRegistry(viewer)
-    assert registry.find_managed(section.id, 'section_3d').visible
-    assert registry.find_managed(f'{section.id}::channel::{green_id}', 'section_3d').visible
+    assert registry.find_managed(section.id, "section_3d").visible
+    assert registry.find_managed(
+        f"{section.id}::channel::{green_id}", "section_3d"
+    ).visible
 
 
 def test_appearance_mode_transitions_keep_complete_payload():
@@ -302,23 +328,32 @@ def test_appearance_mode_transitions_keep_complete_payload():
     section, _, green_id = _section(viewer)
     animation = Animation(viewer)
     animation.add_scene_object(section)
-    section.channels[green_id].update(appearance_mode='custom', appearance={
-        'colormap': 'magenta', 'opacity': .4, 'gamma': 2.,
-        'contrast_limits': [0., 3.],
-    })
+    section.channels[green_id].update(
+        appearance_mode="custom",
+        appearance={
+            "colormap": "magenta",
+            "opacity": 0.4,
+            "gamma": 2.0,
+            "contrast_limits": [0.0, 3.0],
+        },
+    )
     custom = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     linked_scene = deepcopy(custom.scene)
-    linked_scene[section.id]['channels'][green_id].update(
-        appearance_mode='source', appearance=None)
+    linked_scene[section.id]["channels"][green_id].update(
+        appearance_mode="source", appearance=None
+    )
     linked = replace(custom, scene=linked_scene)
     for left, right in ((custom, linked), (linked, custom)):
-        for fraction, raw in ((0., 0.), (.5, .5), (1., .5), (1., 1.)):
+        for fraction, raw in ((0.0, 0.0), (0.5, 0.5), (1.0, 0.5), (1.0, 1.0)):
             state = animation._frames._interpolate_state(
-                left, right, fraction, raw_fraction=raw)
-            expected = (left if raw < 1 else right).scene[section.id]['channels'][green_id]
-            actual = state.scene[section.id]['channels'][green_id]
-            assert actual['appearance_mode'] == expected['appearance_mode']
-            assert actual['appearance'] == expected['appearance']
+                left, right, fraction, raw_fraction=raw
+            )
+            expected = (left if raw < 1 else right).scene[section.id][
+                "channels"
+            ][green_id]
+            actual = state.scene[section.id]["channels"][green_id]
+            assert actual["appearance_mode"] == expected["appearance_mode"]
+            assert actual["appearance"] == expected["appearance"]
             state.apply(viewer)
 
 
@@ -333,20 +368,22 @@ def test_disabled_channel_cannot_reapply_previous_snapshot():
     on = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     on.apply(viewer)
     off_scene = deepcopy(on.scene)
-    off_scene[section.id]['channels'][green_id]['enabled'] = False
-    off_scene[section.id]['position'] = (1, 4, 4)
+    off_scene[section.id]["channels"][green_id]["enabled"] = False
+    off_scene[section.id]["position"] = (1, 4, 4)
     replace(on, scene=off_scene).apply(viewer)
     registry = LayerRegistry(viewer)
-    red = registry.find_managed(section.id, 'section_3d')
-    green = registry.find_managed(f'{section.id}::channel::{green_id}', 'section_3d')
-    viewer.layers['green'].colormap = 'cyan'
-    green.opacity = .3
+    red = registry.find_managed(section.id, "section_3d")
+    green = registry.find_managed(
+        f"{section.id}::channel::{green_id}", "section_3d"
+    )
+    viewer.layers["green"].colormap = "cyan"
+    green.opacity = 0.3
     np.testing.assert_allclose(red.plane.position, (1, 4, 4))
     assert not green.visible
     on.apply(viewer)
-    viewer.layers['green'].colormap = 'yellow'
+    viewer.layers["green"].colormap = "yellow"
     assert green.visible
-    assert green.colormap.name == 'yellow'
+    assert green.colormap.name == "yellow"
 
 
 def test_2d_ignores_disabled_transformed_primary():
@@ -357,46 +394,68 @@ def test_2d_ignores_disabled_transformed_primary():
     scene = Scene()
     scene.append(section)
     scene.apply(viewer)
-    viewer.layers['red'].shear = (.2, 0, 0)
-    section.channels[red_id]['enabled'] = False
+    viewer.layers["red"].shear = (0.2, 0, 0)
+    section.channels[red_id]["enabled"] = False
     viewer.dims.ndisplay = 2
     scene.apply(viewer)
-    section.channels[red_id]['enabled'] = True
-    with pytest.raises(ValueError, match='transformed|axis-aligned'):
+    section.channels[red_id]["enabled"] = True
+    with pytest.raises(ValueError, match="transformed|axis-aligned"):
         scene.apply(viewer)
 
 
 def test_custom_lut_transitions_are_atomic():
     from copy import deepcopy
     from dataclasses import replace
+
     from napari.utils.colormaps import Colormap
 
     viewer = _viewer()
     section, _, green_id = _section(viewer)
     animation = Animation(viewer)
     animation.add_scene_object(section)
-    lut = section._colormap_spec(Colormap(
-        colors=[[0, 0, 0, 1], [1, 0, 1, 1]], name='test LUT'))
-    section.channels[green_id].update(appearance_mode='custom', appearance={
-        'colormap': lut, 'opacity': .2, 'gamma': 1.,
-        'contrast_limits': [0., 3.],
-    })
+    lut = section._colormap_spec(
+        Colormap(colors=[[0, 0, 0, 1], [1, 0, 1, 1]], name="test LUT")
+    )
+    section.channels[green_id].update(
+        appearance_mode="custom",
+        appearance={
+            "colormap": lut,
+            "opacity": 0.2,
+            "gamma": 1.0,
+            "contrast_limits": [0.0, 3.0],
+        },
+    )
     custom = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
-    for destination in ('green', section._colormap_spec(Colormap(
-            colors=[[0, 0, 0, 1], [0, 1, 1, 1]], name='second LUT'))):
+    for destination in (
+        "green",
+        section._colormap_spec(
+            Colormap(colors=[[0, 0, 0, 1], [0, 1, 1, 1]], name="second LUT")
+        ),
+    ):
         target_scene = deepcopy(custom.scene)
-        target_scene[section.id]['channels'][green_id]['appearance'].update(
-            colormap=destination, opacity=.8)
+        target_scene[section.id]["channels"][green_id]["appearance"].update(
+            colormap=destination, opacity=0.8
+        )
         target = replace(custom, scene=target_scene)
         for left, right in ((custom, target), (target, custom)):
-            for fraction, raw in ((0., 0.), (.5, .5), (1., .5), (1., 1.)):
+            for fraction, raw in (
+                (0.0, 0.0),
+                (0.5, 0.5),
+                (1.0, 0.5),
+                (1.0, 1.0),
+            ):
                 state = animation._frames._interpolate_state(
-                    left, right, fraction, raw_fraction=raw)
-                result = state.scene[section.id]['channels'][green_id]['appearance']
-                expected = (left if raw < 1 else right).scene[section.id]['channels'][green_id]['appearance']
-                assert result['colormap'] == expected['colormap']
-                if fraction == .5:
-                    assert np.isclose(result['opacity'], .5)
+                    left, right, fraction, raw_fraction=raw
+                )
+                result = state.scene[section.id]["channels"][green_id][
+                    "appearance"
+                ]
+                expected = (left if raw < 1 else right).scene[section.id][
+                    "channels"
+                ][green_id]["appearance"]
+                assert result["colormap"] == expected["colormap"]
+                if fraction == 0.5:
+                    assert np.isclose(result["opacity"], 0.5)
                 state.apply(viewer)
 
 
@@ -412,14 +471,15 @@ def test_secondary_channel_2d_rotation_switches_at_endpoint():
     animation.set_active_section(section.id)
     left = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     layers = deepcopy(left.layers)
-    rotation = [[0., -1., 0.], [1., 0., 0.], [0., 0., 1.]]
-    layers[green_id]['rotate'] = rotation
+    rotation = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]
+    layers[green_id]["rotate"] = rotation
     right = replace(left, layers=layers)
-    for fraction, raw in ((0., 0.), (.5, .5), (1., .5), (1., 1.)):
+    for fraction, raw in ((0.0, 0.0), (0.5, 0.5), (1.0, 0.5), (1.0, 1.0)):
         state = animation._frames._interpolate_state(
-            left, right, fraction, raw_fraction=raw)
-        expected = left.layers[green_id]['rotate'] if raw < 1 else rotation
-        np.testing.assert_allclose(state.layers[green_id]['rotate'], expected)
+            left, right, fraction, raw_fraction=raw
+        )
+        expected = left.layers[green_id]["rotate"] if raw < 1 else rotation
+        np.testing.assert_allclose(state.layers[green_id]["rotate"], expected)
         state.apply(viewer)
 
 
@@ -432,19 +492,21 @@ def test_omitted_composite_retires_callbacks_and_can_be_restored():
     animation.add_scene_object(section)
     on = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     on.apply(viewer)
-    replace(on, scene={}, view={'active_section_id': None}).apply(viewer)
+    replace(on, scene={}, view={"active_section_id": None}).apply(viewer)
     registry = LayerRegistry(viewer)
-    red = registry.find_managed(section.id, 'section_3d')
-    green = registry.find_managed(f'{section.id}::channel::{green_id}', 'section_3d')
-    viewer.layers['green'].colormap = 'cyan'
-    green.opacity = .3
+    red = registry.find_managed(section.id, "section_3d")
+    green = registry.find_managed(
+        f"{section.id}::channel::{green_id}", "section_3d"
+    )
+    viewer.layers["green"].colormap = "cyan"
+    green.opacity = 0.3
     green.plane.position = (1, 4, 4)
     assert not red.visible
     assert not green.visible
     on.apply(viewer)
-    viewer.layers['green'].colormap = 'yellow'
+    viewer.layers["green"].colormap = "yellow"
     assert red.visible and green.visible
-    assert green.colormap.name == 'yellow'
+    assert green.colormap.name == "yellow"
     green.plane.position = (2, 4, 4)
     np.testing.assert_allclose(red.plane.position, (2, 4, 4))
 
@@ -456,10 +518,15 @@ def test_native_edit_after_selecting_a_keyframe_leaves_it_unchanged():
     animation = Animation(viewer)
     animation.add_scene_object(section)
     for _ in range(2):
-        animation.key_frames.append(KeyFrame(
-            ViewerState.from_viewer(viewer, scene=animation.scene.to_dict()),
-            np.zeros((30, 30, 4), np.uint8), steps=1,
-        ))
+        animation.key_frames.append(
+            KeyFrame(
+                ViewerState.from_viewer(
+                    viewer, scene=animation.scene.to_dict()
+                ),
+                np.zeros((30, 30, 4), np.uint8),
+                steps=1,
+            )
+        )
     animation.set_to_keyframe(1)
     animation.set_to_keyframe(0)
     stored = animation.key_frames[0].viewer_state.scene[section.id]["channels"]

@@ -16,7 +16,9 @@ def pyramid(viewer, name="volume"):
     fine = np.arange(8 * 16 * 16, dtype=np.uint16).reshape(8, 16, 16)
     return viewer.add_image(
         [fine, np.full((4, 8, 8), 9000, dtype=np.uint16)],
-        multiscale=True, name=name, contrast_limits=(0, 10000),
+        multiscale=True,
+        name=name,
+        contrast_limits=(0, 10000),
     )
 
 
@@ -27,8 +29,11 @@ def test_layer_controls_resolution_can_apply_to_all_layers(qtbot):
     controls_container = QtLayerControlsContainer(viewer)
     qtbot.addWidget(controls_container)
     object.__setattr__(
-        viewer, "window",
-        SimpleNamespace(_qt_viewer=SimpleNamespace(_controls=controls_container)),
+        viewer,
+        "window",
+        SimpleNamespace(
+            _qt_viewer=SimpleNamespace(_controls=controls_container)
+        ),
     )
     layers = [pyramid(viewer, f"channel {i}") for i in range(2)]
     widget = AnimationWidget(viewer)
@@ -39,8 +44,10 @@ def test_layer_controls_resolution_can_apply_to_all_layers(qtbot):
 
     controls = controls_container.widgets
     checkboxes = [animation.resolution._checkboxes[layer] for layer in layers]
-    combos = [controls[layer]._multiscale_level_control.level_combobox
-              for layer in layers]
+    combos = [
+        controls[layer]._multiscale_level_control.level_combobox
+        for layer in layers
+    ]
     assert all(box.isChecked() for box in checkboxes)
 
     combos[0].setCurrentIndex(2)
@@ -48,9 +55,10 @@ def test_layer_controls_resolution_can_apply_to_all_layers(qtbot):
     assert [combo.currentIndex() for combo in combos] == [2, 2, 2]
     for frame in animation.key_frames:
         assert all(
-            frame.viewer_state.layers[animation.layer_registry.source_id(layer)][
-                "locked_data_level"
-            ] == 1
+            frame.viewer_state.layers[
+                animation.layer_registry.source_id(layer)
+            ]["locked_data_level"]
+            == 1
             for layer in layers
         )
 
@@ -67,13 +75,19 @@ def test_layer_controls_resolution_can_apply_to_all_layers(qtbot):
 
 
 @pytest.mark.parametrize("ndisplay", [2, 3])
-def test_native_resolution_updates_all_frames_and_actual_pixels(qtbot, ndisplay):
-    from napari._qt.layer_controls.widgets.qt_multiscale_level_control import QtMultiscaleLevelControl
+def test_native_resolution_updates_all_frames_and_actual_pixels(
+    qtbot, ndisplay
+):
+    from napari._qt.layer_controls.widgets.qt_multiscale_level_control import (
+        QtMultiscaleLevelControl,
+    )
 
     viewer = ViewerModel(ndisplay=ndisplay)
     widget = AnimationWidget(viewer)
     qtbot.addWidget(widget)
-    layer = pyramid(viewer)  # Also checks layers imported after opening the dock.
+    layer = pyramid(
+        viewer
+    )  # Also checks layers imported after opening the dock.
     animation = widget.animation
     assert layer.locked_data_level == 0
     widget.scrollWidget._add_scroll_through()
@@ -102,8 +116,10 @@ def test_native_resolution_updates_all_frames_and_actual_pixels(qtbot, ndisplay)
         )
         assert np.asarray(layer._data_view).max() < 9000
     combo.setCurrentIndex(0)
-    assert all(frame.viewer_state.layers[source_id]["locked_data_level"] is None
-               for frame in animation.key_frames)
+    assert all(
+        frame.viewer_state.layers[source_id]["locked_data_level"] is None
+        for frame in animation.key_frames
+    )
     assert animation._frames[3].layers[source_id]["locked_data_level"] is None
     widget.close()
 
@@ -135,7 +151,9 @@ def test_native_resolution_save_load_and_listener_cleanup(tmp_path):
         restored.close()
 
 
-def test_section_resolution_default_global_edits_and_navigation(qtbot, tmp_path):
+def test_section_resolution_default_global_edits_and_navigation(
+    qtbot, tmp_path
+):
     viewer = ViewerModel(ndisplay=3)
     source = pyramid(viewer)
     widget = AnimationWidget(viewer)
@@ -148,11 +166,15 @@ def test_section_resolution_default_global_edits_and_navigation(qtbot, tmp_path)
     widget.scrollWidget._add_scroll_through()
     control = widget.sceneWidget.orthoSliceEditor.sourceLevelComboBox
     assert control.currentData() == 0
-    original_points = [frame.viewer_state.dims["point"] for frame in animation.key_frames]
+    original_points = [
+        frame.viewer_state.dims["point"] for frame in animation.key_frames
+    ]
     animation._frames[3]
     control.setCurrentIndex(control.findData(1))
-    assert all(frame.viewer_state.scene[section.id]["source_level"] == 1
-               for frame in animation.key_frames)
+    assert all(
+        frame.viewer_state.scene[section.id]["source_level"] == 1
+        for frame in animation.key_frames
+    )
     assert animation._frames[3].scene[section.id]["source_level"] == 1
     animation.set_to_keyframe(0)
     control.setCurrentIndex(control.findData(0))
@@ -161,15 +183,23 @@ def test_section_resolution_default_global_edits_and_navigation(qtbot, tmp_path)
         live = animation._active_section()
         assert control.currentData() == live.source_level == 0
         assert widget.sceneWidget.orthoSliceEditor.object is live
-        output = animation.layer_registry.find_managed(section.id, "section_2d")
+        output = animation.layer_registry.find_managed(
+            section.id, "section_2d"
+        )
         assert np.asarray(output._data_view).shape == (16, 16)
-        np.testing.assert_array_equal(output._data_view, live.projection_oracle(viewer))
-    assert [frame.viewer_state.dims["point"] for frame in animation.key_frames] == original_points
+        np.testing.assert_array_equal(
+            output._data_view, live.projection_oracle(viewer)
+        )
+    assert [
+        frame.viewer_state.dims["point"] for frame in animation.key_frames
+    ] == original_points
     path = animation.save_keyframes(tmp_path / "s.json")
     animation.load_keyframes(path, reload_layers=False)
     assert control.currentData() == 0
-    assert all(frame.viewer_state.scene[section.id]["source_level"] == 0
-               for frame in animation.key_frames)
+    assert all(
+        frame.viewer_state.scene[section.id]["source_level"] == 0
+        for frame in animation.key_frames
+    )
     widget.close()
 
 
@@ -189,7 +219,10 @@ def test_legacy_mixed_section_levels_refresh_controls_without_rewriting(qtbot):
     animation._frames._rebuild_frame_index()
     for index, level in [(0, 0), (1, 1), (0, 0)]:
         animation.set_to_keyframe(index)
-        assert widget.sceneWidget.orthoSliceEditor.sourceLevelComboBox.currentData() == level
+        assert (
+            widget.sceneWidget.orthoSliceEditor.sourceLevelComboBox.currentData()
+            == level
+        )
     assert frame.viewer_state.scene[section.id]["source_level"] == 1
     widget.close()
 
@@ -215,8 +248,12 @@ def test_gui_section_refines_both_scroll_endpoints(make_napari_viewer, qtbot):
         expected = np.asarray(source.data[0])[z]
 
         def exact_pixels():
-            layer = animation.layer_registry.find_managed(section.id, "section_2d")
-            return layer is not None and np.array_equal(layer._data_view, expected)
+            layer = animation.layer_registry.find_managed(
+                section.id, "section_2d"
+            )
+            return layer is not None and np.array_equal(
+                layer._data_view, expected
+            )
 
         qtbot.waitUntil(exact_pixels, timeout=10000)
         assert control.currentData() == 0

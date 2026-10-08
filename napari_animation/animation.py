@@ -8,8 +8,8 @@ from pathlib import Path
 
 import imageio
 import numpy as np
-from napari.utils.io import imsave
 from napari.utils.events import EmitterGroup
+from napari.utils.io import imsave
 from tqdm import tqdm
 
 from .diagnostics import RenderDiagnostics
@@ -20,14 +20,16 @@ from .layer_registry import LayerRegistry
 from .ortho_slicer import OrthoSlicer, order_for_view
 from .perf import InteractionTrace, PerfLogger, trace_interaction
 from .prefetch import (
-    SlicePrefetcher, acquire_interactive_cache, dask_cache_context,
+    SlicePrefetcher,
+    acquire_interactive_cache,
+    dask_cache_context,
     release_interactive_cache,
 )
 from .render_capture import ExportCaptureSession, capture_export_frame
 from .scene import Scene
 from .scene.renderer import SceneRenderer
-from .viewer_state import ViewerState
 from .video_padding import pad_video_frame
+from .viewer_state import ViewerState
 
 logger = logging.getLogger("napari_animation")
 
@@ -101,8 +103,8 @@ class Animation:
         try:
             from qtpy.QtWidgets import QApplication
 
-            gui_viewer = (
-                QApplication.instance() is not None and hasattr(viewer, "window")
+            gui_viewer = QApplication.instance() is not None and hasattr(
+                viewer, "window"
             )
         except ImportError:
             gui_viewer = False
@@ -154,7 +156,9 @@ class Animation:
         if emitter is not None:
             emitter.connect(self._on_dims_point_changed)
         if gui_viewer:
-            qt_window = getattr(getattr(viewer, "window", None), "_qt_window", None)
+            qt_window = getattr(
+                getattr(viewer, "window", None), "_qt_window", None
+            )
             if qt_window is not None:
                 self._viewer_destroyed = qt_window.destroyed
                 self._viewer_destroyed.connect(self.close)
@@ -180,19 +184,31 @@ class Animation:
         )
 
     def _section_order(self, section):
-        world_axis = int(np.argmax(np.abs(np.asarray(section.normal, dtype=float))))
+        world_axis = int(
+            np.argmax(np.abs(np.asarray(section.normal, dtype=float)))
+        )
         axis = self.viewer.dims.ndim - 3 + world_axis
         current = list(self.viewer.dims.order)
         current.remove(axis)
-        leading = [value for value in current if value < self.viewer.dims.ndim - 3]
-        spatial = [value for value in current if value >= self.viewer.dims.ndim - 3]
+        leading = [
+            value for value in current if value < self.viewer.dims.ndim - 3
+        ]
+        spatial = [
+            value for value in current if value >= self.viewer.dims.ndim - 3
+        ]
         return tuple(leading + [axis] + spatial)
 
     def _sync_active_section_from_dims(self):
         section = self._active_section()
-        if section is None or not section.enabled or self.viewer.dims.ndisplay >= 3:
+        if (
+            section is None
+            or not section.enabled
+            or self.viewer.dims.ndisplay >= 3
+        ):
             return
-        world_axis = int(np.argmax(np.abs(np.asarray(section.normal, dtype=float))))
+        world_axis = int(
+            np.argmax(np.abs(np.asarray(section.normal, dtype=float)))
+        )
         global_axis = self.viewer.dims.ndim - 3 + world_axis
         position = list(section.position)
         position[world_axis] = float(self.viewer.dims.point[global_axis])
@@ -207,12 +223,18 @@ class Animation:
         section = self._active_section()
         if section is None:
             return
-        world_axis = int(np.argmax(np.abs(np.asarray(section.normal, dtype=float))))
+        world_axis = int(
+            np.argmax(np.abs(np.asarray(section.normal, dtype=float)))
+        )
         axis = self.viewer.dims.ndim - 3 + world_axis
         if len(previous) == len(current) and previous[axis] != current[axis]:
             self._sync_active_section_from_dims()
         self.renderer.apply_working(
-            ortho=self.ortho_slicer.to_dict() if self.ortho_slicer.enabled else None
+            ortho=(
+                self.ortho_slicer.to_dict()
+                if self.ortho_slicer.enabled
+                else None
+            )
         )
 
     def _capture_state(self):
@@ -264,7 +286,9 @@ class Animation:
         """
         proposed = self.scene.to_dict()
         if scene_object.id in proposed:
-            raise ValueError(f"Scene object ID {scene_object.id!r} already exists")
+            raise ValueError(
+                f"Scene object ID {scene_object.id!r} already exists"
+            )
         if scene_object.kind == "ortho_slice":
             # Resolve identity before copying this object into older frames.
             scene_object.source_layer(self.viewer)
@@ -313,7 +337,11 @@ class Animation:
         :meth:`capture_keyframe` or :meth:`overwrite_keyframe` is called.
         """
         scene_object = next(
-            (candidate for candidate in self.scene if candidate.id == object_id),
+            (
+                candidate
+                for candidate in self.scene
+                if candidate.id == object_id
+            ),
             None,
         )
         if scene_object is None:
@@ -359,7 +387,11 @@ class Animation:
         obj = None
         if object_id is not None:
             obj = next(
-                (candidate for candidate in self.scene if candidate.id == object_id),
+                (
+                    candidate
+                    for candidate in self.scene
+                    if candidate.id == object_id
+                ),
                 None,
             )
             if obj is None or obj.kind != "ortho_slice":
@@ -367,7 +399,9 @@ class Animation:
         old_id = self.active_section_id
         old_order = tuple(self.viewer.dims.order)
         with self.renderer.applying_state():
-            return self._set_active_section_guarded(object_id, obj, old_id, old_order)
+            return self._set_active_section_guarded(
+                object_id, obj, old_id, old_order
+            )
 
     def _set_active_section_guarded(self, object_id, obj, old_id, old_order):
         try:
@@ -474,7 +508,9 @@ class Animation:
         old_dims = self.viewer.dims.dict()
         old_active = self.active_section_id
         section = self._active_section()
-        active_id = section.id if section is not None else self.active_section_id
+        active_id = (
+            section.id if section is not None else self.active_section_id
+        )
         try:
             self.renderer.preflight(ndisplay=2, active_section_id=active_id)
             self.viewer.dims.order = (
@@ -660,12 +696,18 @@ class Animation:
         # Selection restores this final position into the editable object.
         return first, last
 
-    def _insert_endpoint_snapshots(self, snapshots, *, enter_steps, steps, ease):
+    def _insert_endpoint_snapshots(
+        self, snapshots, *, enter_steps, steps, ease
+    ):
         """Insert a pair without rendering or screenshotting the first endpoint."""
         from .key_frame import KeyFrame
 
         active = self.key_frames.selection.active
-        position = self.key_frames.index(active) + 1 if active else len(self.key_frames)
+        position = (
+            self.key_frames.index(active) + 1
+            if active
+            else len(self.key_frames)
+        )
         frames = []
         for state, duration in zip(snapshots, (enter_steps, steps)):
             frame = KeyFrame(
@@ -696,8 +738,10 @@ class Animation:
         if not layers:
             raise ValueError("Ortho slice has no source layer to sweep across")
 
-        extents = [np.asarray(layer.extent.world, dtype=float)[:, -3:]
-                   for layer in layers]
+        extents = [
+            np.asarray(layer.extent.world, dtype=float)[:, -3:]
+            for layer in layers
+        ]
         low_corner = np.min([extent[0] for extent in extents], axis=0)
         high_corner = np.max([extent[1] for extent in extents], axis=0)
         centre = (low_corner + high_corner) / 2.0
@@ -784,7 +828,9 @@ class Animation:
                                 target.id, role
                             )
                             if managed is not None:
-                                managed.units = tuple(layer.units[-managed.ndim:])
+                                managed.units = tuple(
+                                    layer.units[-managed.ndim :]
+                                )
 
         self._rewrite_keyframe_layer_state(
             layer, scale=new_scale, units=new_units
@@ -796,7 +842,8 @@ class Animation:
             self.renderer.apply_working(
                 ortho=(
                     self.ortho_slicer.to_dict()
-                    if self.ortho_slicer.enabled else None
+                    if self.ortho_slicer.enabled
+                    else None
                 )
             )
         return tuple(new_scale)
@@ -1070,7 +1117,9 @@ class Animation:
             from qtpy.QtWidgets import QApplication
         except ImportError:
             return
-        if QApplication.instance() is None or not hasattr(self.viewer, "window"):
+        if QApplication.instance() is None or not hasattr(
+            self.viewer, "window"
+        ):
             return
         from .scene.processing import service_for_viewer
         from .utils import make_thumbnail
@@ -1085,7 +1134,9 @@ class Animation:
                     self.viewer.screenshot(canvas_only=True, flash=False)
                 )
             except Exception as error:  # thumbnail must not break navigation
-                logger.warning("Could not capture keyframe thumbnail: %s", error)
+                logger.warning(
+                    "Could not capture keyframe thumbnail: %s", error
+                )
                 return
             key_frame._thumbnail_pending = False
             row = self.key_frames.index(key_frame)
@@ -1186,10 +1237,16 @@ class Animation:
         if render_size is not None:
             if not canvas_only:
                 raise ValueError("Render size requires canvas_only=True.")
-            if len(render_size) != 2 or any(value <= 0 for value in render_size):
-                raise ValueError("Render size must be (height, width) with positive values.")
+            if len(render_size) != 2 or any(
+                value <= 0 for value in render_size
+            ):
+                raise ValueError(
+                    "Render size must be (height, width) with positive values."
+                )
             if scale_factor not in (None, 1):
-                raise ValueError("Render size and scale_factor cannot be combined.")
+                raise ValueError(
+                    "Render size and scale_factor cannot be combined."
+                )
         self._validate_animation()
         working_ortho, working_scene, working_view = self._capture_state()
         working_state = ViewerState.from_viewer(
@@ -1201,10 +1258,16 @@ class Animation:
 
         perf = PerfLogger(enabled=perf_log)
         perf.start()
-        perf.metadata.update(path=str(path), export_path="script", fps=fps,
-                             render_size=render_size, prefetch=prefetch,
-                             prefetch_workers=prefetch_workers,
-                             dask_cache=dask_cache, diagnose=diagnose)
+        perf.metadata.update(
+            path=str(path),
+            export_path="script",
+            fps=fps,
+            render_size=render_size,
+            prefetch=prefetch,
+            prefetch_workers=prefetch_workers,
+            dask_cache=dask_cache,
+            diagnose=diagnose,
+        )
         self._last_render_perf = perf
 
         # Evidence about what the render actually produced, for the case where
@@ -1358,7 +1421,10 @@ class Animation:
                     f"{prefetch_workers} thread(s)"
                 )
 
-            with ExportCaptureSession(self.viewer, render_size), tqdm(total=n_frames) as pbar:
+            with (
+                ExportCaptureSession(self.viewer, render_size),
+                tqdm(total=n_frames) as pbar,
+            ):
                 for ind in range(n_frames):
                     if write_errors:
                         break
@@ -1374,7 +1440,8 @@ class Animation:
                             state.apply(self.viewer)
                         with perf.timer("screenshot", frame=ind):
                             frame = capture_export_frame(
-                                self.viewer, canvas_only=canvas_only,
+                                self.viewer,
+                                canvas_only=canvas_only,
                                 render_size=render_size,
                             )
                     if scale_factor not in (None, 1):
@@ -1454,9 +1521,12 @@ class Animation:
             print(diagnostics_report)
             logger.info("%s", diagnostics_report)
 
-        perf.metadata.update(status="complete", output_shape=diagnostics.first_shape,
-                             blank_frames=list(diagnostics.blank_frames),
-                             sampled_pixel_range=list(diagnostics.value_range))
+        perf.metadata.update(
+            status="complete",
+            output_shape=diagnostics.first_shape,
+            blank_frames=list(diagnostics.blank_frames),
+            sampled_pixel_range=list(diagnostics.value_range),
+        )
         perf.stop()
         perf.save(output)
         if perf_log:
@@ -1543,6 +1613,7 @@ class Animation:
         self._closed = True
         self.resolution.close()
         from .native_clipping import release_native_clipping
+
         release_native_clipping(self.viewer)
         if self._viewer_destroyed is not None:
             try:
@@ -1550,10 +1621,17 @@ class Animation:
             except (RuntimeError, TypeError):
                 pass
             self._viewer_destroyed = None
-        service = getattr(self.viewer, "_napari_animation_projection_service", None)
+        service = getattr(
+            self.viewer, "_napari_animation_projection_service", None
+        )
         if service is not None:
             service.shutdown()
-            if getattr(self.viewer, "_napari_animation_projection_service", None) is service:
+            if (
+                getattr(
+                    self.viewer, "_napari_animation_projection_service", None
+                )
+                is service
+            ):
                 delattr(self.viewer, "_napari_animation_projection_service")
         if self._dims_emitter is not None:
             try:
@@ -1564,7 +1642,10 @@ class Animation:
         if self._interactive_cache_acquired:
             release_interactive_cache()
             self._interactive_cache_acquired = False
-        if getattr(self.viewer, "_napari_animation_renderer", None) is self.renderer:
+        if (
+            getattr(self.viewer, "_napari_animation_renderer", None)
+            is self.renderer
+        ):
             for layer in self.viewer.layers:
                 listener = getattr(
                     layer, "_napari_animation_source_listener", None

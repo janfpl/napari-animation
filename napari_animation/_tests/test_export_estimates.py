@@ -23,8 +23,12 @@ def test_scale_frames_and_fps_have_consistent_effects():
     longer = estimate_export((1920, 1088), 600, 20, 1, 5, ".mp4")
     faster = estimate_export((1920, 1088), 300, 40, 1, 5, ".mp4")
     assert half.resolution == (960, 544)
-    assert half.size_range == pytest.approx(tuple(v / 4 for v in base.size_range))
-    assert longer.size_range == pytest.approx(tuple(v * 2 for v in base.size_range))
+    assert half.size_range == pytest.approx(
+        tuple(v / 4 for v in base.size_range)
+    )
+    assert longer.size_range == pytest.approx(
+        tuple(v * 2 for v in base.size_range)
+    )
     assert faster.duration == base.duration / 2
     assert faster.size_range == base.size_range
 
@@ -40,5 +44,10 @@ def test_non_video_formats_do_not_apply_quality_or_video_padding(suffix):
 
 def test_missing_or_invalid_output_has_no_size_estimate():
     assert estimate_export((800, 600), 0, 20, 1, 5, ".mp4").size_range is None
-    assert estimate_export((10, 10), 10, 20, 0.001, 5, ".mp4").size_range is None
-    assert estimate_export((800, 600), 20, 20, 1, 5, ".unknown").size_range is None
+    assert (
+        estimate_export((10, 10), 10, 20, 0.001, 5, ".mp4").size_range is None
+    )
+    assert (
+        estimate_export((800, 600), 20, 20, 1, 5, ".unknown").size_range
+        is None
+    )

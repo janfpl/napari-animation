@@ -17,7 +17,6 @@ from superqt import QLabeledSlider
 
 from ..export_estimates import estimate_export, format_size_range
 
-
 # Width, height. All preset dimensions are even for yuv420p video encoding.
 RESOLUTION_PRESETS = (
     ("1280 × 720 (16:9 HD)", (1280, 720)),
@@ -191,14 +190,20 @@ class OptionsWidget(QWidget):
         self.resolutionLabel = QLabel(self)
         self.estimateLabel = QLabel(self)
         self.estimateNote = QLabel(self)
-        for label in (self.resolutionLabel, self.estimateLabel, self.estimateNote):
+        for label in (
+            self.resolutionLabel,
+            self.estimateLabel,
+            self.estimateNote,
+        ):
             label.setWordWrap(True)
             outer.addWidget(label)
         self.setLayout(outer)
         self.setMaximumWidth(700)
         self.qualitySlider.valueChanged.connect(self._update_estimates)
         self.fpsSpinBox.valueChanged.connect(self._update_estimates)
-        self.resolutionComboBox.currentIndexChanged.connect(self._preset_changed)
+        self.resolutionComboBox.currentIndexChanged.connect(
+            self._preset_changed
+        )
         self.canvasCheckBox.toggled.connect(self._update_estimates)
         self._update_estimates()
 
@@ -226,7 +231,8 @@ class OptionsWidget(QWidget):
                 try:
                     widget = (
                         window._qt_viewer.canvas.native
-                        if canvas_only else window._qt_window
+                        if canvas_only
+                        else window._qt_window
                     )
                 except AttributeError:
                     pass
@@ -238,9 +244,7 @@ class OptionsWidget(QWidget):
                     self._frame_sizes[canvas_only] = (width, height)
                     return self._frame_sizes[canvas_only]
             try:
-                frame = viewer.screenshot(
-                    canvas_only=canvas_only, flash=False
-                )
+                frame = viewer.screenshot(canvas_only=canvas_only, flash=False)
             except Exception:
                 return None
             self._frame_sizes[canvas_only] = (frame.shape[1], frame.shape[0])
@@ -249,18 +253,28 @@ class OptionsWidget(QWidget):
     def _update_estimates(self, *_):
         preset = self.resolutionComboBox.currentData()
         frame_size = preset if preset is not None else self._frame_size()
-        frames = len(self._animation._frames) if self._animation is not None else 0
+        frames = (
+            len(self._animation._frames) if self._animation is not None else 0
+        )
         if frame_size is None:
-            self.resolutionLabel.setText("Resolution unavailable: no viewer preview.")
+            self.resolutionLabel.setText(
+                "Resolution unavailable: no viewer preview."
+            )
             self.estimateLabel.setText("Estimated file size unavailable.")
-            self.estimateNote.setText("Choose a render size; quality sets compression.")
+            self.estimateNote.setText(
+                "Choose a render size; quality sets compression."
+            )
             self.qualitySlider.setToolTip("")
             self.qualityLabel.setToolTip("")
             return
         estimates = [
             estimate_export(
-                frame_size, frames, self.fpsSpinBox.value(),
-                1, quality, self._suffix,
+                frame_size,
+                frames,
+                self.fpsSpinBox.value(),
+                1,
+                quality,
+                self._suffix,
                 video_block_size=2 if preset is not None else 16,
             )
             for quality in range(1, 11)
@@ -274,16 +288,28 @@ class OptionsWidget(QWidget):
             f"{selected.duration:,.1f} s ({frames:,} frames)"
         )
         self.qualitySlider.setEnabled(selected.quality_applies)
-        size = format_size_range(selected.size_range) if selected.size_range else "unavailable"
+        size = (
+            format_size_range(selected.size_range)
+            if selected.size_range
+            else "unavailable"
+        )
         if selected.quality_applies:
-            self.estimateLabel.setText(f"Quality {quality}/10 · Estimated file size: {size}")
+            self.estimateLabel.setText(
+                f"Quality {quality}/10 · Estimated file size: {size}"
+            )
         elif self._suffix in {"", ".png", ".gif"}:
             label = "PNG folder total" if self._suffix == "" else "file size"
-            self.estimateLabel.setText(f"Estimated {label}: {size} · Quality slider unused for this format.")
+            self.estimateLabel.setText(
+                f"Estimated {label}: {size} · Quality slider unused for this format."
+            )
         else:
-            self.estimateLabel.setText("File-size estimate unavailable for this format.")
+            self.estimateLabel.setText(
+                "File-size estimate unavailable for this format."
+            )
         if width <= 0 or height <= 0:
-            self.estimateNote.setText("The current canvas has an empty dimension.")
+            self.estimateNote.setText(
+                "The current canvas has an empty dimension."
+            )
         else:
             self.estimateNote.setText(
                 "Rough size range for the current view; motion and image detail can put the final size outside it. "

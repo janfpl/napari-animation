@@ -3,15 +3,16 @@
 from contextlib import ExitStack
 from math import ceil
 
-from .perf import render_phase
 from .native_clipping import sync_native_clipping
+from .perf import render_phase
 
 
 def _exact_frame(frame, render_size, rounding=0):
     """Trim only device-pixel rounding at the edges; never resample a frame."""
     height, width = render_size
     extra_height, extra_width = (
-        frame.shape[0] - height, frame.shape[1] - width
+        frame.shape[0] - height,
+        frame.shape[1] - width,
     )
     if not (0 <= extra_height <= rounding and 0 <= extra_width <= rounding):
         raise RuntimeError(
@@ -21,7 +22,7 @@ def _exact_frame(frame, render_size, rounding=0):
     if not (extra_height or extra_width):
         return frame
     top, left = extra_height // 2, extra_width // 2
-    return frame[top:top + height, left:left + width].copy()
+    return frame[top : top + height, left : left + width].copy()
 
 
 class ExportCaptureSession:
@@ -43,14 +44,19 @@ class ExportCaptureSession:
         window = getattr(self.viewer, "window", None)
         if self.render_size is None or window is None:
             return self
-        if getattr(self.viewer, "_napari_animation_capture_session", None) is not None:
+        if (
+            getattr(self.viewer, "_napari_animation_capture_session", None)
+            is not None
+        ):
             raise RuntimeError("An export capture session is already active")
         self.canvas = window._qt_viewer.canvas
         native = self.canvas.native
         self.old_size = (native.width(), native.height())
         self.ratio = float(native.devicePixelRatioF())
         if min(self.old_size) <= 0 or self.ratio <= 0:
-            raise RuntimeError("Cannot export from a canvas with an empty size.")
+            raise RuntimeError(
+                "Cannot export from a canvas with an empty size."
+            )
         self.native = native
         self.viewer._napari_animation_capture_session = self
         # Defer resizing until the first capture, after applying its state.
@@ -92,19 +98,24 @@ def capture_export_frame(viewer, *, canvas_only=True, render_size=None):
     window = getattr(viewer, "window", None)
     if window is None:
         # Non-Qt viewer adapters own their rendering and must honor this size.
-        return _exact_frame(viewer.screenshot(
-            canvas_only=True, size=render_size, flash=False
-        ), render_size)
+        return _exact_frame(
+            viewer.screenshot(canvas_only=True, size=render_size, flash=False),
+            render_size,
+        )
 
     canvas = window._qt_viewer.canvas
     native = canvas.native
     session = getattr(viewer, "_napari_animation_capture_session", None)
     if session is not None and session.render_size != render_size:
         raise ValueError("Capture size differs from the active export session")
-    old_size = session.old_size if session else (native.width(), native.height())
+    old_size = (
+        session.old_size if session else (native.width(), native.height())
+    )
     ratio = float(native.devicePixelRatioF())
     if session is not None and ratio != session.ratio:
-        raise RuntimeError("Display scaling changed during export; restart the export.")
+        raise RuntimeError(
+            "Display scaling changed during export; restart the export."
+        )
     if min(old_size) <= 0 or ratio <= 0:
         raise RuntimeError("Cannot export from a canvas with an empty size.")
     height, width = render_size
@@ -155,7 +166,8 @@ def capture_export_frame(viewer, *, canvas_only=True, render_size=None):
                 canvas.on_draw(None)
             if slicer is not None:
                 pending = [
-                    layer for layer in viewer.layers
+                    layer
+                    for layer in viewer.layers
                     if layer.visible and not layer.loaded
                 ]
                 if pending:

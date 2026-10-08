@@ -2,7 +2,6 @@
 
 import numpy as np
 
-
 VIDEO_BLOCK_SIZE = 16
 
 

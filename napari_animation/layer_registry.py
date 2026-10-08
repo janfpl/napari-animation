@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-
 SOURCE_ID_METADATA = "napari_animation.source_id"
 OBJECT_ID_METADATA = "napari_animation.object_id"
 MANAGED_ROLE_METADATA = "napari_animation.managed_role"
@@ -116,9 +115,15 @@ class LayerRegistry:
         return self.managed_id(object_id, role)
 
     def unique_name(self, preferred: str, exclude=None) -> str:
-        names = {
-            layer.name for layer in self.viewer.layers if layer is not exclude
-        } if self.viewer is not None else set()
+        names = (
+            {
+                layer.name
+                for layer in self.viewer.layers
+                if layer is not exclude
+            }
+            if self.viewer is not None
+            else set()
+        )
         if preferred not in names:
             return preferred
         index = 2
@@ -136,7 +141,10 @@ class LayerRegistry:
         if source_id:
             source_id = str(source_id)
             for layer in self.viewer.layers:
-                if getattr(layer, "metadata", {}).get(self.metadata_key) == source_id:
+                if (
+                    getattr(layer, "metadata", {}).get(self.metadata_key)
+                    == source_id
+                ):
                     return layer
             return None
         if name is not None and name in self.viewer.layers:
@@ -160,7 +168,9 @@ class LayerRegistry:
             records[source_id] = SourceRecord(
                 source_id=source_id,
                 name=layer.name,
-                layer_type=getattr(layer, "_type_string", type(layer).__name__),
+                layer_type=getattr(
+                    layer, "_type_string", type(layer).__name__
+                ),
                 path=str(Path(path)) if path else None,
             )
         return records
@@ -176,6 +186,8 @@ class LayerRegistry:
                         self.metadata_key
                     )
                     if other_id == str(source_id):
-                        raise ValueError(f"source ID {source_id!r} is already bound")
+                        raise ValueError(
+                            f"source ID {source_id!r} is already bound"
+                        )
             layer.metadata[self.metadata_key] = str(source_id)
         return self.ensure_id(layer)

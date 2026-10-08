@@ -72,7 +72,8 @@ def project(slab: np.ndarray, axis: int, projection: str) -> np.ndarray:
 
     shape = tuple(size for i, size in enumerate(slab.shape) if i != axis)
     dtype = (
-        np.float64 if projection == "mean" and np.issubdtype(slab.dtype, np.integer)
+        np.float64
+        if projection == "mean" and np.issubdtype(slab.dtype, np.integer)
         else slab.dtype
     )
     result = np.empty(shape, dtype=dtype)

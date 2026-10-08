@@ -1,5 +1,6 @@
 """Pure planning and exact-pixel checks for parallel HDF5 sections."""
 
+import threading
 from pathlib import Path
 from uuid import uuid4
 
@@ -7,7 +8,6 @@ import dask.array as da
 import h5py
 import numpy as np
 import pytest
-import threading
 
 from napari_animation.scene.h5_process import (
     _StripeVolume,
@@ -44,7 +44,10 @@ def test_h5_stripes_reconstruct_exact_projection(axis, projection):
             parts = [
                 project_slab(
                     _StripeVolume(dataset, axis, first, last),
-                    axis, 1, 4, projection,
+                    axis,
+                    1,
+                    4,
+                    projection,
                 )
                 for *_prefix, first, last in tasks
             ]
@@ -62,12 +65,17 @@ def test_h5_stripes_reconstruct_exact_projection(axis, projection):
 def test_h5_process_lane_policy(monkeypatch):
     from types import SimpleNamespace
 
-    import napari_animation.scene.h5_process as backend
     import psutil
 
+    import napari_animation.scene.h5_process as backend
+
     descriptor = (
-        "volume.ims", "/Data", (1024, 1024, 1024), "<u2",
-        (128, 64, 64), "gzip",
+        "volume.ims",
+        "/Data",
+        (1024, 1024, 1024),
+        "<u2",
+        (128, 64, 64),
+        "gzip",
     )
     monkeypatch.setattr(backend, "_MIN_PHYSICAL_BYTES", 1)
     monkeypatch.setenv("NAPARI_ANIMATION_H5_PROCESS_LANES", "auto")
@@ -76,13 +84,17 @@ def test_h5_process_lane_policy(monkeypatch):
         expected if expected >= 2 else 0
     )
     assert process_lanes(descriptor[:-1] + (None,), 0, 120, 124) == 0
-    monkeypatch.setattr(psutil, "virtual_memory", lambda: SimpleNamespace(
-        available=3 * 1024**3
-    ))
+    monkeypatch.setattr(
+        psutil,
+        "virtual_memory",
+        lambda: SimpleNamespace(available=3 * 1024**3),
+    )
     assert process_lanes(descriptor, 0, 120, 124) == 2
-    monkeypatch.setattr(psutil, "virtual_memory", lambda: SimpleNamespace(
-        available=1 * 1024**3
-    ))
+    monkeypatch.setattr(
+        psutil,
+        "virtual_memory",
+        lambda: SimpleNamespace(available=1 * 1024**3),
+    )
     assert process_lanes(descriptor, 0, 120, 124) == 0
     monkeypatch.setenv("NAPARI_ANIMATION_H5_PROCESS_LANES", "0")
     assert process_lanes(descriptor, 0, 120, 124) == 0
@@ -104,7 +116,9 @@ def test_external_link_descriptor_opens_the_data_file():
                 h5py.ExternalLink(data_path.name, "/Data")
             )
         with h5py.File(header_path, "r") as file:
-            dataset = file["DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data"]
+            dataset = file[
+                "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data"
+            ]
             descriptor = describe_h5_volume(dataset)
             assert descriptor[0] == str(data_path)
             assert descriptor[1] == "/Data"
@@ -152,12 +166,16 @@ def test_singleton_imaris_loader_graph_maps_to_exact_h5_dataset():
         with h5py.File(path, "w") as file:
             file.create_dataset(
                 "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
-                shape=(8, 10, 12), dtype="u2", chunks=(4, 5, 6),
+                shape=(8, 10, 12),
+                dtype="u2",
+                chunks=(4, 5, 6),
                 compression="gzip",
             )
             file.create_dataset(
                 "DataSet/ResolutionLevel 1/TimePoint 0/Channel 0/Data",
-                shape=(4, 5, 6), dtype="u2", chunks=(2, 5, 6),
+                shape=(4, 5, 6),
+                dtype="u2",
+                chunks=(2, 5, 6),
                 compression="gzip",
             )
         reader = CachingReader(ims_reader(path))
@@ -166,7 +184,10 @@ def test_singleton_imaris_loader_graph_maps_to_exact_h5_dataset():
         assert descriptor == (
             str(path),
             "/DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
-            (8, 10, 12), "<u2", (4, 5, 6), "gzip",
+            (8, 10, 12),
+            "<u2",
+            (4, 5, 6),
+            "gzip",
         )
         assert describe_h5_volume(volume[::-1]) is None
         assert describe_h5_volume(volume + 1) is None
@@ -199,8 +220,16 @@ def test_uncompressed_native_chunk_graph_uses_exact_direct_read(monkeypatch):
             monkeypatch.setattr(processing, "project_slab", track)
             service = processing.ProjectionService(asynchronous=False)
             request = [
-                ("source", 0, id(volume)), "section", 1,
-                threading.Event(), volume, 0, 1, 4, "max", None,
+                ("source", 0, id(volume)),
+                "section",
+                1,
+                threading.Event(),
+                volume,
+                0,
+                1,
+                4,
+                "max",
+                None,
             ]
             actual = service._project(request)
             np.testing.assert_array_equal(actual, voxels[1:4].max(axis=0))
@@ -219,16 +248,29 @@ def test_custom_h5_getter_preserves_calibrated_voxels():
     voxels = np.arange(2 * 16 * 16, dtype=np.uint16).reshape(2, 16, 16)
     try:
         with h5py.File(path, "w") as file:
-            dataset = file.create_dataset("Data", data=voxels, chunks=(1, 2, 2))
+            dataset = file.create_dataset(
+                "Data", data=voxels, chunks=(1, 2, 2)
+            )
             volume = da.from_array(
-                dataset, chunks=dataset.chunks, asarray=False, lock=True,
+                dataset,
+                chunks=dataset.chunks,
+                asarray=False,
+                lock=True,
                 getitem=lambda array, key: array[key] * 2,
             )
             assert describe_h5_volume(volume) is None
             service = ProjectionService()
             request = [
-                ("source", 0, id(volume)), "section", 1,
-                threading.Event(), volume, 0, 0, 2, "max", None,
+                ("source", 0, id(volume)),
+                "section",
+                1,
+                threading.Event(),
+                volume,
+                0,
+                0,
+                2,
+                "max",
+                None,
             ]
             try:
                 actual = service._project(request)

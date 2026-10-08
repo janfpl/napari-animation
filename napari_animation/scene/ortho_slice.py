@@ -33,11 +33,8 @@ from typing import TYPE_CHECKING, Iterator, List, Optional, Tuple
 
 import numpy as np
 
+from ..layer_registry import OBJECT_ID_METADATA, LayerRegistry
 from ..perf import timed_render
-from ..layer_registry import (
-    LayerRegistry,
-    OBJECT_ID_METADATA,
-)
 from .base import (
     SceneObject,
     register_kind,
@@ -158,18 +155,26 @@ class OrthoSlice(SceneObject):
         children = getattr(self, "_channel_children", {})
         current = {}
         for source_id, settings in self.channels.items():
-            if not isinstance(settings, dict) or not settings.get("enabled", False):
+            if not isinstance(settings, dict) or not settings.get(
+                "enabled", False
+            ):
                 continue
             layer = registry.find(source_id)
             if layer is None:
                 continue
-            child_id = self.id if source_id == self.source_id else f"{self.id}::channel::{source_id}"
+            child_id = (
+                self.id
+                if source_id == self.source_id
+                else f"{self.id}::channel::{source_id}"
+            )
             child = children.get(source_id)
             if child is None:
                 child = OrthoSlice(id=child_id)
             child._composite_owner = self
             child.name = (
-                self.name if child_id == self.id else f"{self.name} · {layer.name}"
+                self.name
+                if child_id == self.id
+                else f"{self.name} · {layer.name}"
             )
             child.enabled = self.enabled
             child.source = layer.name
@@ -179,7 +184,9 @@ class OrthoSlice(SceneObject):
             child.thickness = self.thickness
             child.projection = self.projection
             child.render_mode = self.render_mode
-            child.source_level = int(settings.get("source_level", self.source_level))
+            child.source_level = int(
+                settings.get("source_level", self.source_level)
+            )
             child.sampling_convention = self.sampling_convention
             current[source_id] = child
         self._channel_children = current
@@ -191,9 +198,11 @@ class OrthoSlice(SceneObject):
             return (source,) if source is not None else ()
         registry = LayerRegistry(viewer)
         return tuple(
-            layer for source_id, settings in self.channels.items()
+            layer
+            for source_id, settings in self.channels.items()
             if (include_disabled or settings.get("enabled", False))
-            for layer in (registry.find(source_id),) if layer is not None
+            for layer in (registry.find(source_id),)
+            if layer is not None
         )
 
     @staticmethod
@@ -216,7 +225,11 @@ class OrthoSlice(SceneObject):
 
     @staticmethod
     def _apply_channel_appearance(output, source, settings):
-        custom = settings.get("appearance") if settings.get("appearance_mode") == "custom" else None
+        custom = (
+            settings.get("appearance")
+            if settings.get("appearance_mode") == "custom"
+            else None
+        )
         custom = custom or {}
         colormap = custom.get("colormap", source.colormap)
         if isinstance(colormap, dict):
@@ -247,7 +260,9 @@ class OrthoSlice(SceneObject):
         """Keep linked plane colors current when napari edits a source."""
         registry = LayerRegistry(viewer)
         source_id = registry.source_id(source)
-        bindings = getattr(source, "_napari_animation_composite_appearance", {})
+        bindings = getattr(
+            source, "_napari_animation_composite_appearance", {}
+        )
         previous = bindings.pop(self.id, None)
         if previous is not None and previous[0] is self:
             bindings[self.id] = previous
@@ -269,7 +284,9 @@ class OrthoSlice(SceneObject):
                 for role in ("section_3d", "section_2d"):
                     output = registry.find_managed(child.id, role)
                     if output is not None:
-                        self._apply_channel_appearance(output, source, settings)
+                        self._apply_channel_appearance(
+                            output, source, settings
+                        )
 
         emitters = []
         for name in ("colormap", "contrast_limits", "gamma", "opacity"):
@@ -288,7 +305,8 @@ class OrthoSlice(SceneObject):
         settings = self.channels[child.source_id]
         custom = (
             settings.get("appearance") or {}
-            if settings.get("appearance_mode") == "custom" else {}
+            if settings.get("appearance_mode") == "custom"
+            else {}
         )
         expected_colormap = custom.get(
             "colormap", self._colormap_spec(source.colormap)
@@ -310,16 +328,21 @@ class OrthoSlice(SceneObject):
                 "opacity": float(managed.opacity),
             }
 
-    def validate(self, viewer: "napari.viewer.Viewer", for_2d=False,
-                 linear_matrix=None) -> None:
+    def validate(
+        self, viewer: "napari.viewer.Viewer", for_2d=False, linear_matrix=None
+    ) -> None:
         if self.channels is not None:
             if not isinstance(self.channels, dict):
                 raise ValueError("Section channels must be a mapping")
             for source_id, settings in self.channels.items():
-                if not isinstance(source_id, str) or not isinstance(settings, dict):
+                if not isinstance(source_id, str) or not isinstance(
+                    settings, dict
+                ):
                     raise ValueError("Invalid section channel binding")
                 if settings.get("source_id", source_id) != source_id:
-                    raise ValueError("Section channel ID does not match its binding")
+                    raise ValueError(
+                        "Section channel ID does not match its binding"
+                    )
             children = self._channel_sections(viewer)
             if not children:
                 OrthoSlice(
@@ -340,11 +363,15 @@ class OrthoSlice(SceneObject):
         if self.render_mode not in {"plane", "clip"}:
             raise ValueError(f"Unknown render mode {self.render_mode!r}")
         if not np.isfinite(float(self.thickness)) or self.thickness < 0:
-            raise ValueError("Section thickness must be finite and non-negative")
+            raise ValueError(
+                "Section thickness must be finite and non-negative"
+            )
         position = np.asarray(self.position, dtype=float)
         normal = np.asarray(self.normal, dtype=float)
         if position.shape != (3,) or not np.isfinite(position).all():
-            raise ValueError("Section position must contain three finite values")
+            raise ValueError(
+                "Section position must contain three finite values"
+            )
         if (
             normal.shape != (3,)
             or not np.isfinite(normal).all()
@@ -360,8 +387,10 @@ class OrthoSlice(SceneObject):
         source = self.source_layer(viewer)
         if source is not None:
             self._level_volume(viewer, source)
-        if for_2d and source is not None and not self.supports_2d(
-            viewer, linear_matrix=linear_matrix
+        if (
+            for_2d
+            and source is not None
+            and not self.supports_2d(viewer, linear_matrix=linear_matrix)
         ):
             raise ValueError(
                 "Oblique or transformed ortho sections require a 3D view; "
@@ -395,7 +424,9 @@ class OrthoSlice(SceneObject):
         normal_data = world_to_data_normal(layer, self.normal)
         return float(2.0 * abs(np.dot(offset_data, normal_data)))
 
-    def supports_2d(self, viewer: "napari.viewer.Viewer", linear_matrix=None) -> bool:
+    def supports_2d(
+        self, viewer: "napari.viewer.Viewer", linear_matrix=None
+    ) -> bool:
         """Whether napari's native 2D slicer can represent this section.
 
         Native dims margins can sample an axis-aligned slab only.  A rotation,
@@ -406,8 +437,12 @@ class OrthoSlice(SceneObject):
         if source is None or source.ndim < 3:
             return False
         matrix = np.asarray(
-            source._transforms[1:].simplified.linear_matrix
-            if linear_matrix is None else linear_matrix, dtype=float
+            (
+                source._transforms[1:].simplified.linear_matrix
+                if linear_matrix is None
+                else linear_matrix
+            ),
+            dtype=float,
         )
         world_normal = np.zeros(source.ndim)
         world_normal[-3:] = self.normal
@@ -440,7 +475,9 @@ class OrthoSlice(SceneObject):
         if not self.supports_2d(viewer):
             raise ValueError("oblique or transformed section is not 2D-native")
         data, level_factors, leading = self._level_volume(viewer, source)
-        normal = np.asarray(world_to_data_normal(source, self.normal), float)[-3:]
+        normal = np.asarray(world_to_data_normal(source, self.normal), float)[
+            -3:
+        ]
         axis = int(np.argmax(np.abs(normal)))
         source_axis = axis + source.ndim - 3
         centre = (
@@ -487,7 +524,9 @@ class OrthoSlice(SceneObject):
         factors = np.ones(source.ndim, dtype=float)
         level = 0
         if getattr(source, "multiscale", False):
-            level = self.source_level if level_override is None else level_override
+            level = (
+                self.source_level if level_override is None else level_override
+            )
             if level < 0:
                 level += len(data)
             if level < 0 or level >= len(data):
@@ -502,16 +541,24 @@ class OrthoSlice(SceneObject):
         leading = []
         if leading_count:
             world = np.asarray(viewer.dims.point[-source.ndim :], dtype=float)
-            point = np.asarray(source.world_to_data(world), dtype=float) / factors
+            point = (
+                np.asarray(source.world_to_data(world), dtype=float) / factors
+            )
             for axis in range(leading_count):
-                index = int(np.clip(round(point[axis]), 0, data.shape[axis] - 1))
+                index = int(
+                    np.clip(round(point[axis]), 0, data.shape[axis] - 1)
+                )
                 leading.append(index)
             data = data[tuple(leading) + (slice(None),) * 3]
         if np.ndim(data) != 3:
-            raise ValueError("Ortho sections require at least three spatial axes")
+            raise ValueError(
+                "Ortho sections require at least three spatial axes"
+            )
         return data, np.asarray(factors[-3:], dtype=float), tuple(leading)
 
-    def _spatial_affine(self, source, factors, leading=(), level_override=None):
+    def _spatial_affine(
+        self, source, factors, leading=(), level_override=None
+    ):
         """Map selected-level spatial coordinates to trailing world axes."""
         matrix = np.asarray(
             source._transforms[1:].simplified.affine_matrix, dtype=float
@@ -524,11 +571,15 @@ class OrthoSlice(SceneObject):
             all_factors = np.ones(source.ndim, dtype=float)
             if getattr(source, "multiscale", False):
                 level = (
-                    self.source_level if level_override is None else level_override
+                    self.source_level
+                    if level_override is None
+                    else level_override
                 )
                 if level < 0:
                     level += len(source.data)
-                all_factors = np.asarray(source.downsample_factors[level], dtype=float)
+                all_factors = np.asarray(
+                    source.downsample_factors[level], dtype=float
+                )
             spatial[:3, 3] += matrix[-4:-1, : len(leading)] @ (
                 lead * all_factors[: len(leading)]
             )
@@ -549,7 +600,11 @@ class OrthoSlice(SceneObject):
         remaining_data = [axis for axis in range(3) if axis != source_axis]
         remaining_world = [axis for axis in range(3) if axis != hidden_world]
         ordered_data = [
-            next(axis for axis in remaining_data if world_for_data[axis] == world_axis)
+            next(
+                axis
+                for axis in remaining_data
+                if world_for_data[axis] == world_axis
+            )
             for world_axis in remaining_world
         ]
         transpose = [remaining_data.index(axis) for axis in ordered_data]
@@ -569,7 +624,9 @@ class OrthoSlice(SceneObject):
             if data_axis == source_axis:
                 output_affine[world_axis, 3] += step * effective
             elif step < 0:
-                output_affine[world_axis, 3] += step * (volume_shape[data_axis] - 1)
+                output_affine[world_axis, 3] += step * (
+                    volume_shape[data_axis] - 1
+                )
         return world_2d, output, output_affine
 
     @staticmethod
@@ -700,7 +757,9 @@ class OrthoSlice(SceneObject):
             if tuple(layer.units) != spatial_units:
                 layer.units = spatial_units
             if layer.name != self.layer_name:
-                layer.name = registry.unique_name(self.layer_name, exclude=layer)
+                layer.name = registry.unique_name(
+                    self.layer_name, exclude=layer
+                )
             layer.metadata["napari_animation.source"] = source.name
             layer.metadata["napari_animation.source_level"] = self.source_level
             self._bind_layer_events(layer, viewer)
@@ -743,7 +802,10 @@ class OrthoSlice(SceneObject):
         It may invalidate more often than strictly necessary, but never lets
         a previous projected array survive an explicit source refresh.
         """
-        if getattr(source, "_napari_animation_source_listener", None) is not None:
+        if (
+            getattr(source, "_napari_animation_source_listener", None)
+            is not None
+        ):
             return
         source_id = LayerRegistry(viewer).source_id(source)
         source._napari_animation_source_revision = 0
@@ -766,10 +828,14 @@ class OrthoSlice(SceneObject):
 
             service_for_viewer(viewer).invalidate_source(source_id)
             for layer in viewer.layers:
-                binding = getattr(layer, "_napari_animation_data_binding", None)
-                if binding is not None and layer.metadata.get(
-                    "napari_animation.source"
-                ) == source.name:
+                binding = getattr(
+                    layer, "_napari_animation_data_binding", None
+                )
+                if (
+                    binding is not None
+                    and layer.metadata.get("napari_animation.source")
+                    == source.name
+                ):
                     layer._napari_animation_data_binding = None
 
         connected = []
@@ -806,10 +872,13 @@ class OrthoSlice(SceneObject):
         def changed(_event):
             renderer = getattr(viewer, "_napari_animation_renderer", None)
             owner = getattr(self, "_composite_owner", None)
-            if getattr(self, "_applying", False) or (
-                renderer is not None and renderer.applying
-            ) or (
-                owner is not None and getattr(owner, "_composite_applying", False)
+            if (
+                getattr(self, "_applying", False)
+                or (renderer is not None and renderer.applying)
+                or (
+                    owner is not None
+                    and getattr(owner, "_composite_applying", False)
+                )
             ):
                 return
             # The layer emits setup events while it is first being created;
@@ -825,7 +894,9 @@ class OrthoSlice(SceneObject):
                     owner.normal = self.normal
                     owner.thickness = self.thickness
                     if owner.enabled:
-                        owner.channels[self.source_id]["enabled"] = self.enabled
+                        owner.channels[self.source_id][
+                            "enabled"
+                        ] = self.enabled
                     owner._capture_channel_appearance(viewer, self)
                     owner.apply(viewer)
             except (AttributeError, TypeError, ValueError):
@@ -835,8 +906,13 @@ class OrthoSlice(SceneObject):
 
         connected = []
         for event_name in (
-            "plane", "visible", "rendering", "colormap", "contrast_limits",
-            "gamma", "opacity",
+            "plane",
+            "visible",
+            "rendering",
+            "colormap",
+            "contrast_limits",
+            "gamma",
+            "opacity",
         ):
             emitter = getattr(layer.events, event_name, None)
             if emitter is not None:
@@ -908,19 +984,25 @@ class OrthoSlice(SceneObject):
             # Retire callbacks before hiding outputs. They may belong to a
             # different, transient snapshot with the same section ID.
             for layer in viewer.layers:
-                bindings = getattr(layer, "_napari_animation_composite_appearance", {})
+                bindings = getattr(
+                    layer, "_napari_animation_composite_appearance", {}
+                )
                 binding = bindings.pop(self.id, None)
                 if binding is not None:
                     for emitter in binding[2]:
                         emitter.disconnect(binding[1])
                 owner = layer.metadata.get(OBJECT_ID_METADATA, "")
                 if owner == self.id or owner.startswith(prefix):
-                    binding = getattr(layer, "_napari_animation_plane_listener", None)
+                    binding = getattr(
+                        layer, "_napari_animation_plane_listener", None
+                    )
                     if binding is not None:
                         for emitter in binding[2]:
                             emitter.disconnect(binding[1])
                         delattr(layer, "_napari_animation_plane_listener")
-                if (owner == self.id or owner.startswith(prefix)) and owner not in active_ids:
+                if (
+                    owner == self.id or owner.startswith(prefix)
+                ) and owner not in active_ids:
                     layer.visible = False
             in_2d = viewer.dims.ndisplay < 3
             is_active = active_section_id in (None, self.id)
@@ -931,23 +1013,34 @@ class OrthoSlice(SceneObject):
                 service = service_for_viewer(viewer)
                 service.begin_batch()
                 self._composite_batch = {
-                    "expected": active_ids, "results": {}, "errors": {},
+                    "expected": active_ids,
+                    "results": {},
+                    "errors": {},
                 }
             try:
                 for child in children:
-                    child._composite_parent = self if service is not None else None
-                    child.apply(viewer, active_section_id=(
-                        child.id if is_active else active_section_id
-                    ))
+                    child._composite_parent = (
+                        self if service is not None else None
+                    )
+                    child.apply(
+                        viewer,
+                        active_section_id=(
+                            child.id if is_active else active_section_id
+                        ),
+                    )
                     managed = LayerRegistry(viewer).find_managed(
                         child.id, "section_3d"
                     )
                     if managed is not None and child.render_mode == "plane":
-                        managed.metadata["napari_animation.composite"] = self.id
+                        managed.metadata["napari_animation.composite"] = (
+                            self.id
+                        )
                         managed.blending = "additive"
                         source = child.source_layer(viewer)
                         if source is not None:
-                            self._bind_composite_appearance_events(viewer, source)
+                            self._bind_composite_appearance_events(
+                                viewer, source
+                            )
                             self._apply_channel_appearance(
                                 managed, source, self.channels[child.source_id]
                             )
@@ -957,8 +1050,10 @@ class OrthoSlice(SceneObject):
                     service.end_batch()
             return
         in_3d = getattr(viewer.dims, "ndisplay", 3) >= 3
-        if in_3d or not self.enabled or (
-            active_section_id is not None and self.id != active_section_id
+        if (
+            in_3d
+            or not self.enabled
+            or (active_section_id is not None and self.id != active_section_id)
         ):
             service = getattr(
                 viewer, "_napari_animation_projection_service", None
@@ -982,9 +1077,12 @@ class OrthoSlice(SceneObject):
         # of it. Plane depiction only means something in a 3D view.  Use the
         # managed projection path in 2D, keeping section appearance separate
         # from the source volume.
-        projection_layer = LayerRegistry(viewer).find_managed(self.id, "section_2d")
+        projection_layer = LayerRegistry(viewer).find_managed(
+            self.id, "section_2d"
+        )
         if projection_layer is not None and (
-            in_3d or not self.enabled
+            in_3d
+            or not self.enabled
             or (active_section_id is not None and self.id != active_section_id)
         ):
             projection_layer.visible = False
@@ -998,9 +1096,7 @@ class OrthoSlice(SceneObject):
         try:
             if layer.depiction != "plane":
                 layer.depiction = "plane"
-            rendering = PROJECTION_TO_RENDERING.get(
-                self.projection, "mip"
-            )
+            rendering = PROJECTION_TO_RENDERING.get(self.projection, "mip")
             if layer.rendering != rendering:
                 layer.rendering = rendering
             plane = {
@@ -1071,10 +1167,14 @@ class OrthoSlice(SceneObject):
         # and move that singleton with the slider so napari cannot slice it
         # away. Never show an old orientation/source as the new section.
         if output is not None and output.visible:
-            binding = getattr(output, "_napari_animation_projection_binding", None)
+            binding = getattr(
+                output, "_napari_animation_projection_binding", None
+            )
             if (
-                getattr(output, "_napari_animation_projection_axis", None) != world_axis
-                or binding is None or binding[0] != exact[0][0]
+                getattr(output, "_napari_animation_projection_axis", None)
+                != world_axis
+                or binding is None
+                or binding[0] != exact[0][0]
             ):
                 output.visible = False
             else:
@@ -1085,13 +1185,20 @@ class OrthoSlice(SceneObject):
 
         multiscale = bool(getattr(source, "multiscale", False))
         finest = (
-            self.source_level if self.source_level >= 0
-            else len(source.data) + self.source_level
-        ) if multiscale else 0
+            (
+                self.source_level
+                if self.source_level >= 0
+                else len(source.data) + self.source_level
+            )
+            if multiscale
+            else 0
+        )
         coarse = len(source.data) - 1 if multiscale else 0
         progressive = (
             getattr(self, "_composite_parent", None) is None
-            and service.asynchronous and multiscale and finest < coarse
+            and service.asynchronous
+            and multiscale
+            and finest < coarse
             and not getattr(viewer, "_napari_animation_export_exact", False)
             and service.cache.get(exact[0]) is None
         )
@@ -1129,7 +1236,9 @@ class OrthoSlice(SceneObject):
         data, factors, leading = self._level_volume(
             viewer, source, level_override=level_override
         )
-        data_normal = np.asarray(world_to_data_normal(source, self.normal), float)[-3:]
+        data_normal = np.asarray(
+            world_to_data_normal(source, self.normal), float
+        )[-3:]
         axis = int(np.argmax(np.abs(data_normal)))
         source_axis = source.ndim - 3 + axis
         centre = (
@@ -1137,7 +1246,9 @@ class OrthoSlice(SceneObject):
             / factors[axis]
         )
         thickness = float(self.data_thickness(source)) / factors[axis]
-        interval = self._sample_interval(centre, thickness, int(data.shape[axis]))
+        interval = self._sample_interval(
+            centre, thickness, int(data.shape[axis])
+        )
         if interval is None:
             return None
         start, stop = interval
@@ -1147,17 +1258,25 @@ class OrthoSlice(SceneObject):
         level = self.source_level if level_override is None else level_override
         base = (
             source.data[level]
-            if getattr(source, "multiscale", False) else source.data
+            if getattr(source, "multiscale", False)
+            else source.data
         )
         key = (
             LayerRegistry(viewer).source_id(source),
             getattr(source, "_napari_animation_source_revision", 0),
-            id(base), level, leading, axis, start, stop,
+            id(base),
+            level,
+            leading,
+            axis,
+            start,
+            stop,
             self.projection,
         )
         return key, data, axis, start, stop, affine, centre
 
-    def _submit_2d_plan(self, viewer, backing_layer, source, service, plan, revision):
+    def _submit_2d_plan(
+        self, viewer, backing_layer, source, service, plan, revision
+    ):
         key, data, axis, start, stop, affine, centre = plan
 
         def publish(projected):
@@ -1170,7 +1289,9 @@ class OrthoSlice(SceneObject):
             renderer = getattr(viewer, "_napari_animation_renderer", None)
             parent = getattr(self, "_composite_parent", None)
             if renderer is not None and renderer.active_section_id not in (
-                None, self.id, parent.id if parent is not None else self.id
+                None,
+                self.id,
+                parent.id if parent is not None else self.id,
             ):
                 return
             # The output is displayed at the authored plane, not the centre
@@ -1184,18 +1305,28 @@ class OrthoSlice(SceneObject):
                 )
             else:
                 parent._stage_channel_projection(
-                    viewer, self,
+                    viewer,
+                    self,
                     (backing_layer, output_data, output_affine, key),
                 )
 
         parent = getattr(self, "_composite_parent", None)
 
         def failed(error):
-            if parent is not None and service.section_is_current(self.id, revision):
+            if parent is not None and service.section_is_current(
+                self.id, revision
+            ):
                 parent._stage_channel_projection(viewer, self, error)
 
         service.request(
-            self.id, key, data, axis, start, stop, self.projection, publish,
+            self.id,
+            key,
+            data,
+            axis,
+            start,
+            stop,
+            self.projection,
+            publish,
             on_error=failed if parent is not None else None,
         )
 
@@ -1219,7 +1350,10 @@ class OrthoSlice(SceneObject):
             spatial_units = tuple(backing_layer.units[-3:])
             if tuple(output.units) != spatial_units:
                 output.units = spatial_units
-            if getattr(output, "_napari_animation_projection_binding", None) != key:
+            if (
+                getattr(output, "_napari_animation_projection_binding", None)
+                != key
+            ):
                 output.data = projected
             if not np.array_equal(output.affine.affine_matrix, affine):
                 output.affine = affine
@@ -1298,13 +1432,17 @@ class OrthoSlice(SceneObject):
                 previous = (child.position, child.normal, child.thickness)
                 child.sync_from_viewer(viewer)
                 settings = self.channels[child.source_id]
-                if self.enabled and child.enabled != bool(settings.get("enabled", False)):
+                if self.enabled and child.enabled != bool(
+                    settings.get("enabled", False)
+                ):
                     settings["enabled"] = child.enabled
                 if child.enabled:
                     self._capture_channel_appearance(viewer, child)
                 if (child.position, child.normal, child.thickness) != previous:
                     self.position, self.normal, self.thickness = (
-                        child.position, child.normal, child.thickness
+                        child.position,
+                        child.normal,
+                        child.thickness,
                     )
                     break
             return
@@ -1353,12 +1491,20 @@ class OrthoSlice(SceneObject):
         # turn that temporary suppression into a keyframed disable.
         if getattr(viewer.dims, "ndisplay", 3) >= 3:
             applied_visible = getattr(self, "_applied_visible", None)
-            if applied_visible is not None and layer.visible != applied_visible:
+            if (
+                applied_visible is not None
+                and layer.visible != applied_visible
+            ):
                 self.enabled = bool(layer.visible)
 
         applied_rendering = getattr(self, "_applied_rendering", None)
-        if applied_rendering is not None and layer.rendering != applied_rendering:
-            reverse = {value: key for key, value in PROJECTION_TO_RENDERING.items()}
+        if (
+            applied_rendering is not None
+            and layer.rendering != applied_rendering
+        ):
+            reverse = {
+                value: key for key, value in PROJECTION_TO_RENDERING.items()
+            }
             if layer.rendering in reverse:
                 self.projection = reverse[layer.rendering]
 

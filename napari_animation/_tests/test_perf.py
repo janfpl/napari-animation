@@ -48,8 +48,11 @@ def test_perf_logger_disabled_is_noop():
 
 def test_nested_frame_timings_and_bounded_history(monkeypatch):
     from napari_animation.perf import render_phase
-    clock = iter([0., 1., 2., 3., 5., 6.])
-    monkeypatch.setattr("napari_animation.perf.time.perf_counter", lambda: next(clock))
+
+    clock = iter([0.0, 1.0, 2.0, 3.0, 5.0, 6.0])
+    monkeypatch.setattr(
+        "napari_animation.perf.time.perf_counter", lambda: next(clock)
+    )
     perf = PerfLogger(event_limit=1)
     perf.start()
     with perf.timer("apply", frame=17):
@@ -68,9 +71,10 @@ def test_nested_frame_timings_and_bounded_history(monkeypatch):
 
 def test_concurrent_recording_and_quantiles():
     from concurrent.futures import ThreadPoolExecutor
+
     perf = PerfLogger(sample_limit=2)
     with ThreadPoolExecutor(max_workers=4) as pool:
-        list(pool.map(lambda _: perf.record("write", .01), range(100)))
+        list(pool.map(lambda _: perf.record("write", 0.01), range(100)))
     data = perf.snapshot()["phases"]["write"]
     assert data["count"] == 100
     assert abs(data["total_seconds"] - 1) < 1e-9
@@ -80,8 +84,11 @@ def test_concurrent_recording_and_quantiles():
 
 def test_failure_recorded_context_restored_and_json_saved(tmp_path):
     import json
+
     import pytest
+
     from napari_animation.perf import render_phase
+
     perf = PerfLogger()
     perf.start()
     with pytest.raises(RuntimeError):

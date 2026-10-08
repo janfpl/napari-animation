@@ -6,8 +6,14 @@ import numpy as np
 
 
 def project_slab_core(
-    volume, axis, start, stop, projection, cancel=None,
-    target_read_bytes=64 * 1024**2, cancel_error=RuntimeError,
+    volume,
+    axis,
+    start,
+    stop,
+    projection,
+    cancel=None,
+    target_read_bytes=64 * 1024**2,
+    cancel_error=RuntimeError,
 ):
     """Reduce a 3D slab through chunk-aligned basic ROI reads."""
     shape = tuple(int(s) for s in volume.shape)
@@ -20,7 +26,8 @@ def project_slab_core(
     if projection not in {"max", "min", "mean"}:
         raise ValueError(f"Unknown projection {projection!r}")
     output_dtype = (
-        np.dtype(np.float64) if projection == "mean" and dtype.kind in "biu"
+        np.dtype(np.float64)
+        if projection == "mean" and dtype.kind in "biu"
         else dtype
     )
     result = np.empty(output_shape, dtype=output_dtype)
@@ -41,9 +48,10 @@ def project_slab_core(
         side = max(1, int(np.sqrt(max_pixels)))
         tile0 = max(1, min(output_shape[0], (side // chunk0) * chunk0 or side))
         remaining = max(1, max_pixels // tile0)
-        tile1 = max(1, min(
-            output_shape[1], (remaining // chunk1) * chunk1 or remaining
-        ))
+        tile1 = max(
+            1,
+            min(output_shape[1], (remaining // chunk1) * chunk1 or remaining),
+        )
     for low0 in range(0, output_shape[0], tile0):
         high0 = min(output_shape[0], low0 + tile0)
         for low1 in range(0, output_shape[1], tile1):

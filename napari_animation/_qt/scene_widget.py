@@ -12,7 +12,6 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
-
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QColor, QIcon, QPixmap
 from qtpy.QtWidgets import (
@@ -22,9 +21,9 @@ from qtpy.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QLineEdit,
     QPushButton,
     QSlider,
     QStackedWidget,
@@ -32,8 +31,8 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ..layer_registry import OBJECT_ID_METADATA, LayerRegistry
 from ..scene import ORIENTATIONS, VIEW_NORMALS, ClipPlane, OrthoSlice
-from ..layer_registry import LayerRegistry, OBJECT_ID_METADATA
 from ..scene._manipulators import INSTALL_HINT, is_available
 
 if TYPE_CHECKING:
@@ -201,7 +200,9 @@ class OrthoSliceEditor(_ObjectEditor):
         self.channelSearch.setPlaceholderText("Search channels")
         self.channelList = QListWidget()
         self.channelList.setMaximumHeight(150)
-        self.channelList.setToolTip("Check image channels to show in this slice")
+        self.channelList.setToolTip(
+            "Check image channels to show in this slice"
+        )
         self.channelAllButton = QPushButton("All")
         self.channelNoneButton = QPushButton("None")
         self.channelRelink = QComboBox()
@@ -214,9 +215,17 @@ class OrthoSliceEditor(_ObjectEditor):
         self.channelAppearance = QComboBox()
         self.channelAppearance.addItems(["Linked to source", "Custom"])
         self.channelColor = QComboBox()
-        self.channelColor.addItems([
-            "gray", "red", "green", "blue", "cyan", "magenta", "yellow",
-        ])
+        self.channelColor.addItems(
+            [
+                "gray",
+                "red",
+                "green",
+                "blue",
+                "cyan",
+                "magenta",
+                "yellow",
+            ]
+        )
         self.channelOpacity = QDoubleSpinBox()
         self.channelOpacity.setRange(0.0, 1.0)
         self.channelOpacity.setSingleStep(0.05)
@@ -323,7 +332,9 @@ class OrthoSliceEditor(_ObjectEditor):
         self.centreZSlider.valueChanged.connect(self._z_slider_changed)
         self.sourceComboBox.currentIndexChanged.connect(self._source_chosen)
         self.channelList.itemChanged.connect(self._channel_toggled)
-        self.channelList.currentItemChanged.connect(self._read_channel_appearance)
+        self.channelList.currentItemChanged.connect(
+            self._read_channel_appearance
+        )
         self.channelSearch.textChanged.connect(self._filter_channels)
         self.channelRelinkButton.clicked.connect(self._relink_missing_channel)
         self.channelAllButton.clicked.connect(
@@ -335,8 +346,10 @@ class OrthoSliceEditor(_ObjectEditor):
         for combo in (self.channelAppearance, self.channelColor):
             combo.currentIndexChanged.connect(self._channel_appearance_changed)
         for box in (
-            self.channelOpacity, self.channelGamma,
-            self.channelContrastMin, self.channelContrastMax,
+            self.channelOpacity,
+            self.channelGamma,
+            self.channelContrastMin,
+            self.channelContrastMax,
         ):
             box.valueChanged.connect(self._channel_appearance_changed)
         for combo in (
@@ -344,7 +357,9 @@ class OrthoSliceEditor(_ObjectEditor):
             self.renderComboBox,
         ):
             combo.currentIndexChanged.connect(self._changed)
-        self.sourceLevelComboBox.currentIndexChanged.connect(self._resolution_changed)
+        self.sourceLevelComboBox.currentIndexChanged.connect(
+            self._resolution_changed
+        )
         self.manipulatorButton.clicked.connect(self._edit_in_canvas)
 
     def read(self, ortho_slice):
@@ -404,7 +419,9 @@ class OrthoSliceEditor(_ObjectEditor):
                 selected[section.source_id] = {"enabled": True}
         seen = set()
         for layer in self.scene_widget.viewer.layers:
-            if layer.metadata.get(OBJECT_ID_METADATA) or not hasattr(layer, "plane"):
+            if layer.metadata.get(OBJECT_ID_METADATA) or not hasattr(
+                layer, "plane"
+            ):
                 continue
             if getattr(layer, "ndim", 0) < 3 or getattr(layer, "rgb", False):
                 continue
@@ -413,9 +430,11 @@ class OrthoSliceEditor(_ObjectEditor):
             item = QListWidgetItem(layer.name)
             settings = selected.get(source_id, {})
             custom = settings.get("appearance") or {}
-            color_name = custom.get("colormap") if settings.get(
-                "appearance_mode"
-            ) == "custom" else None
+            color_name = (
+                custom.get("colormap")
+                if settings.get("appearance_mode") == "custom"
+                else None
+            )
             if isinstance(color_name, dict):
                 color_name = color_name.get("name")
             swatch = QColor(color_name) if color_name else QColor()
@@ -428,13 +447,17 @@ class OrthoSliceEditor(_ObjectEditor):
             item.setData(Qt.UserRole, source_id)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(
-                Qt.Checked if selected.get(source_id, {}).get("enabled") else Qt.Unchecked
+                Qt.Checked
+                if selected.get(source_id, {}).get("enabled")
+                else Qt.Unchecked
             )
             self.channelList.addItem(item)
         for source_id, settings in selected.items():
             if source_id in seen:
                 continue
-            item = QListWidgetItem(f"{settings.get('source_name', source_id)} (missing)")
+            item = QListWidgetItem(
+                f"{settings.get('source_name', source_id)} (missing)"
+            )
             item.setData(Qt.UserRole, source_id)
             item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             item.setCheckState(
@@ -445,16 +468,21 @@ class OrthoSliceEditor(_ObjectEditor):
         self.channelRelink.blockSignals(True)
         self.channelRelink.clear()
         for layer in self.scene_widget.viewer.layers:
-            if layer.metadata.get(OBJECT_ID_METADATA) or not hasattr(layer, "plane"):
+            if layer.metadata.get(OBJECT_ID_METADATA) or not hasattr(
+                layer, "plane"
+            ):
                 continue
             if layer.ndim >= 3 and not getattr(layer, "rgb", False):
-                self.channelRelink.addItem(layer.name, registry.source_id(layer))
+                self.channelRelink.addItem(
+                    layer.name, registry.source_id(layer)
+                )
         self.channelRelink.blockSignals(False)
         self._filter_channels(self.channelSearch.text())
 
     def _editable_channels(self):
         channels = {
-            key: dict(value) for key, value in (self.object.channels or {}).items()
+            key: dict(value)
+            for key, value in (self.object.channels or {}).items()
         }
         if self.object.channels is None and self.object.source_id:
             settings = {
@@ -467,12 +495,18 @@ class OrthoSliceEditor(_ObjectEditor):
                 self.object.id, "section_3d"
             )
             source = self.object.source_layer(self.scene_widget.viewer)
-            if managed is not None and source is not None and (
-                OrthoSlice._colormap_spec(managed.colormap)
-                != OrthoSlice._colormap_spec(source.colormap)
-                or not np.array_equal(managed.contrast_limits, source.contrast_limits)
-                or managed.gamma != source.gamma
-                or managed.opacity != source.opacity
+            if (
+                managed is not None
+                and source is not None
+                and (
+                    OrthoSlice._colormap_spec(managed.colormap)
+                    != OrthoSlice._colormap_spec(source.colormap)
+                    or not np.array_equal(
+                        managed.contrast_limits, source.contrast_limits
+                    )
+                    or managed.gamma != source.gamma
+                    or managed.opacity != source.opacity
+                )
             ):
                 settings["appearance_mode"] = "custom"
                 settings["appearance"] = {
@@ -489,17 +523,24 @@ class OrthoSliceEditor(_ObjectEditor):
         source = LayerRegistry(self.scene_widget.viewer).find(source_id)
         enabled = source is not None and self.object is not None
         self.channelRelinkButton.setEnabled(
-            source is None and item is not None and self.channelRelink.count() > 0
+            source is None
+            and item is not None
+            and self.channelRelink.count() > 0
         )
         settings = (
             (self.object.channels or {}).get(source_id, {})
-            if self.object is not None else {}
+            if self.object is not None
+            else {}
         )
         custom = settings.get("appearance") or {}
         mode = settings.get("appearance_mode", "source")
         for widget in (
-            self.channelAppearance, self.channelColor, self.channelOpacity,
-            self.channelGamma, self.channelContrastMin, self.channelContrastMax,
+            self.channelAppearance,
+            self.channelColor,
+            self.channelOpacity,
+            self.channelGamma,
+            self.channelContrastMin,
+            self.channelContrastMax,
         ):
             widget.blockSignals(True)
         self.channelAppearance.setCurrentIndex(1 if mode == "custom" else 0)
@@ -510,16 +551,23 @@ class OrthoSliceEditor(_ObjectEditor):
             if self.channelColor.findText(colormap) < 0:
                 self.channelColor.addItem(colormap)
             self.channelColor.setCurrentText(colormap)
-            self.channelOpacity.setValue(float(custom.get("opacity", source.opacity)))
-            self.channelGamma.setValue(float(custom.get("gamma", source.gamma)))
+            self.channelOpacity.setValue(
+                float(custom.get("opacity", source.opacity))
+            )
+            self.channelGamma.setValue(
+                float(custom.get("gamma", source.gamma))
+            )
             limits = custom.get("contrast_limits", source.contrast_limits)
             self.channelContrastMin.setValue(float(limits[0]))
             self.channelContrastMax.setValue(float(limits[1]))
         self.channelAppearance.setEnabled(enabled)
         custom_enabled = enabled and mode == "custom"
         for widget in (
-            self.channelColor, self.channelOpacity, self.channelGamma,
-            self.channelContrastMin, self.channelContrastMax,
+            self.channelColor,
+            self.channelOpacity,
+            self.channelGamma,
+            self.channelContrastMin,
+            self.channelContrastMax,
         ):
             widget.setEnabled(custom_enabled)
             widget.blockSignals(False)
@@ -561,26 +609,36 @@ class OrthoSliceEditor(_ObjectEditor):
         if source is None:
             return
         channels = self._editable_channels()
-        settings = channels.setdefault(source_id, {
-            "source_id": source_id,
-            "source_name": source.name,
-            "enabled": item.checkState() == Qt.Checked,
-            "source_level": self.object.source_level,
-        })
+        settings = channels.setdefault(
+            source_id,
+            {
+                "source_id": source_id,
+                "source_name": source.name,
+                "enabled": item.checkState() == Qt.Checked,
+                "source_level": self.object.source_level,
+            },
+        )
         custom = self.channelAppearance.currentIndex() == 1
         settings["appearance_mode"] = "custom" if custom else "source"
         old_colormap = (settings.get("appearance") or {}).get("colormap")
         colormap = self.channelColor.currentText()
-        if isinstance(old_colormap, dict) and old_colormap.get("name") == colormap:
+        if (
+            isinstance(old_colormap, dict)
+            and old_colormap.get("name") == colormap
+        ):
             colormap = old_colormap
         low = self.channelContrastMin.value()
         high = max(self.channelContrastMax.value(), low + 1e-6)
-        settings["appearance"] = {
-            "colormap": colormap,
-            "opacity": self.channelOpacity.value(),
-            "gamma": self.channelGamma.value(),
-            "contrast_limits": [low, high],
-        } if custom else None
+        settings["appearance"] = (
+            {
+                "colormap": colormap,
+                "opacity": self.channelOpacity.value(),
+                "gamma": self.channelGamma.value(),
+                "contrast_limits": [low, high],
+            }
+            if custom
+            else None
+        )
         self.scene_widget.animation.update_scene_object(
             self.object.id, channels=channels
         )
@@ -606,11 +664,14 @@ class OrthoSliceEditor(_ObjectEditor):
             source = registry.find(source_id)
             if source is None:
                 continue
-            settings = channels.setdefault(source_id, {
-                "source_id": source_id,
-                "source_name": source.name,
-                "source_level": self.object.source_level,
-            })
+            settings = channels.setdefault(
+                source_id,
+                {
+                    "source_id": source_id,
+                    "source_name": source.name,
+                    "source_level": self.object.source_level,
+                },
+            )
             if settings.get("enabled") != enabled:
                 settings["enabled"] = enabled
                 changed = True
@@ -630,11 +691,14 @@ class OrthoSliceEditor(_ObjectEditor):
         source = registry.find(source_id)
         if source is None:
             return
-        settings = channels.setdefault(source_id, {
-            "source_id": source_id,
-            "source_name": source.name,
-            "source_level": self.object.source_level,
-        })
+        settings = channels.setdefault(
+            source_id,
+            {
+                "source_id": source_id,
+                "source_name": source.name,
+                "source_level": self.object.source_level,
+            },
+        )
         settings["enabled"] = item.checkState() == Qt.Checked
         self.scene_widget.animation.update_scene_object(
             self.object.id, channels=channels
@@ -646,7 +710,8 @@ class OrthoSliceEditor(_ObjectEditor):
         source = self.sourceComboBox.currentText()
         layer = (
             self.scene_widget.viewer.layers[source]
-            if source in self.scene_widget.viewer.layers else None
+            if source in self.scene_widget.viewer.layers
+            else None
         )
         bounds = None
         if layer is not None and getattr(layer, "ndim", 0) >= 3:
@@ -675,7 +740,9 @@ class OrthoSliceEditor(_ObjectEditor):
         if upper <= lower:
             return
         fraction = (z - lower) / (upper - lower)
-        value = round(max(0.0, min(1.0, fraction)) * self.centreZSlider.maximum())
+        value = round(
+            max(0.0, min(1.0, fraction)) * self.centreZSlider.maximum()
+        )
         self.centreZSlider.blockSignals(True)
         self.centreZSlider.setValue(value)
         self.centreZSlider.blockSignals(False)
@@ -690,7 +757,8 @@ class OrthoSliceEditor(_ObjectEditor):
         source = self.sourceComboBox.currentText()
         layer = (
             self.scene_widget.viewer.layers[source]
-            if source in self.scene_widget.viewer.layers else None
+            if source in self.scene_widget.viewer.layers
+            else None
         )
         if selected is None:
             selected = self.sourceLevelComboBox.currentData()
@@ -757,7 +825,9 @@ class OrthoSliceEditor(_ObjectEditor):
         if self.object is None:
             return
         viewer = self.scene_widget.viewer
-        layer = LayerRegistry(viewer).find_managed(self.object.id, "section_3d")
+        layer = LayerRegistry(viewer).find_managed(
+            self.object.id, "section_3d"
+        )
         if layer is None and self.object.channels is not None:
             for child in self.object._channel_sections(viewer):
                 layer = LayerRegistry(viewer).find_managed(
@@ -836,7 +906,8 @@ class SceneWidget(QGroupBox):
         """Push the live scene onto the viewer."""
         ortho = (
             self.animation.ortho_slicer.to_dict()
-            if self.animation.ortho_slicer.enabled else None
+            if self.animation.ortho_slicer.enabled
+            else None
         )
         self.animation.renderer.apply_working(ortho=ortho)
 
@@ -934,7 +1005,10 @@ class SceneWidget(QGroupBox):
         if isinstance(scene_object, OrthoSlice):
             self.orthoSliceEditor.read(scene_object)
             self.editorStack.setCurrentWidget(self.orthoSliceEditor)
-            if activate and self.animation.active_section_id != scene_object.id:
+            if (
+                activate
+                and self.animation.active_section_id != scene_object.id
+            ):
                 self.animation.set_active_section(scene_object.id)
         elif isinstance(scene_object, ClipPlane):
             self.clipPlaneEditor.read(scene_object)

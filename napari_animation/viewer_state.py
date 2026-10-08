@@ -4,9 +4,13 @@ from typing import Optional
 import napari
 import numpy as np
 
+from .layer_registry import (
+    MANAGED_ROLE_METADATA,
+    TRANSIENT_ROLE,
+    LayerRegistry,
+)
 from .ortho_slicer import OrthoSlicer
-from .perf import timed_render, render_phase
-from .layer_registry import LayerRegistry, MANAGED_ROLE_METADATA, TRANSIENT_ROLE
+from .perf import render_phase, timed_render
 
 
 class LayerStateMap(dict):
@@ -106,7 +110,9 @@ def _layer_state(layer) -> dict:
         getattr(layer, "_viewer", None), "_napari_animation_renderer", None
     )
     state.pop("metadata", None)
-    if getattr(layer, "multiscale", False) and hasattr(layer, "locked_data_level"):
+    if getattr(layer, "multiscale", False) and hasattr(
+        layer, "locked_data_level"
+    ):
         state["locked_data_level"] = layer.locked_data_level
 
     try:
@@ -121,7 +127,9 @@ def _layer_state(layer) -> dict:
     # A 2D section temporarily suppresses its source.  Persist the authored
     # visibility rather than this renderer-owned view override.
     if renderer is not None:
-        state["visible"] = renderer.authored_visible(layer, state.get("visible", True))
+        state["visible"] = renderer.authored_visible(
+            layer, state.get("visible", True)
+        )
 
     # Colormaps are captured by name rather than as the full definition: the
     # expanded form is a dict of colour arrays that neither interpolates
@@ -258,7 +266,8 @@ class ViewerState:
         prepared_scene = None
         if self.scene is not None:
             prepared_scene = renderer.prepare_snapshot(
-                self.scene, active_section_id=active_section_id,
+                self.scene,
+                active_section_id=active_section_id,
                 ndisplay=target_ndisplay,
                 layer_states=self.layers,
             )
@@ -266,9 +275,7 @@ class ViewerState:
             suppressed_source_ids = renderer._suppressed_source_ids(
                 active_obj, ndisplay=target_ndisplay
             )
-        renderer.restore_view_overrides(
-            keep_ids=suppressed_source_ids
-        )
+        renderer.restore_view_overrides(keep_ids=suppressed_source_ids)
 
         # Dims must be applied before the camera. Changing ``ndisplay``
         # makes napari recompute the camera itself -- restoring a per-mode
@@ -276,7 +283,8 @@ class ViewerState:
         # would be silently discarded by a 2D/3D switch.
         with render_phase("state.dims"):
             changed = {
-                key: value for key, value in self.dims.items()
+                key: value
+                for key, value in self.dims.items()
                 if _differs(getattr(viewer.dims, key, None), value)
             }
             if changed:
@@ -289,7 +297,9 @@ class ViewerState:
                 # instance when resuming a saved animation); skip them gracefully.
                 layer = registry.find(source_id, layer_state.get("name"))
                 if layer is None and not layer_state.get("source_id"):
-                    layer = registry.find(name=layer_state.get("name", source_id))
+                    layer = registry.find(
+                        name=layer_state.get("name", source_id)
+                    )
                 if layer is None:
                     continue
                 for key, value in layer_state.items():
@@ -339,7 +349,8 @@ class ViewerState:
         # ndisplay switch recomputed above.
         with render_phase("state.camera"):
             changed = {
-                key: value for key, value in self.camera.items()
+                key: value
+                for key, value in self.camera.items()
                 if _differs(getattr(viewer.camera, key, None), value)
             }
             if changed:

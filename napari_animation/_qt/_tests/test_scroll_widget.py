@@ -69,7 +69,9 @@ def test_axis_choice_follows_the_snapped_view(widget, animation):
 
 def test_scroll_axes_use_spatial_letters(widget):
     assert [widget.axisComboBox.itemText(i) for i in range(3)] == [
-        "Z", "Y", "X"
+        "Z",
+        "Y",
+        "X",
     ]
     assert [widget.axisComboBox.itemData(i) for i in range(3)] == [0, 1, 2]
 

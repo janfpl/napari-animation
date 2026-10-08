@@ -40,7 +40,11 @@ class ResolutionSettings:
 
         def changed(event=None):
             animation = self.animation
-            if animation._closed or animation._navigating or animation.renderer.applying:
+            if (
+                animation._closed
+                or animation._navigating
+                or animation.renderer.applying
+            ):
                 return
             if self.apply_to_all_layers and not self._propagating:
                 self._propagating = True
@@ -52,7 +56,9 @@ class ResolutionSettings:
                         # A layer with fewer pyramid levels uses its coarsest
                         # available level when the requested one is absent.
                         target = (
-                            None if level is None else min(level, len(other.data) - 1)
+                            None
+                            if level is None
+                            else min(level, len(other.data) - 1)
                         )
                         if other.locked_data_level != target:
                             other.locked_data_level = target
@@ -116,18 +122,26 @@ class ResolutionSettings:
         changed = False
         for frame in animation.key_frames:
             state = frame.viewer_state
-            target = next((
-                properties for sid, properties in state.layers.items()
-                if sid == source_id or (
-                    not properties.get("source_id")
-                    and properties.get("name", sid) == layer.name
-                )
-            ), None)
+            target = next(
+                (
+                    properties
+                    for sid, properties in state.layers.items()
+                    if sid == source_id
+                    or (
+                        not properties.get("source_id")
+                        and properties.get("name", sid) == layer.name
+                    )
+                ),
+                None,
+            )
             if target is None:
                 continue
             layers = {
-                sid: dict(properties, locked_data_level=layer.locked_data_level)
-                if properties is target else properties
+                sid: (
+                    dict(properties, locked_data_level=layer.locked_data_level)
+                    if properties is target
+                    else properties
+                )
                 for sid, properties in state.layers.items()
             }
             frame.viewer_state = replace(state, layers=layers)
@@ -140,9 +154,15 @@ class ResolutionSettings:
         animation = self.animation
         section = next(obj for obj in animation.scene if obj.id == object_id)
         if section.kind != "ortho_slice":
-            raise ValueError("Resolution is only available for optical sections")
-        source = animation.layer_registry.find(section.source_id, section.source)
-        count = len(source.data) if source is not None and source.multiscale else 1
+            raise ValueError(
+                "Resolution is only available for optical sections"
+            )
+        source = animation.layer_registry.find(
+            section.source_id, section.source
+        )
+        count = (
+            len(source.data) if source is not None and source.multiscale else 1
+        )
         level = int(level)
         if not -count <= level < count:
             raise ValueError(f"Resolution level {level} is out of range")
@@ -153,7 +173,8 @@ class ResolutionSettings:
                     continue
                 channel_count = (
                     len(channel_source.data)
-                    if channel_source.multiscale else 1
+                    if channel_source.multiscale
+                    else 1
                 )
                 if not -channel_count <= level < channel_count:
                     raise ValueError(

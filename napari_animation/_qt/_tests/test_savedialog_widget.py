@@ -1,12 +1,14 @@
 """Tests for the save-dialog extension handling (no GUI interaction)."""
 
-from unittest.mock import patch
-
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 
-from napari_animation._qt.savedialog_widget import OptionsWidget, SaveDialogWidget
+from napari_animation._qt.savedialog_widget import (
+    OptionsWidget,
+    SaveDialogWidget,
+)
 
 FILTERS = "MP4 (*.mp4);;GIF (*.gif);;Folder of PNGs (*)"
 
@@ -105,7 +107,9 @@ def test_save_dialog_returns_selected_render_size(qtbot):
         return 1
 
     with patch.object(SaveDialogWidget, "exec_", choose_preset):
-        options = dialog.getAnimationParameters(filter=FILTERS, animation=animation)
+        options = dialog.getAnimationParameters(
+            filter=FILTERS, animation=animation
+        )
     assert options["render_size"] == (1536, 2048)
     assert options["canvas_only"] is True
 
@@ -122,6 +126,7 @@ def test_format_and_typed_extension_update_estimates(qtbot):
     assert "800 × 600" in dialog.optionsWidget.resolutionLabel.text()
     # A typed extension wins over the selected filter, as it does on export.
     from qtpy.QtWidgets import QLineEdit
+
     dialog.findChild(QLineEdit, "fileNameEdit").setText("movie.mp4")
     assert dialog.optionsWidget.qualitySlider.isEnabled()
     assert "800 × 608" in dialog.optionsWidget.resolutionLabel.text()

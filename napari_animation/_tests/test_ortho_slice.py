@@ -101,7 +101,9 @@ def test_managed_section_layers_keep_source_units(viewer):
 
 def test_voxel_size_change_updates_existing_section_units(viewer):
     animation = Animation(viewer)
-    section = animation.add_scene_object(OrthoSlice(name="Ortho", source="img"))
+    section = animation.add_scene_object(
+        OrthoSlice(name="Ortho", source="img")
+    )
     backing = LayerRegistry(viewer).find_managed(section.id, "section_3d")
 
     animation.set_voxel_size("img", (2, 1, 1), units="um")
@@ -112,7 +114,9 @@ def test_voxel_size_change_updates_existing_section_units(viewer):
 
 def test_voxel_size_change_moves_existing_section_with_its_source(viewer):
     animation = Animation(viewer)
-    section = animation.add_scene_object(OrthoSlice(name="Ortho", source="img"))
+    section = animation.add_scene_object(
+        OrthoSlice(name="Ortho", source="img")
+    )
     backing = LayerRegistry(viewer).find_managed(section.id, "section_3d")
 
     animation.set_voxel_size("img", (5, 1, 1))
@@ -157,7 +161,9 @@ def test_2d_plane_slice_uses_managed_projection_layer(viewer):
     assert viewer.dims.margin_right[0] == pytest.approx(0.0)
     assert viewer.dims.point[0] == pytest.approx(9.0)
     assert scene[0].position[0] == pytest.approx(9.0)
-    np.testing.assert_allclose(np.squeeze(output.data), scene[0].projection_oracle(viewer))
+    np.testing.assert_allclose(
+        np.squeeze(output.data), scene[0].projection_oracle(viewer)
+    )
     # Keep a native plane available for editors and a 3D transition.
     assert viewer.layers["Ortho"].plane.thickness == pytest.approx(2.0)
 
@@ -258,7 +264,9 @@ def test_active_section_owns_the_2d_projection(viewer):
     # does not own global 2D margins or projection settings.
     assert viewer.layers["XY"].visible is False
     assert viewer.layers["XZ"].visible is False
-    assert not LayerRegistry(viewer).find_managed(first.id, "section_2d").visible
+    assert (
+        not LayerRegistry(viewer).find_managed(first.id, "section_2d").visible
+    )
     assert LayerRegistry(viewer).find_managed(second.id, "section_2d").visible
 
 
@@ -323,9 +331,7 @@ def test_oblique_section_is_rejected_before_2d_mutation(viewer):
     before = tuple(viewer.dims.margin_left)
     scene = Scene()
     scene.append(
-        OrthoSlice(
-            name="oblique", source="img", normal=(1.0, 1.0, 0.0)
-        )
+        OrthoSlice(name="oblique", source="img", normal=(1.0, 1.0, 0.0))
     )
 
     with pytest.raises(ValueError, match="require a 3D view"):
@@ -571,7 +577,10 @@ def test_viewer_state_captures_the_slice_layer(viewer):
 
 def test_clip_snapshot_keeps_lazy_editable_plane_then_materializes(viewer):
     from napari_animation.scene.renderer import SceneRenderer
-    section = OrthoSlice(name="Clipped", source="img", render_mode="clip", position=(9, 10, 10))
+
+    section = OrthoSlice(
+        name="Clipped", source="img", render_mode="clip", position=(9, 10, 10)
+    )
     renderer = SceneRenderer.for_viewer(viewer)
     renderer.prepare_snapshot({section.id: section.to_dict()}, ndisplay=3)
     layer = LayerRegistry(viewer).find_managed(section.id, "section_3d")
@@ -582,7 +591,9 @@ def test_clip_snapshot_keeps_lazy_editable_plane_then_materializes(viewer):
     np.testing.assert_allclose(layer.affine.linear_matrix, np.diag([3, 1, 1]))
     section.render_mode = "plane"
     section.apply(viewer)
-    assert LayerRegistry(viewer).find_managed(section.id, "section_3d") is layer
+    assert (
+        LayerRegistry(viewer).find_managed(section.id, "section_3d") is layer
+    )
     assert layer.data is viewer.layers["img"].data
     assert not layer._napari_animation_placeholder
     assert layer.visible

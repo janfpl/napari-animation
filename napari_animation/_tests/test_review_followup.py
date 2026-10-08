@@ -18,7 +18,9 @@ def setup_section(ndisplay=2, **kwargs):
     )
     animation = Animation(viewer)
     section = animation.add_scene_object(
-        OrthoSlice(name="section", source="volume", position=(2, 3, 4), **kwargs)
+        OrthoSlice(
+            name="section", source="volume", position=(2, 3, 4), **kwargs
+        )
     )
     animation.set_active_section(section.id)
     return viewer, source, animation, section
@@ -98,7 +100,8 @@ def test_timepoint_binding_changes_only_when_time_changes():
 def test_keyframe_selection_applies_snapshot_once(monkeypatch):
     viewer, source, animation, section = setup_section()
     monkeypatch.setattr(
-        type(viewer), "screenshot",
+        type(viewer),
+        "screenshot",
         lambda *args, **kwargs: np.zeros((32, 32, 4), dtype=np.uint8),
         raising=False,
     )
@@ -117,7 +120,12 @@ def test_keyframe_selection_applies_snapshot_once(monkeypatch):
 
     assert len(applied) == 1
     assert section.position == (2, 3, 4)
-    assert managed(viewer, section, "section_3d")._napari_animation_plane_listener[0] is section
+    assert (
+        managed(
+            viewer, section, "section_3d"
+        )._napari_animation_plane_listener[0]
+        is section
+    )
 
 
 def test_initial_authored_position_is_not_replaced_by_dims():
@@ -136,13 +144,19 @@ def test_initial_authored_position_is_not_replaced_by_dims():
 def test_outside_position_survives_capture():
     viewer, source, animation, section = setup_section()
     animation.update_scene_object(section.id, position=(1000, 3, 4))
-    assert animation._capture_state()[1][section.id]["position"] == (1000, 3, 4)
+    assert animation._capture_state()[1][section.id]["position"] == (
+        1000,
+        3,
+        4,
+    )
 
 
 def test_2d_to_oblique_3d_snapshot_uses_destination_mode():
     viewer, source, animation, section = setup_section(3, normal=(1, 1, 0))
     state = ViewerState.from_viewer(
-        viewer, scene=animation.scene.to_dict(), view={"active_section_id": section.id}
+        viewer,
+        scene=animation.scene.to_dict(),
+        view={"active_section_id": section.id},
     )
     viewer.dims.ndisplay = 2
     state.apply(viewer)
@@ -159,10 +173,14 @@ def test_disabling_active_section_restores_source():
 
 
 def test_clip_mode_has_visible_thick_projection_in_2d():
-    viewer, source, animation, section = setup_section(render_mode="clip", thickness=2)
+    viewer, source, animation, section = setup_section(
+        render_mode="clip", thickness=2
+    )
     output = managed(viewer, section)
     assert output is not None and output.visible
-    np.testing.assert_array_equal(output._data_view, source.data[1:3].max(axis=0))
+    np.testing.assert_array_equal(
+        output._data_view, source.data[1:3].max(axis=0)
+    )
 
 
 def test_2d_projection_uses_section_appearance():
@@ -204,7 +222,9 @@ def test_deleted_source_cannot_rebind_by_reused_name():
     viewer, source, animation, section = setup_section()
     state = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     viewer.layers.remove(source)
-    replacement = viewer.add_image(np.zeros((6, 7, 9)), name="volume", opacity=0.3)
+    replacement = viewer.add_image(
+        np.zeros((6, 7, 9)), name="volume", opacity=0.3
+    )
     assert section.source_layer(viewer) is None
     state.apply(viewer)
     assert replacement.opacity == 0.3
@@ -224,7 +244,9 @@ def test_snapshot_dims_events_do_not_modify_live_scene():
     viewer, source, animation, section = setup_section()
     state = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     dims = dict(state.dims, current_step=(4, 3, 4))
-    snapshot_scene = {section.id: dict(state.scene[section.id], position=(4, 3, 4))}
+    snapshot_scene = {
+        section.id: dict(state.scene[section.id], position=(4, 3, 4))
+    }
     replace(state, dims=dims, scene=snapshot_scene).apply(viewer)
     assert section.position == (2, 3, 4)
 
@@ -234,7 +256,9 @@ def test_partially_outside_slab_displays_expected_pixels():
     animation.update_scene_object(section.id, position=(-5, 3, 4))
     output = managed(viewer, section)
     assert output.visible
-    np.testing.assert_array_equal(output._data_view, source.data[0:2].max(axis=0))
+    np.testing.assert_array_equal(
+        output._data_view, source.data[0:2].max(axis=0)
+    )
 
 
 def test_boundary_spanning_slab_is_not_sliced_out_of_output():
@@ -253,7 +277,9 @@ def test_time_scroll_refreshes_3d_section():
     animation = Animation(viewer)
     section = animation.add_scene_object(OrthoSlice(source="volume"))
     viewer.dims.set_point(0, 1)
-    np.testing.assert_array_equal(managed(viewer, section, "section_3d").data, data[1])
+    np.testing.assert_array_equal(
+        managed(viewer, section, "section_3d").data, data[1]
+    )
 
 
 def test_invalid_edit_does_not_poison_scene():
@@ -271,7 +297,8 @@ def test_interpolated_2d_axis_switch_stays_renderable():
     viewer, source, animation, section = setup_section()
     start = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     end = replace(
-        start, dims=dict(start.dims, order=(1, 0, 2)),
+        start,
+        dims=dict(start.dims, order=(1, 0, 2)),
         scene={section.id: dict(start.scene[section.id], normal=(0, 1, 0))},
     )
     middle = FrameSequence(KeyFrameList())._interpolate_state(start, end, 0.5)
@@ -301,10 +328,12 @@ def test_backfilled_section_is_bound_before_source_name_reuse():
     viewer = ViewerModel()
     source = viewer.add_image(np.ones((6, 7, 9)), name="volume")
     animation = Animation(viewer)
-    animation.key_frames.append(KeyFrame(
-        viewer_state=ViewerState.from_viewer(viewer),
-        thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
-    ))
+    animation.key_frames.append(
+        KeyFrame(
+            viewer_state=ViewerState.from_viewer(viewer),
+            thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
+        )
+    )
     section = animation.add_scene_object(OrthoSlice(source="volume"))
     params = animation.key_frames[0].viewer_state.scene[section.id]
     assert params["source_id"] == LayerRegistry.ensure_id(source)
@@ -333,14 +362,20 @@ def test_invalid_snapshot_transform_is_rejected_before_mutation():
     np.testing.assert_allclose(source.rotate, np.eye(3))
 
 
-def test_load_failure_restores_working_edit_and_bindings(tmp_path, monkeypatch):
+def test_load_failure_restores_working_edit_and_bindings(
+    tmp_path, monkeypatch
+):
     from napari_animation import KeyFrame
 
     viewer, source, animation, section = setup_section()
-    animation.key_frames.append(KeyFrame(
-        viewer_state=ViewerState.from_viewer(viewer, scene=animation.scene.to_dict()),
-        thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
-    ))
+    animation.key_frames.append(
+        KeyFrame(
+            viewer_state=ViewerState.from_viewer(
+                viewer, scene=animation.scene.to_dict()
+            ),
+            thumbnail=np.zeros((30, 30, 4), dtype=np.uint8),
+        )
+    )
     path = animation.save_keyframes(tmp_path / "animation.json")
     fresh_viewer, fresh_source, fresh, fresh_section = setup_section()
     fresh.update_scene_object(fresh_section.id, position=(4, 3, 4))
@@ -369,7 +404,9 @@ def test_four_dimensional_clip_section(ndisplay):
     viewer = ViewerModel(ndisplay=ndisplay)
     viewer.add_image(np.ones((2, 6, 7, 9)), name="volume")
     animation = Animation(viewer)
-    section = animation.add_scene_object(OrthoSlice(source="volume", render_mode="clip"))
+    section = animation.add_scene_object(
+        OrthoSlice(source="volume", render_mode="clip")
+    )
     assert len(viewer.layers["volume"].experimental_clipping_planes) == 2
     if ndisplay == 2:
         assert managed(viewer, section).visible
@@ -397,8 +434,12 @@ def test_section_projection_matches_reference_opengl_pixels(
     position = [2, 3, 4]
     position[axis] = centre
     section = animation.add_scene_object(
-        OrthoSlice(source="volume", position=tuple(position), thickness=thickness,
-                   normal=tuple(np.eye(3)[axis]))
+        OrthoSlice(
+            source="volume",
+            position=tuple(position),
+            thickness=thickness,
+            normal=tuple(np.eye(3)[axis]),
+        )
     )
     animation.set_active_section(section.id)
     backing = managed(viewer, section, "section_3d")
@@ -406,18 +447,26 @@ def test_section_projection_matches_reference_opengl_pixels(
     animation.apply_working_state()
     viewer.window._qt_viewer.canvas.native.setFixedSize(400, 300)
     from qtpy.QtWidgets import QApplication
+
     QApplication.processEvents()
     viewer.camera.zoom = 20
-    camera_center = (0, *(value for index, value in enumerate(position) if index != axis))
+    camera_center = (
+        0,
+        *(value for index, value in enumerate(position) if index != axis),
+    )
     viewer.camera.center = camera_center
     QApplication.processEvents()
     actual = viewer.screenshot(canvas_only=True, flash=False)
 
     reference = make_napari_viewer(show=True)
     indices = np.arange(data.shape[axis])
-    included = (indices >= centre - thickness / 2) & (indices < centre + thickness / 2)
+    included = (indices >= centre - thickness / 2) & (
+        indices < centre + thickness / 2
+    )
     expected_data = np.take(data, indices[included], axis=axis).max(axis=axis)
-    reference.add_image(expected_data, contrast_limits=(0, 400), colormap="red")
+    reference.add_image(
+        expected_data, contrast_limits=(0, 400), colormap="red"
+    )
     reference.window._qt_viewer.canvas.native.setFixedSize(400, 300)
     QApplication.processEvents()
     reference.camera.zoom = 20
@@ -425,4 +474,6 @@ def test_section_projection_matches_reference_opengl_pixels(
     QApplication.processEvents()
     expected = reference.screenshot(canvas_only=True, flash=False)
     assert np.ptp(expected[..., 0]) > 30
-    np.testing.assert_allclose(actual.astype(float), expected.astype(float), atol=1)
+    np.testing.assert_allclose(
+        actual.astype(float), expected.astype(float), atol=1
+    )

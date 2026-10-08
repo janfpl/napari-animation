@@ -22,10 +22,10 @@ import io
 import json
 import os
 import tempfile
-from uuid import uuid4
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 import imageio
 import numpy as np
@@ -33,7 +33,10 @@ import numpy as np
 from .easing import Easing
 from .key_frame import KeyFrame
 from .layer_registry import (
-    LayerRegistry, MANAGED_ROLE_METADATA, OBJECT_ID_METADATA, TRANSIENT_ROLE,
+    MANAGED_ROLE_METADATA,
+    OBJECT_ID_METADATA,
+    TRANSIENT_ROLE,
+    LayerRegistry,
 )
 from .viewer_state import ViewerState
 
@@ -93,9 +96,10 @@ def _layer_records(viewer) -> list:
     records = []
     LayerRegistry(viewer).ensure_unique_ids()
     for layer in viewer.layers:
-        if (
-            getattr(layer, "metadata", {}).get(MANAGED_ROLE_METADATA) == TRANSIENT_ROLE
-            or layer.metadata.get("napari_animation.composite")
+        if getattr(layer, "metadata", {}).get(
+            MANAGED_ROLE_METADATA
+        ) == TRANSIENT_ROLE or layer.metadata.get(
+            "napari_animation.composite"
         ):
             continue
         source_path = getattr(getattr(layer, "source", None), "path", None)
@@ -172,7 +176,9 @@ def save_animation(animation: "Animation", path) -> Path:
     return path
 
 
-def _bind_layers(animation: "Animation", layer_records, open_missing=False) -> None:
+def _bind_layers(
+    animation: "Animation", layer_records, open_missing=False
+) -> None:
     """Bind saved IDs to live layers and optionally open missing sources."""
     viewer = animation.viewer
     registry = LayerRegistry(viewer)
@@ -252,7 +258,9 @@ def _normalize_source_ids(data: dict) -> None:
                 source_id = by_name.get(layer_state.get("name")) or str(key)
             source_id = str(source_id)
             if source_id in normalized:
-                raise ValueError(f"Duplicate layer source ID {source_id!r} in keyframe")
+                raise ValueError(
+                    f"Duplicate layer source ID {source_id!r} in keyframe"
+                )
             layer_state["source_id"] = source_id
             normalized[source_id] = layer_state
         state["layers"] = normalized
@@ -289,8 +297,13 @@ def _migrate_v2_sections(data: dict) -> None:
     """Turn one-source sections into one-binding composites in saved state."""
     records = data.get("layers", [])
     first_source = next(
-        (record for record in records
-         if not str(record.get("source_id", "")).startswith("napari-animation:")),
+        (
+            record
+            for record in records
+            if not str(record.get("source_id", "")).startswith(
+                "napari-animation:"
+            )
+        ),
         None,
     )
     managed_ids = set()
@@ -298,7 +311,10 @@ def _migrate_v2_sections(data: dict) -> None:
         state = frame.get("viewer_state", {})
         layers = state.get("layers") or {}
         for params in (state.get("scene") or {}).values():
-            if params.get("kind") != "ortho_slice" or params.get("channels") is not None:
+            if (
+                params.get("kind") != "ortho_slice"
+                or params.get("channels") is not None
+            ):
                 continue
             section_id = str(params.get("id", ""))
             managed_id = LayerRegistry.managed_id(section_id, "section_3d")
@@ -321,7 +337,12 @@ def _migrate_v2_sections(data: dict) -> None:
                 old_output = layers.get(managed_id, {})
                 appearance = {
                     key: old_output[key]
-                    for key in ("colormap", "contrast_limits", "gamma", "opacity")
+                    for key in (
+                        "colormap",
+                        "contrast_limits",
+                        "gamma",
+                        "opacity",
+                    )
                     if key in old_output
                 }
                 if appearance:
@@ -333,7 +354,8 @@ def _migrate_v2_sections(data: dict) -> None:
             layers.pop(managed_id, None)
         state["layers"] = layers
     data["layers"] = [
-        record for record in records
+        record
+        for record in records
         if record.get("source_id") not in managed_ids
     ]
     data["version"] = FILE_FORMAT_VERSION
@@ -347,7 +369,9 @@ def _validate_keyframe_scene(animation: "Animation", frame: KeyFrame) -> None:
         raise ValueError(f"Invalid dims.order {order!r} for {ndim} dimensions")
     ndisplay = int(dims.get("ndisplay", 2))
     if ndisplay not in {2, 3} or ndisplay > ndim:
-        raise ValueError(f"Invalid dims.ndisplay {ndisplay!r} for {ndim} dimensions")
+        raise ValueError(
+            f"Invalid dims.ndisplay {ndisplay!r} for {ndim} dimensions"
+        )
     scene = frame.viewer_state.scene
     active = None
     if isinstance(frame.viewer_state.view, dict):
@@ -443,12 +467,18 @@ def load_animation(
     old_frame = getattr(animation, "_current_frame", 0)
     old_sequence_index = animation._frames._current_index
     viewer = animation.viewer
-    old_layers = [(layer, dict(layer.metadata), layer.name) for layer in viewer.layers]
+    old_layers = [
+        (layer, dict(layer.metadata), layer.name) for layer in viewer.layers
+    ]
     ortho, scene, view = animation._capture_state()
-    working_state = ViewerState.from_viewer(viewer, ortho=ortho, scene=scene, view=view)
+    working_state = ViewerState.from_viewer(
+        viewer, ortho=ortho, scene=scene, view=view
+    )
     try:
         with animation.renderer.applying_state():
-            _bind_layers(animation, data.get("layers", []), open_missing=reload_layers)
+            _bind_layers(
+                animation, data.get("layers", []), open_missing=reload_layers
+            )
             # Sources opened or rebound above must also pass validation, for
             # every frame, before replacing the user's timeline.
             for key_frame in parsed_keyframes:
@@ -458,7 +488,10 @@ def load_animation(
         if len(animation.key_frames):
             animation.set_to_keyframe(0)
     except Exception:
-        with animation.renderer.applying_state(), animation.key_frames.selection.events.active.blocker():
+        with (
+            animation.renderer.applying_state(),
+            animation.key_frames.selection.events.active.blocker(),
+        ):
             animation.key_frames.clear()
             animation.key_frames.extend(old_keyframes)
             animation.key_frames.selection.update(old_selection)

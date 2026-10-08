@@ -156,7 +156,7 @@ class ScrollThroughWidget(QGroupBox):
         self.axisComboBox.clear()
         labels = [str(label) for label in dims.axis_labels]
         spatial_start = max(0, dims.ndim - 3)
-        spatial_names = ("Z", "Y", "X")[-min(dims.ndim, 3):]
+        spatial_names = ("Z", "Y", "X")[-min(dims.ndim, 3) :]
         for axis in range(dims.ndim):
             if axis >= spatial_start:
                 name = spatial_names[axis - spatial_start]
@@ -164,7 +164,11 @@ class ScrollThroughWidget(QGroupBox):
                 # Keep user-provided names for leading dimensions (for
                 # example Time); napari's numeric defaults are not useful.
                 label = labels[axis]
-                name = label if not label.lstrip("-").isdigit() else f"Axis {axis}"
+                name = (
+                    label
+                    if not label.lstrip("-").isdigit()
+                    else f"Axis {axis}"
+                )
             self.axisComboBox.addItem(name, axis)
         # default to the current slider axis, which is what a user scrolling
         # by hand would be moving
