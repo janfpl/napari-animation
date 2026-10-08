@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 numba = pytest.importorskip("numba")
-from napari_animation.numba_projection import project
+from napari_animation.numba_projection import project  # noqa: E402
 
 
 @pytest.mark.parametrize("axis", [0, 1, 2])

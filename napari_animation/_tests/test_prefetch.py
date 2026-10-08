@@ -165,8 +165,8 @@ def test_custom_residency_rules_keep_frames_lazy(loaded, path):
 
     source = np.zeros((8, 8, 8), dtype=np.uint8)
     layer = SimpleNamespace(data=source, ndim=3, loaded=loaded,
-        metadata={SOURCE_ID_METADATA: 'source'},
-        _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
+                            metadata={SOURCE_ID_METADATA: 'source'},
+                            _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
     state = ViewerState(camera={}, dims={'ndisplay': 3}, layers={'source': {}})
     keys = KeyFrameList()
     keys.extend([KeyFrame(state, np.zeros((1, 1, 3)), steps=1),
@@ -193,8 +193,8 @@ def test_residency_check_does_not_iterate_unknown_lazy_sequence():
 
     source = np.zeros((8, 8, 8), dtype=np.uint8)
     layer = SimpleNamespace(data=source, ndim=3, loaded=True,
-        metadata={SOURCE_ID_METADATA: 'source'},
-        _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
+                            metadata={SOURCE_ID_METADATA: 'source'},
+                            _slice=SimpleNamespace(image=SimpleNamespace(view=source)))
     from napari_animation.prefetch import _all_sources_resident
     assert not _all_sources_resident(SimpleNamespace(layers=[layer]), LazyFrames())
 

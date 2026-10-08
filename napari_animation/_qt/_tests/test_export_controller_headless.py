@@ -392,6 +392,7 @@ def test_export_progress_blocks_viewer_edits_and_cancel_restores():
         assert len(results) == 1 and str(results[0]) == "Export cancelled"
         assert controller._progress is None
         assert not viewer._napari_animation_export_exact
+        assert app is not None
     finally:
         animation.close()
         qt_window.close()

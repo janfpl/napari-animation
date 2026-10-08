@@ -125,7 +125,6 @@ def test_capture_failure_restores_canvas_camera_and_slice_callbacks(
     assert viewer.screenshot(canvas_only=True)[..., :3].max() > 128
 
 
-
 def test_native_export_session_matches_individual_frames(native_viewer):
     from napari_animation.render_capture import ExportCaptureSession
     viewer = native_viewer
@@ -148,7 +147,6 @@ def test_native_export_session_matches_individual_frames(native_viewer):
     assert (native.width(), native.height()) == before
 
 
-
 def test_native_qt_session_cancel_restores_viewport(native_viewer, monkeypatch, tmp_path):
     from qtpy.QtCore import QEventLoop, QTimer
     from napari_animation import Animation
@@ -163,9 +161,10 @@ def test_native_qt_session_cancel_restores_viewport(native_viewer, monkeypatch, 
     native = viewer.window._qt_viewer.canvas.native
     before = (native.width(), native.height())
     controller = QtExportController(animation, dict(path=str(tmp_path / "frames"),
-        render_size=(720, 1280), prefetch=0, dask_cache=None, diagnose=False))
+                                                    render_size=(720, 1280), prefetch=0, dask_cache=None, diagnose=False))
     original = module.capture_export_frame
     frames = []
+
     def capture(*args, **kwargs):
         frame = original(*args, **kwargs)
         frames.append(frame.shape)
@@ -189,7 +188,6 @@ def test_native_qt_session_cancel_restores_viewport(native_viewer, monkeypatch, 
     finally:
         deadline.stop()
         animation.close()
-
 
 
 def test_scaled_clip_slab_selects_authored_world_position(native_viewer):
@@ -229,7 +227,7 @@ def test_clip_export_converts_nanometers_to_world_micrometers(native_viewer):
     viewer = native_viewer
     viewer.dims.ndisplay = 3
     layer = viewer.add_image(np.full((20, 20, 20), 200, np.uint8),
-        scale=(1000, 1000, 1000), units=('nm',) * 3, contrast_limits=(0, 255))
+                             scale=(1000, 1000, 1000), units=('nm',) * 3, contrast_limits=(0, 255))
     viewer.layers.units = ('um',) * 3
     QApplication.processEvents()
     viewer.reset_view()

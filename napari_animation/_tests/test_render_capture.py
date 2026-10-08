@@ -104,6 +104,7 @@ def test_export_session_resizes_once_and_preserves_each_authored_zoom(ratio):
     from math import ceil
     from napari_animation.render_capture import ExportCaptureSession
     observed = []
+
     def screenshot(**kwargs):
         observed.append(viewer.camera.zoom)
         native = viewer.window._qt_viewer.canvas.native
@@ -112,6 +113,7 @@ def test_export_session_resizes_once_and_preserves_each_authored_zoom(ratio):
     native = viewer.window._qt_viewer.canvas.native
     resize = native.resize
     sizes = []
+
     def resized(*size):
         sizes.append(size)
         resize(*size)
@@ -130,6 +132,7 @@ def test_export_session_resizes_once_and_preserves_each_authored_zoom(ratio):
 
 def test_export_session_failure_and_scaling_change_restore_view():
     from napari_animation.render_capture import ExportCaptureSession
+
     def fail(**kwargs):
         raise RuntimeError("failed readback")
     viewer = viewer_with_canvas(fail)

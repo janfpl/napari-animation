@@ -132,6 +132,7 @@ class PerfLogger:
             phases = {}
             for name, total in self._totals.items():
                 samples = sorted(self._samples[name])
+
                 def percentile(fraction):
                     pos = (len(samples) - 1) * fraction
                     low = int(pos)

@@ -492,6 +492,7 @@ class Animation:
             self.active_section_id = old_active
             self.renderer.active_section_id = old_active
             raise
+
     @trace_interaction("snap_3d")
     def snap_3d(self, capture=True, steps=15, ease=Easing.LINEAR):
         """Return the canvas to the 3D view."""
@@ -509,6 +510,7 @@ class Animation:
         OrthoSlicer._reset_margins(self.viewer)
         self.apply_working_state()
         self.fit_view()
+
     def _axis_limits(self, axis):
         """World-coordinate ``(start, stop)`` of one dims axis."""
         axis_range = self.viewer.dims.range[axis]

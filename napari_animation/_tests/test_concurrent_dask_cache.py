@@ -27,6 +27,7 @@ def test_overlapping_finalizers(cache_type):
     array = da.from_array(np.arange(64), chunks=8)
     # Explicit callbacks make the overlap deterministic regardless of Dask's
     # global callback suppression for nested/concurrent schedulers.
+
     def compute():
         return array.compute(scheduler="synchronous", callbacks=[cache._callback])
 
@@ -49,6 +50,7 @@ def test_concurrent_cache_reuses_tasks():
     from dask import delayed
 
     reads = []
+
     @delayed(pure=True)
     def read():
         reads.append(1)
@@ -120,6 +122,7 @@ def test_real_parallel_arrays_and_eviction():
     cache = ConcurrentCache(4096)
     data = np.arange(32 * 16).reshape(32, 16)
     array = da.from_array(data, chunks=(2, 8))
+
     def compute(index):
         return (array[index % 32] * 3).compute(callbacks=[cache._callback])
 

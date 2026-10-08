@@ -14,11 +14,9 @@ from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 
-from .._h5_worker import (
-    StripeVolume as _StripeVolume,
-    open_worker as _open_worker,
-    project_stripe as _project_stripe,
-)
+from .._h5_worker import StripeVolume as _StripeVolume  # noqa: F401 (tests)
+from .._h5_worker import open_worker as _open_worker
+from .._h5_worker import project_stripe as _project_stripe
 
 _MIN_PHYSICAL_BYTES = 64 * 1024**2
 

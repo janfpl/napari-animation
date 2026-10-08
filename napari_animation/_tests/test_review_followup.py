@@ -80,7 +80,7 @@ def test_in_place_source_edit_can_invalidate_hidden_section():
 
 def test_timepoint_binding_changes_only_when_time_changes():
     viewer = ViewerModel(ndisplay=3)
-    source = viewer.add_image(np.zeros((2, 6, 7, 9)), name="volume")
+    viewer.add_image(np.zeros((2, 6, 7, 9)), name="volume")
     animation = Animation(viewer)
     section = animation.add_scene_object(OrthoSlice(source="volume"))
     backing = managed(viewer, section, "section_3d")

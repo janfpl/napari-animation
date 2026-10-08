@@ -383,7 +383,7 @@ def test_custom_lut_transitions_are_atomic():
     })
     custom = ViewerState.from_viewer(viewer, scene=animation.scene.to_dict())
     for destination in ('green', section._colormap_spec(Colormap(
-        colors=[[0, 0, 0, 1], [0, 1, 1, 1]], name='second LUT'))):
+            colors=[[0, 0, 0, 1], [0, 1, 1, 1]], name='second LUT'))):
         target_scene = deepcopy(custom.scene)
         target_scene[section.id]['channels'][green_id]['appearance'].update(
             colormap=destination, opacity=.8)

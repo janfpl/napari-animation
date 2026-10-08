@@ -74,6 +74,7 @@ def sync_native_clipping(viewer):
             continue
         if layer not in bindings:
             viewer_ref, layer_ref = weakref.ref(viewer), weakref.ref(layer)
+
             def changed(event=None, vr=viewer_ref, lr=layer_ref):
                 owner, source = vr(), lr()
                 if owner is not None and source is not None:

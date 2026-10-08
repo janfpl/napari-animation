@@ -96,6 +96,7 @@ def test_save_dialog_returns_selected_render_size(qtbot):
     animation, _ = _animation_context()
     dialog = SaveDialogWidget()
     qtbot.addWidget(dialog)
+
     def choose_preset(self):
         self.selectFile("movie.mp4")
         self.optionsWidget.resolutionComboBox.setCurrentIndex(

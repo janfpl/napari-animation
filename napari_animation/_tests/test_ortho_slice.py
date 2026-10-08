@@ -557,7 +557,6 @@ def test_viewer_state_captures_the_slice_layer(viewer):
     assert state.layers["Ortho"]["depiction"] == "plane"
 
 
-
 def test_clip_snapshot_keeps_lazy_editable_plane_then_materializes(viewer):
     from napari_animation.scene.renderer import SceneRenderer
     section = OrthoSlice(name="Clipped", source="img", render_mode="clip", position=(9, 10, 10))

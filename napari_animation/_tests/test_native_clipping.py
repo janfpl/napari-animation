@@ -18,9 +18,12 @@ def test_native_clip_adapter_preserves_model_and_transforms_normals():
     node = SimpleNamespace(clipping_planes_coord_system="scene",
                            clipping_planes=np.empty((0, 2, 3)))
     visual = SimpleNamespace(node=node)
-    viewer = SimpleNamespace(layers=model.layers, dims=model.dims,
-        window=SimpleNamespace(_qt_viewer=SimpleNamespace(
-            canvas=SimpleNamespace(layer_to_visual={layer: visual}))))
+    canvas = SimpleNamespace(layer_to_visual={layer: visual})
+    viewer = SimpleNamespace(
+        layers=model.layers, dims=model.dims,
+        window=SimpleNamespace(_qt_viewer=SimpleNamespace(canvas=canvas)),
+    )
+
     # SimpleNamespace cannot be weak-referenced; use a plain adapter class.
     class Viewer:
         pass
@@ -53,6 +56,7 @@ def test_native_clip_adapter_leaves_data_space_visuals_alone():
     layer = model.add_image(np.zeros((8, 8, 8), np.uint8))
     node = SimpleNamespace(clipping_planes_coord_system="visual",
                            clipping_planes="untouched")
+
     class Viewer:
         pass
     viewer = Viewer()

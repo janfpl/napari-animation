@@ -217,6 +217,7 @@ class ProjectionService:
 
     def _start(self, request):
         self._active = request
+
         def compute():
             try:
                 if self.trace is None:

@@ -8,7 +8,6 @@ http://sam.zoy.org/wtfpl/COPYING for more details.
 """
 
 from enum import Enum
-from functools import partial
 from math import cos, pi, pow, sin, sqrt
 
 tau = pi * 2

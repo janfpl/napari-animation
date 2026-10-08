@@ -1090,8 +1090,7 @@ class OrthoSlice(SceneObject):
         coarse = len(source.data) - 1 if multiscale else 0
         progressive = (
             getattr(self, "_composite_parent", None) is None
-            and
-            service.asynchronous and multiscale and finest < coarse
+            and service.asynchronous and multiscale and finest < coarse
             and not getattr(viewer, "_napari_animation_export_exact", False)
             and service.cache.get(exact[0]) is None
         )
