@@ -38,8 +38,9 @@ supports, requires it, and the package declares `python_requires = >=3.11`.
 **The napari floor matters.** This fork requires **napari >= 0.8** — the
 resolution controls use `Image.locked_data_level`, which first appeared in
 0.8, and the dock listens for the layer list's units event (napari 0.7+). It
-is developed and tested against **napari 0.8.0**. The declared floor used to
-be `0.5.0`, which would let pip resolve a napari too old to run the code.
+is developed against **napari 0.8.0**, and the test suite also passes on
+napari 0.9.2. The declared floor used to be `0.5.0`, which would let pip
+resolve a napari too old to run the code.
 
 **Install from a git clone, not a tarball.** Versioning uses
 `setuptools_scm`, which reads the git history. Installing from a directory with
