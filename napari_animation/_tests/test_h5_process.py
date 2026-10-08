@@ -1,7 +1,6 @@
 """Pure planning and exact-pixel checks for parallel HDF5 sections."""
 
 import threading
-from pathlib import Path
 from uuid import uuid4
 
 import dask.array as da
@@ -20,9 +19,8 @@ from napari_animation.scene.processing import project_slab
 
 @pytest.mark.parametrize("axis", (0, 1, 2))
 @pytest.mark.parametrize("projection", ("max", "min", "mean"))
-def test_h5_stripes_reconstruct_exact_projection(axis, projection):
-    parent = Path(__file__).resolve().parents[2] / ".performance-audit"
-    parent.mkdir(exist_ok=True)
+def test_h5_stripes_reconstruct_exact_projection(axis, projection, tmp_path):
+    parent = tmp_path
     path = parent / f"{uuid4().hex}.ims"
     data = np.arange(8 * 10 * 12, dtype=np.uint16).reshape(8, 10, 12)
     try:
@@ -102,9 +100,8 @@ def test_h5_process_lane_policy(monkeypatch):
     assert process_lanes(descriptor[:-1] + (None,), 0, 120, 124) == 2
 
 
-def test_external_link_descriptor_opens_the_data_file():
-    parent = Path(__file__).resolve().parents[2] / ".performance-audit"
-    parent.mkdir(exist_ok=True)
+def test_external_link_descriptor_opens_the_data_file(tmp_path):
+    parent = tmp_path
     stem = uuid4().hex
     data_path = parent / f"{stem}.lux.h5"
     header_path = parent / f"{stem}.ims"
@@ -128,9 +125,8 @@ def test_external_link_descriptor_opens_the_data_file():
         data_path.unlink(missing_ok=True)
 
 
-def test_singleton_imaris_loader_graph_maps_to_exact_h5_dataset():
-    parent = Path(__file__).resolve().parents[2] / ".performance-audit"
-    parent.mkdir(exist_ok=True)
+def test_singleton_imaris_loader_graph_maps_to_exact_h5_dataset(tmp_path):
+    parent = tmp_path
     path = parent / f"{uuid4().hex}.ims"
 
     class ims_reader:
@@ -197,11 +193,12 @@ def test_singleton_imaris_loader_graph_maps_to_exact_h5_dataset():
         path.unlink(missing_ok=True)
 
 
-def test_uncompressed_native_chunk_graph_uses_exact_direct_read(monkeypatch):
+def test_uncompressed_native_chunk_graph_uses_exact_direct_read(
+    monkeypatch, tmp_path
+):
     import napari_animation.scene.processing as processing
 
-    parent = Path(__file__).resolve().parents[2] / ".performance-audit"
-    parent.mkdir(exist_ok=True)
+    parent = tmp_path
     path = parent / f"{uuid4().hex}.lux.h5"
     voxels = np.arange(8 * 40 * 40, dtype=np.uint16).reshape(8, 40, 40)
     try:
@@ -239,11 +236,10 @@ def test_uncompressed_native_chunk_graph_uses_exact_direct_read(monkeypatch):
         path.unlink(missing_ok=True)
 
 
-def test_custom_h5_getter_preserves_calibrated_voxels():
+def test_custom_h5_getter_preserves_calibrated_voxels(tmp_path):
     from napari_animation.scene.processing import ProjectionService
 
-    parent = Path(__file__).resolve().parents[2] / ".performance-audit"
-    parent.mkdir(exist_ok=True)
+    parent = tmp_path
     path = parent / f"{uuid4().hex}.lux.h5"
     voxels = np.arange(2 * 16 * 16, dtype=np.uint16).reshape(2, 16, 16)
     try:
