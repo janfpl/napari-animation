@@ -46,6 +46,11 @@ class AnimationWidget(QWidget):
 
     def __init__(self, viewer: Viewer, parent=None):
         super().__init__(parent=parent)
+        # A dock opened from napari's Plugins menu receives a PublicOnlyProxy
+        # of the viewer. This plugin drives napari's canvas, layer controls
+        # and slicer, and Qt rejects proxied widgets as arguments (e.g. as a
+        # dialog parent), so work with the viewer itself.
+        viewer = getattr(viewer, "__wrapped__", viewer)
         # Store reference to viewer and create animation
         self.viewer = viewer
         self.animation = Animation(self.viewer)

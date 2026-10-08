@@ -210,3 +210,47 @@ def test_voxel_size_panel_ignores_section_layers(qtbot):
 
     combo = widget.voxelSizeWidget.layerComboBox
     assert [combo.itemText(index) for index in range(combo.count())] == ["img"]
+
+
+def test_widget_from_plugin_menu_unwraps_viewer_proxy(
+    make_napari_viewer, qtbot, tmp_path
+):
+    """napari gives docks opened from the Plugins menu a viewer proxy.
+
+    Proxied Qt objects are rejected by Qt itself, which made the export
+    progress dialog raise a TypeError when Save Animation was used.
+    """
+    from napari.utils._proxies import PublicOnlyProxy
+    from qtpy.QtCore import QEventLoop, QTimer
+
+    from napari_animation._qt.export_controller import QtExportController
+
+    viewer = make_napari_viewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(PublicOnlyProxy(viewer))
+    qtbot.addWidget(widget)
+    assert widget.viewer is viewer
+    assert widget.animation.viewer is viewer
+
+    widget.frameWidget.stepsSpinBox.setValue(1)
+    widget._capture_keyframe_callback()
+    widget._capture_keyframe_callback()
+    controller = QtExportController(
+        widget.animation,
+        {
+            "path": str(tmp_path / "frames"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
+    loop = QEventLoop()
+    results = []
+    controller.finished.connect(
+        lambda _path, error: (results.append(error), loop.quit())
+    )
+    QTimer.singleShot(10000, loop.quit)
+    controller.start()
+    loop.exec_()
+    assert results == [None]
+    assert len(list((tmp_path / "frames").glob("*.png"))) == 2

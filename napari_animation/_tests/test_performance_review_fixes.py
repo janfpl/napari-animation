@@ -296,7 +296,9 @@ def test_gui_export_matches_exact_opengl_frames(
     from napari_animation._qt.export_controller import QtExportController
     from napari_animation.video_padding import pad_video_frame
 
-    viewer = make_napari_viewer(ndisplay=2)
+    # a hidden canvas can read back blank on some platforms, which would
+    # make this comparison pass vacuously
+    viewer = make_napari_viewer(ndisplay=2, show=True)
     data = np.arange(8 * 16 * 16, dtype=np.uint16).reshape(8, 16, 16)
     viewer.add_image(
         [data, data[::2, ::2, ::2]], name="volume", multiscale=True
@@ -326,6 +328,7 @@ def test_gui_export_matches_exact_opengl_frames(
             )
         )
     expected = [state.render(viewer) for state in animation._frames]
+    assert all(frame[..., :3].std() > 0 for frame in expected)
     captured = []
 
     class Writer:
