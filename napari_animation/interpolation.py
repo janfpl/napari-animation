@@ -1,3 +1,4 @@
+import enum
 import numbers
 from enum import Enum
 from functools import partial
@@ -5,6 +6,10 @@ from typing import Dict
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+
+# Python 3.13+ no longer turns functools.partial values into Enum members;
+# enum.member (3.11+) keeps them members on every supported version.
+_member = getattr(enum, "member", lambda value: value)
 
 
 def default(a, b, fraction):
@@ -55,7 +60,12 @@ def interpolate_seq(a, b, fraction):
         : sequence of type a
     Interpolated sequence between a and b at fraction.
     """
-    return type(a)(default(v0, v1, fraction) for v0, v1 in zip(a, b))
+    values = (default(v0, v1, fraction) for v0, v1 in zip(a, b))
+    if hasattr(a, "_fields"):
+        # namedtuples (e.g. napari>=0.5 dims.range RangeTuple) take
+        # positional fields rather than a single iterable
+        return type(a)(*values)
+    return type(a)(values)
 
 
 def interpolate_num(a, b, fraction):
@@ -159,9 +169,9 @@ class Interpolation(Enum):
 
     """
 
-    DEFAULT = partial(default)
-    LOG = partial(interpolate_log)
-    SLERP = partial(slerp)
+    DEFAULT = _member(partial(default))
+    LOG = _member(partial(interpolate_log))
+    SLERP = _member(partial(slerp))
 
     def __call__(self, *args):
         return self.value(*args)

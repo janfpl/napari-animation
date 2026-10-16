@@ -7,9 +7,15 @@ Copyright (c) 2011, Auerhaus Development, LLC
 http://sam.zoy.org/wtfpl/COPYING for more details.
 """
 
+import enum
 from enum import Enum
 from functools import partial
 from math import cos, pi, pow, sin, sqrt
+
+# Python 3.13+ no longer turns functools.partial values into Enum members;
+# enum.member (3.11+) keeps them members on every supported version.
+_member = getattr(enum, "member", lambda value: value)
+
 
 tau = pi * 2
 
@@ -267,16 +273,16 @@ class Easing(Enum):
             * bounce: bounce easing in and out.
     """
 
-    LINEAR = partial(linear_interpolation)
-    QUADRATIC = partial(quadratic_ease_in_out)
-    CUBIC = partial(cubic_ease_in_out)
-    QUINTIC = partial(quintic_ease_in_out)
-    SINE = partial(sine_ease_in_out)
-    CIRCULAR = partial(circular_ease_in_out)
-    EXPONENTIAL = partial(exponential_ease_in_out)
-    ELASTIC = partial(elastic_ease_in_out)
-    BACK = partial(back_ease_in_out)
-    BOUNCE = partial(bounce_ease_in_out)
+    LINEAR = _member(partial(linear_interpolation))
+    QUADRATIC = _member(partial(quadratic_ease_in_out))
+    CUBIC = _member(partial(cubic_ease_in_out))
+    QUINTIC = _member(partial(quintic_ease_in_out))
+    SINE = _member(partial(sine_ease_in_out))
+    CIRCULAR = _member(partial(circular_ease_in_out))
+    EXPONENTIAL = _member(partial(exponential_ease_in_out))
+    ELASTIC = _member(partial(elastic_ease_in_out))
+    BACK = _member(partial(back_ease_in_out))
+    BOUNCE = _member(partial(bounce_ease_in_out))
 
     def __call__(self, *args):
         return self.value(*args)
