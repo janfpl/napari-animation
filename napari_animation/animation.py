@@ -493,6 +493,10 @@ class Animation:
         self.key_frames.selection.active = None
 
     def _on_keyframe_changed(self, event):
+        # napari>=0.5 may call this before FrameSequence's own handler, so
+        # refresh the frame index first; otherwise it still points at the
+        # replaced key-frame and selecting the new one fails.
+        self._frames._rebuild_frame_index()
         self.key_frames.selection.active = event.value
 
     def _on_active_keyframe_changed(self, event):

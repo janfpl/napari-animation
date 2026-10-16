@@ -1,0 +1,30 @@
+# Conda environment for opening Imaris (.ims) files in napari and making
+# movies with napari-animation. See IMS_MOVIE.md for usage.
+#
+#   conda env create -f environment-ims-movie.yml
+#   conda activate napari-ims-movie
+#   napari
+name: napari-ims-movie
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - napari=0.5.6
+  - pyqt=5.15
+  - git  # needed by pip to install the plugins below from GitHub
+  - pip
+  # napari-imaris-loader
+  - h5py
+  - dask
+  # napari-animation
+  - imageio
+  - imageio-ffmpeg
+  - scipy
+  - tqdm
+  - superqt
+  - napari-plugin-engine
+  - pip:
+      - imaris-ims-file-reader>=0.1.5
+      - hdf5plugin  # extra HDF5 compression filters; from pip to keep the conda solve fast
+      - git+https://github.com/janfpl/napari-imaris-loader.git@main
+      - git+https://github.com/janfpl/napari-animation.git@main
