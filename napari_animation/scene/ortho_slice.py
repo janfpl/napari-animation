@@ -768,29 +768,37 @@ class OrthoSlice(SceneObject):
         # Preserve the editable plane and source transform without reading or
         # uploading another full volume for 2D and clip-only sections.
         placeholder = bool(defer_volume)
+        # Pass the appearance to the constructor: assigning colormap,
+        # contrast limits, gamma or projection mode afterwards recomputes the
+        # layer thumbnail -- a reduction over the whole volume -- once per
+        # property. OrthoSlicer resets every layer's projection mode to
+        # "none" (napari defaults images to "mean").
+        appearance = {
+            "opacity": source.opacity,
+            "contrast_limits": tuple(source.contrast_limits),
+            "projection_mode": "none",
+        }
+        try:
+            appearance["colormap"] = source.colormap
+            appearance["gamma"] = source.gamma
+        except AttributeError:
+            pass
         layer = viewer.add_image(
             np.zeros((1, 1, 1), dtype=np.uint8) if placeholder else data,
             name=registry.unique_name(self.layer_name),
             visible=not placeholder,
             affine=affine,
-            opacity=source.opacity,
-            contrast_limits=tuple(source.contrast_limits),
             units=tuple(source.units[-3:]),
             depiction="plane",
             rendering=PROJECTION_TO_RENDERING.get(self.projection, "mip"),
             metadata=registry.managed_metadata(self.id, "section_3d"),
+            **appearance,
         )
         registry.mark_managed(layer, self.id, "section_3d")
         layer._napari_animation_data_binding = None if placeholder else binding
         layer._napari_animation_placeholder = placeholder
         layer.metadata["napari_animation.source"] = source.name
         layer.metadata["napari_animation.source_level"] = self.source_level
-        try:
-            layer.colormap = source.colormap.name
-            layer.contrast_limits = list(source.contrast_limits)
-            layer.gamma = source.gamma
-        except (AttributeError, ValueError, KeyError):
-            pass
         self._bind_layer_events(layer, viewer)
         return layer
 
