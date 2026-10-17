@@ -32,6 +32,87 @@ from ..viewer_state import ViewerState
 
 logger = logging.getLogger("napari_animation")
 
+#: Re-applies of one frame before a persistent viewer-state difference is
+#: accepted and the frame captured anyway.  The check guards against queued
+#: editor callbacks; a difference that survives this many applies comes from
+#: the viewer itself and would otherwise stall the export forever.
+MAX_FRAME_REAPPLIES = 5
+
+_FLOAT_TOLERANCE = 1e-6
+
+
+def _angles_match(a, b, flipped_axes=None) -> bool:
+    """Whether two napari camera Euler triples describe the same rotation.
+
+    The vispy camera reads angles back from a quaternion, so an equivalent
+    triple can return in another 360-degree branch or Euler form.
+    """
+    import numpy as np
+
+    a = np.asarray(a, float)
+    b = np.asarray(b, float)
+    if a.shape != b.shape:
+        return False
+    wrapped = (a - b + 180.0) % 360.0 - 180.0
+    if np.all(np.abs(wrapped) <= _FLOAT_TOLERANCE):
+        return True
+    if a.shape != (3,):
+        return False
+    try:
+        from napari._vispy.camera import napari_angles_to_vispy_quat
+    except ImportError:  # private helper; the branch check above still holds
+        return False
+    flipped = (0, 0, 0) if flipped_axes is None else flipped_axes
+    qa = napari_angles_to_vispy_quat(a, flipped)
+    qb = napari_angles_to_vispy_quat(b, flipped)
+    dot = abs(qa.w * qb.w + qa.x * qb.x + qa.y * qb.y + qa.z * qb.z)
+    return dot >= 1.0 - 1e-12
+
+
+def _is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _state_differences(a, b, path="", flipped_axes=None):
+    """Yield dotted paths where two builtin viewer signatures differ.
+
+    Floats compare within a small tolerance and camera angles compare as
+    rotations; everything else must be equal.
+    """
+    if path == "camera.angles":
+        if not _angles_match(a, b, flipped_axes):
+            yield path
+        return
+    if isinstance(a, dict) and isinstance(b, dict):
+        for key in sorted(set(a) | set(b), key=str):
+            child = f"{path}.{key}" if path else str(key)
+            if key not in a or key not in b:
+                yield child
+            else:
+                yield from _state_differences(
+                    a[key], b[key], child, flipped_axes
+                )
+        return
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            yield path
+            return
+        for index, (x, y) in enumerate(zip(a, b)):
+            yield from _state_differences(
+                x, y, f"{path}[{index}]", flipped_axes
+            )
+        return
+    if (
+        _is_number(a)
+        and _is_number(b)
+        and (isinstance(a, float) or isinstance(b, float))
+    ):
+        if abs(a - b) > _FLOAT_TOLERANCE * max(1.0, abs(a), abs(b)):
+            yield path
+        return
+    if a != b:
+        yield path
+
 
 class QtExportController(QObject):
     """Export one frame per event-loop turn, waiting for matching data."""
@@ -52,6 +133,7 @@ class QtExportController(QObject):
         self._diagnostic_report = ""
         self._pending_frame = None
         self._index = 0
+        self._reapplies = 0
         self._cancelled = False
         self._generation = 0
         self._finalizing = False
@@ -302,7 +384,27 @@ class QtExportController(QObject):
         from ..io import _to_builtin
 
         state = ViewerState.from_viewer(self.animation.viewer)
-        return _to_builtin((state.camera, state.dims, state.layers))
+        return _to_builtin(
+            {
+                "camera": state.camera,
+                "dims": state.dims,
+                "layers": state.layers,
+            }
+        )
+
+    def _signature_differences(self, applied, current):
+        flipped_axes = None
+        try:
+            from napari._vispy.camera import get_vispy_flipped_axes
+
+            flipped_axes = get_vispy_flipped_axes(
+                self.animation.viewer.camera, ndisplay=3
+            )
+        except Exception:  # noqa: BLE001 - private napari helper
+            pass
+        return list(
+            _state_differences(applied, current, flipped_axes=flipped_axes)
+        )
 
     def _viewer_sources(self):
         from ..layer_registry import OBJECT_ID_METADATA
@@ -371,6 +473,7 @@ class QtExportController(QObject):
             self._prefetcher.advance(self._index)
         self._generation += 1
         generation = self._generation
+        self._reapplies = 0
         try:
             self._apply_frame()
         except Exception as error:
@@ -391,11 +494,27 @@ class QtExportController(QObject):
             self._validate_sources()
             with self._perf.timer("state.signature", frame=self._index):
                 signature = self._viewer_signature()
-            if signature != self._applied_signature:
-                self._perf.count("frame.reapplied")
-                self._apply_frame()
-                self._await_capture(generation)
-                return
+                differences = self._signature_differences(
+                    self._applied_signature, signature
+                )
+            if differences:
+                if self._reapplies < MAX_FRAME_REAPPLIES:
+                    self._reapplies += 1
+                    self._perf.count("frame.reapplied")
+                    self._apply_frame()
+                    self._await_capture(generation)
+                    return
+                # The viewer keeps rewriting the same fields however often
+                # the frame is applied: capture what it shows, don't hang.
+                self._perf.count("frame.drift_accepted")
+                logger.warning(
+                    "Frame %s/%s: viewer state still differs after %s "
+                    "re-applies (%s); capturing it as rendered",
+                    self._index + 1,
+                    self._total,
+                    self._reapplies,
+                    ", ".join(differences[:5]),
+                )
         except Exception as error:
             self._finish(error)
             return

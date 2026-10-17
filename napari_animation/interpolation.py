@@ -317,7 +317,14 @@ def slerp(a, b, fraction):
     rotation_vector = (initial_rotation.inv() * final_rotation).as_rotvec()
     rotation_vector *= fraction
     c_rotation = initial_rotation * R.from_rotvec(rotation_vector)
-    return c_rotation.as_euler("ZYX", degrees=True)
+    angles = c_rotation.as_euler("ZYX", degrees=True)
+    # as_euler wraps to (-180, 180]; keyframes may be authored in another
+    # 360-degree branch (napari reports e.g. 218 rather than -142). Keep
+    # each angle on the branch nearest the linear blend of the endpoints so
+    # the sequence is continuous and matches what the viewer reads back.
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    reference = a + (b - a) * fraction
+    return angles + 360.0 * np.round((reference - angles) / 360.0)
 
 
 class Interpolation(Enum):
