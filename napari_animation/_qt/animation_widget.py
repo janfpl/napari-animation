@@ -22,6 +22,7 @@ from .keyframelistcontrol_widget import KeyFrameListControlWidget
 from .keyframeslist_widget import KeyFramesListWidget
 from .luxendo_import_widget import LuxendoImportWidget
 from .ortho_slicer_widget import OrthoSlicerWidget
+from .routines_widget import RoutinesWidget
 from .savedialog_widget import SaveDialogWidget
 from .scene_widget import SceneWidget
 from .scroll_widget import ScrollThroughWidget
@@ -73,6 +74,7 @@ class AnimationWidget(QWidget):
         self.luxendoImportWidget.imported.connect(self._on_luxendo_imported)
         self.sceneWidget = SceneWidget(parent=self)
         self.scrollWidget = ScrollThroughWidget(parent=self)
+        self.routinesWidget = RoutinesWidget(parent=self)
         self.saveButton = QPushButton("Save Animation", parent=self)
         self.saveButton.setEnabled(len(self.animation.key_frames) > 1)
         self.unitsWarningLabel = QLabel(parent=self)
@@ -114,6 +116,7 @@ class AnimationWidget(QWidget):
             self.frameWidget,
             self.sceneWidget,
             self.scrollWidget,
+            self.routinesWidget,
             self.orthoSlicerWidget,
             self.keyframeIOWidget,
         ):
