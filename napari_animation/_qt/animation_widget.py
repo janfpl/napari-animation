@@ -18,6 +18,7 @@ from qtpy.QtWidgets import (
 from ..animation import Animation
 from .export_controller import QtExportController
 from .frame_widget import FrameWidget
+from .gui_timing import GuiActionTimer, debug_enabled
 from .keyframelistcontrol_widget import KeyFrameListControlWidget
 from .keyframeslist_widget import KeyFramesListWidget
 from .luxendo_import_widget import LuxendoImportWidget
@@ -142,6 +143,13 @@ class AnimationWidget(QWidget):
         self._add_callbacks()
         self._update_units_warning()
         self.animation.resolution.attach_controls()
+
+        # NAPARI_ANIMATION_DEBUG=1: time every click from release to repaint
+        self._gui_timer = (
+            GuiActionTimer(self.viewer, self, parent=self)
+            if debug_enabled()
+            else None
+        )
 
     def _on_luxendo_imported(self, layers):
         if layers:
@@ -376,6 +384,8 @@ class AnimationWidget(QWidget):
             self.animationSlider.blockSignals(previous)
 
     def closeEvent(self, ev) -> None:
+        if self._gui_timer is not None:
+            self._gui_timer.close()
         self.luxendoImportWidget.shutdown()
         if self._export_controller is not None:
             self._export_controller.finished.connect(

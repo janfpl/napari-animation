@@ -205,6 +205,26 @@ through dask's scheduler. If your data source is not safe for concurrent reads,
 set `prefetch=0`. If your storage serves reads in parallel (SSD/NVMe/RAID),
 raise `prefetch`/`prefetch_workers` for more overlap.
 
+### Timing the GUI (debug mode)
+
+To find slow controls, start napari with `NAPARI_ANIMATION_DEBUG=1` set and
+open the animation dock. Every button, checkbox and keyframe-list click in
+the dock is then timed from the mouse release to three points: the click
+handler returning (`handler_ms`), background section work and layer slicing
+finishing (`settled_ms`), and the canvas drawing the result (`painted_ms`).
+Each action is logged to the `napari_animation` logger and appended to a CSV,
+together with the instrumented render phases that ran during it. The CSV goes
+to `NAPARI_ANIMATION_DEBUG_CSV` if set, otherwise to a timestamped file in
+`~/napari-animation-debug`. With `NAPARI_ANIMATION_DEBUG=profile` each action
+also runs under cProfile: the CSV names the functions with the most own time
+and the plugin code paths that led there, and a `.prof` file per action is
+saved next to the CSV for `snakeviz` or `pstats`.
+
+```shell
+set NAPARI_ANIMATION_DEBUG=profile    # Windows cmd; use export on macOS/Linux
+napari
+```
+
 ### Saving and resuming keyframes
 
 Keyframes can be saved to a file so an animation can be resumed in a later
