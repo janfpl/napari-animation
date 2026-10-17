@@ -50,7 +50,11 @@ def test_builtin_routine_pans_each_axis_and_pairs():
         assert all(k["sections"][o] == 0.5 for k in alone for o in others)
     pairs = [k for k in frames if "+" in k["name"]]
     assert len(pairs) == 3 * 5
-    assert routine_summary(routine).startswith("33 keyframes, 1681 frames")
+    assert routine_summary(routine).startswith(
+        "33 keyframes, 6049 frames (252.0 s at 24 fps)"
+    )
+    # 10 s passes at 24 fps
+    assert frames[1]["steps"] == 240
 
 
 def test_swing_is_fifteen_degrees_about_the_head_on_view():
@@ -67,7 +71,7 @@ def test_apply_builds_keyframes_sized_to_the_data():
     apply_routine(animation, routine)
     viewer = animation.viewer
     assert len(animation.key_frames) == len(routine["keyframes"])
-    assert len(animation._frames) == 1681
+    assert len(animation._frames) == 6049
     assert viewer.dims.ndisplay == 3
     xy, xz, yz = animation.scene
     assert {s.render_mode for s in animation.scene} == {"clip"}
@@ -93,13 +97,13 @@ def test_apply_builds_keyframes_sized_to_the_data():
 
 def test_saved_routine_round_trips_and_applies_to_new_data(tmp_path):
     animation = _animation()
-    apply_routine(animation, ortho_clip_pan_routine(pass_frames=10))
+    apply_routine(animation, ortho_clip_pan_routine(pass_seconds=0.5))
     routine = routine_from_keyframes(animation, "My pans")
     path = save_routine(routine, tmp_path / "mine.json")
     loaded = load_routine(path)
     assert loaded["name"] == "My pans"
     assert {"My pans", "Ortho clip pans"} <= set(available_routines(tmp_path))
-    original = ortho_clip_pan_routine(pass_frames=10)["keyframes"]
+    original = ortho_clip_pan_routine(pass_seconds=0.5)["keyframes"]
     for saved, built in zip(loaded["keyframes"], original):
         assert saved["steps"] == built["steps"]
         for key, fraction in built["sections"].items():
@@ -145,10 +149,16 @@ def test_routines_panel_applies_and_saves(qtbot, monkeypatch, tmp_path):
     qtbot.addWidget(widget)
     panel = widget.routinesWidget
     assert panel.routineComboBox.currentText() == "Ortho clip pans"
-    assert "33 keyframes" in panel.descriptionLabel.text()
+    assert "252.0 s at 24 fps" in panel.descriptionLabel.text()
+    panel.passSpinBox.setValue(5.0)
+    assert "132.0 s at 24 fps" in panel.descriptionLabel.text()
+    panel.thicknessSpinBox.setValue(20.0)
 
     panel.applyButton.click()
     assert len(widget.animation.key_frames) == 33
+    xy = widget.animation.scene[0]
+    size = np.ptp(animation.viewer.layers["C1"].extent.world[:, -3])
+    assert xy.thickness == pytest.approx(0.2 * size)
 
     monkeypatch.setattr(
         routines_widget.QInputDialog,
@@ -164,3 +174,14 @@ def test_routines_panel_applies_and_saves(qtbot, monkeypatch, tmp_path):
     widget.animation.key_frames.pop()
     panel.applyButton.click()
     assert len(widget.animation.key_frames) == 32
+
+
+def test_thickness_override_applies_to_every_section():
+    animation = _animation()
+    apply_routine(animation, ortho_clip_pan_routine(), thickness=0.25)
+    bounds = animation.viewer.layers["C1"].extent.world[:, -3:]
+    size = bounds[1] - bounds[0]
+    for section, axis in zip(animation.scene, range(3)):
+        assert section.thickness == pytest.approx(0.25 * size[axis])
+    with pytest.raises(ValueError):
+        apply_routine(animation, ortho_clip_pan_routine(), thickness=1.5)

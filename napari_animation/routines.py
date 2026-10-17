@@ -87,13 +87,18 @@ def between_camera(normal_a, normal_b) -> dict:
 
 
 def ortho_clip_pan_routine(
-    pass_frames: int = 60,
-    move_frames: int = 30,
+    pass_seconds: float = 10.0,
+    move_seconds: float = 1.5,
+    fps: float = 24,
     swing_degrees: float = 15.0,
     thickness: float = 0.1,
     pair_round_trips: int = 2,
 ) -> dict:
     """Three orthogonal clip slabs panning through the volume.
+
+    Each one-way pass takes ``pass_seconds`` and each camera move
+    ``move_seconds`` at ``fps``; ``thickness`` is the slab thickness as a
+    fraction of the data extent along its normal.
 
     Phase 1 takes the slabs one at a time while the other two stay parked
     at the centre: a round trip seen head-on, then a round trip while the
@@ -101,6 +106,8 @@ def ortho_clip_pan_routine(
     head-on view. Phase 2 pans the slabs two at a time, ``pair_round_trips``
     round trips per pair, seen from halfway between the two planes.
     """
+    pass_frames = max(1, round(pass_seconds * fps))
+    move_frames = max(1, round(move_seconds * fps))
     keys = list(VIEW_NORMALS)
     centre = {key: 0.5 for key in keys}
     keyframes: List[dict] = []
@@ -142,6 +149,7 @@ def ortho_clip_pan_routine(
         "format": ROUTINE_FORMAT,
         "version": ROUTINE_VERSION,
         "name": "Ortho clip pans",
+        "fps": fps,
         "description": (
             "Three orthogonal clip slabs pan end to end: one at a time "
             "head-on, then with the camera swinging "
@@ -290,12 +298,18 @@ def _fit_zoom(viewer, animation) -> float:
     return float(viewer.camera.zoom)
 
 
-def apply_routine(animation, routine: dict) -> None:
+def apply_routine(
+    animation, routine: dict, thickness: Optional[float] = None
+) -> None:
     """Replace ``animation``'s keyframes and scene with ``routine``.
 
     Sections are created as composite ortho slices over every 3D image
     layer, sized and positioned from the combined data extent.
+    ``thickness``, a fraction of the extent, overrides every section's
+    stored thickness.
     """
+    if thickness is not None and not 0 < float(thickness) <= 1:
+        raise ValueError("Slab thickness must be a fraction in (0, 1]")
     from .scene import OrthoSlice
 
     validate_routine(routine)
@@ -331,7 +345,11 @@ def apply_routine(animation, routine: dict) -> None:
             source=sources[0].name,
             position=tuple(_centre_at(bounds, normal, 0.5).tolist()),
             normal=normal,
-            thickness=float(spec.get("thickness", 0.1))
+            thickness=float(
+                thickness
+                if thickness is not None
+                else spec.get("thickness", 0.1)
+            )
             * _axis_length(bounds, normal),
             projection=spec.get("projection", "max"),
             render_mode=spec.get("render_mode", "clip"),
@@ -457,8 +475,9 @@ def routine_from_keyframes(
     )
 
 
-def routine_summary(routine: dict, fps: Optional[float] = 20) -> str:
-    """One line such as ``39 keyframes, 1711 frames (85.6 s at 20 fps)``."""
+def routine_summary(routine: dict, fps: Optional[float] = None) -> str:
+    """One line such as ``33 keyframes, 6049 frames (252.0 s at 24 fps)``."""
+    fps = fps or routine.get("fps", 24)
     keyframes = routine.get("keyframes", [])
     frames = 1 + sum(int(k.get("steps", 1)) for k in keyframes[1:])
     text = f"{len(keyframes)} keyframes, {frames} frames"

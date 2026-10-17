@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from qtpy.QtWidgets import (
     QComboBox,
+    QDoubleSpinBox,
+    QFormLayout,
     QGroupBox,
     QInputDialog,
     QLabel,
@@ -36,6 +38,24 @@ class RoutinesWidget(QGroupBox):
         )
         self.descriptionLabel = QLabel()
         self.descriptionLabel.setWordWrap(True)
+        self.thicknessSpinBox = QDoubleSpinBox()
+        self.thicknessSpinBox.setRange(1.0, 100.0)
+        self.thicknessSpinBox.setDecimals(1)
+        self.thicknessSpinBox.setSuffix(" %")
+        self.thicknessSpinBox.setValue(10.0)
+        self.thicknessSpinBox.setToolTip(
+            "Thickness of every slab, as a percentage of the data extent "
+            "along the slab's normal"
+        )
+        self.passSpinBox = QDoubleSpinBox()
+        self.passSpinBox.setRange(0.5, 600.0)
+        self.passSpinBox.setDecimals(1)
+        self.passSpinBox.setSuffix(" s")
+        self.passSpinBox.setValue(10.0)
+        self.passSpinBox.setToolTip(
+            "Duration of one end-to-end pass of a slab (built-in routines; "
+            "export at 24 fps for these timings)"
+        )
         self.applyButton = QPushButton("Apply to current data")
         self.applyButton.setToolTip(
             "Replace the keyframes and scene objects with this routine, "
@@ -48,14 +68,20 @@ class RoutinesWidget(QGroupBox):
             "data size)"
         )
 
+        options = QFormLayout()
+        options.addRow("Slab thickness", self.thicknessSpinBox)
+        options.addRow("Pass duration", self.passSpinBox)
+
         layout = QVBoxLayout()
         layout.addWidget(self.routineComboBox)
         layout.addWidget(self.descriptionLabel)
+        layout.addLayout(options)
         layout.addWidget(self.applyButton)
         layout.addWidget(self.saveButton)
         self.setLayout(layout)
 
         self.routineComboBox.currentIndexChanged.connect(self._describe)
+        self.passSpinBox.valueChanged.connect(self._describe)
         self.applyButton.clicked.connect(self._apply)
         self.saveButton.clicked.connect(self._save)
         self.refresh()
@@ -72,13 +98,31 @@ class RoutinesWidget(QGroupBox):
         self._describe()
 
     def selected_routine(self):
-        return self._routines.get(self.routineComboBox.currentText())
+        """The selected routine, built-ins generated with the panel timing."""
+        name = self.routineComboBox.currentText()
+        make = routines.BUILTIN_ROUTINES.get(name)
+        if make is not None and self._routines.get(name) is not None:
+            return make(pass_seconds=self.passSpinBox.value())
+        return self._routines.get(name)
+
+    def thickness(self) -> float:
+        return self.thicknessSpinBox.value() / 100.0
 
     def _describe(self, *args):
         routine = self.selected_routine()
         if routine is None:
             self.descriptionLabel.setText("")
             return
+        builtin = self.routineComboBox.currentText() in (
+            routines.BUILTIN_ROUTINES
+        )
+        self.passSpinBox.setEnabled(builtin)
+        sections = routine.get("sections", [])
+        if not builtin and sections and not args[1:]:
+            # a saved routine starts from the thickness it was saved with
+            self.thicknessSpinBox.setValue(
+                100.0 * float(sections[0].get("thickness", 0.1))
+            )
         text = routine.get("description", "")
         summary = routines.routine_summary(routine)
         self.descriptionLabel.setText(f"{text}\n{summary}".strip())
@@ -102,7 +146,9 @@ class RoutinesWidget(QGroupBox):
         ):
             return
         try:
-            routines.apply_routine(self.animation, routine)
+            routines.apply_routine(
+                self.animation, routine, thickness=self.thickness()
+            )
         except ValueError as error:
             QMessageBox.warning(self, "Apply routine", str(error))
 
