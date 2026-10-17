@@ -180,6 +180,25 @@ def _differs(original, value) -> bool:
     return True
 
 
+def _displayed_point_only(dims, changed: dict) -> bool:
+    """Whether ``changed`` only moves ``dims.point`` along displayed axes.
+
+    Layers draw every displayed axis in full, so such a move changes no
+    layer's slice.  Ranges, order, margins and ``ndisplay`` are untouched.
+    """
+    if "point" not in changed or not set(changed) <= {"point", "last_used"}:
+        return False
+    try:
+        old = np.asarray(dims.point, dtype=float)
+        new = np.asarray(changed["point"], dtype=float)
+    except (TypeError, ValueError):
+        return False
+    if old.shape != new.shape:
+        return False
+    moved = np.flatnonzero(old != new)
+    return set(moved.tolist()) <= set(dims.displayed)
+
+
 @dataclass(frozen=True)
 class ViewerState:
     """The state of the viewer camera, dims, and layers.
@@ -313,7 +332,23 @@ class ViewerState:
                 if _differs(getattr(viewer.dims, key, None), value)
             }
             if changed:
-                _resilient_update(viewer.dims, changed)
+                if _displayed_point_only(viewer.dims, changed):
+                    # A layer draws its displayed axes in full, so a point on
+                    # a displayed axis selects nothing.  napari still
+                    # re-slices every layer for it; in 3D that re-uploads each
+                    # volume texture and recomputes its thumbnail (a reduction
+                    # over the full volume) -- seconds per frame on big data.
+                    with (
+                        viewer.dims.events.point.blocker(
+                            viewer._update_layers
+                        ),
+                        viewer.dims.events.current_step.blocker(
+                            viewer._update_layers
+                        ),
+                    ):
+                        _resilient_update(viewer.dims, changed)
+                else:
+                    _resilient_update(viewer.dims, changed)
 
         with render_phase("state.layers"):
             registry = LayerRegistry(viewer)

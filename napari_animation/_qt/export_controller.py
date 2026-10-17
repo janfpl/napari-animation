@@ -229,7 +229,9 @@ class QtExportController(QObject):
                 self._progress.canceled.connect(self.cancel)
                 self._progress.show()
             self._capture_session = ExportCaptureSession(
-                animation.viewer, render_size
+                animation.viewer,
+                render_size,
+                canvas_only=self.options.get("canvas_only", True),
             )
             self._capture_session.__enter__()
             self._writer_thread.start()

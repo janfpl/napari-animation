@@ -34,15 +34,44 @@ class ExportCaptureSession:
     included, and Qt callbacks never run under a persistent force_sync scope.
     """
 
-    def __init__(self, viewer, render_size=None):
+    def __init__(self, viewer, render_size=None, canvas_only=True):
         self.viewer = viewer
         self.render_size = render_size
+        self.canvas_only = canvas_only
         self.native = None
+        self._paused = None
         self._closed = False
+
+    def _pause_canvas_repaints(self, window):
+        """Stop on-screen repaints; each capture renders the canvas itself.
+
+        Every applied frame schedules a Qt repaint of the canvas, and the
+        screenshot then renders the same scene again offscreen. For large
+        volumes each render is a substantial GPU pass, so the on-screen one
+        doubled the cost of a frame. A full-window capture needs the widgets
+        painted and keeps them.
+        """
+        native = getattr(getattr(window, "_qt_viewer", None), "canvas", None)
+        native = getattr(native, "native", None)
+        if not self.canvas_only or native is None:
+            return
+        if not hasattr(native, "setUpdatesEnabled"):
+            return
+        if native.updatesEnabled():
+            native.setUpdatesEnabled(False)
+            self._paused = native
+
+    def _resume_canvas_repaints(self):
+        native, self._paused = self._paused, None
+        if native is not None:
+            native.setUpdatesEnabled(True)
+            native.update()
 
     def __enter__(self):
         window = getattr(self.viewer, "window", None)
         if self.render_size is None or window is None:
+            if window is not None:
+                self._pause_canvas_repaints(window)
             return self
         if (
             getattr(self.viewer, "_napari_animation_capture_session", None)
@@ -59,10 +88,12 @@ class ExportCaptureSession:
             )
         self.native = native
         self.viewer._napari_animation_capture_session = self
+        self._pause_canvas_repaints(window)
         # Defer resizing until the first capture, after applying its state.
         return self
 
     def close(self):
+        self._resume_canvas_repaints()
         if self._closed or self.native is None:
             return
         self._closed = True

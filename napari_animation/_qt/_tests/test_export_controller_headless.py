@@ -539,7 +539,7 @@ def test_failed_start_releases_export_state(tmp_path, monkeypatch):
         )
 
     class FailingSession:
-        def __init__(self, *_args):
+        def __init__(self, *_args, **_kwargs):
             pass
 
         def __enter__(self):
