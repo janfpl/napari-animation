@@ -368,3 +368,43 @@ def test_contrast_limits_and_gamma_interpolate(viewer):
 
     assert 0.5 < middle["contrast_limits"][1] < 1.0
     assert 1.0 < middle["gamma"] < 2.0
+
+
+def test_unchanged_layer_state_reapplies_without_layer_events(viewer):
+    """Re-applying an identical state must not reassign any layer property.
+
+    The colormap is captured by name and the plane as a dict, so they never
+    compare equal to the layer's ``Colormap`` / ``SlicingPlane`` by value.
+    Reassigning them anyway recomputed the thumbnail (a full reduction over
+    the volume) for every exported frame.
+    """
+    layer = viewer.layers["img"]
+    layer.colormap = "red"
+    layer.depiction = "plane"
+    state = ViewerState.from_viewer(viewer)
+    # The interpolator hands plane fields back as lists, not tuples.
+    plane = state.layers["img"]["plane"]
+    state.layers["img"]["plane"] = {
+        k: list(v) if isinstance(v, tuple) else v for k, v in plane.items()
+    }
+
+    emitted = []
+    layer.events.connect(lambda event: emitted.append(event.type))
+    layer.plane.events.connect(lambda event: emitted.append(event.type))
+    state.apply(viewer)
+
+    assert emitted == []
+
+
+def test_changed_colormap_and_plane_still_apply(viewer):
+    layer = viewer.layers["img"]
+    layer.colormap = "red"
+    layer.depiction = "plane"
+    state = ViewerState.from_viewer(viewer)
+    layer.colormap = "green"
+    layer.plane.thickness = 7
+
+    state.apply(viewer)
+
+    assert layer.colormap.name == "red"
+    assert layer.plane.thickness == pytest.approx(1.0)

@@ -148,11 +148,36 @@ def _differs(original, value) -> bool:
     name) that ``np.array_equal`` cannot always compare; treating those as
     changed is the safe direction, since it costs a redundant assignment
     rather than a silently skipped one.
+
+    The two structured values a snapshot stores in a different form than the
+    layer exposes are compared in the snapshot's form: a colormap by name, and
+    an evented model (``plane``) by its fields.  A false difference here is
+    expensive -- assigning ``Image.colormap`` recomputes the layer thumbnail,
+    a full reduction over a 3D volume, on every frame.
     """
     try:
-        return not np.array_equal(original, value)
+        if np.array_equal(original, value):
+            return False
     except Exception:  # noqa: BLE001
-        return True
+        pass
+    if isinstance(value, str) and not isinstance(original, str):
+        name = getattr(original, "name", None)
+        return not isinstance(name, str) or name != value
+    if isinstance(value, dict) and not isinstance(original, dict):
+        as_dict = getattr(original, "model_dump", None) or getattr(
+            original, "dict", None
+        )
+        if not callable(as_dict):
+            return True
+        try:
+            original = as_dict()
+        except Exception:  # noqa: BLE001
+            return True
+    if isinstance(original, dict) and isinstance(value, dict):
+        if original.keys() != value.keys():
+            return True
+        return any(_differs(original[key], value[key]) for key in value)
+    return True
 
 
 @dataclass(frozen=True)
