@@ -84,6 +84,8 @@ def project(slab: np.ndarray, axis: int, projection: str) -> np.ndarray:
 def warm() -> None:
     """Compile supported dtype/return combinations off the GUI thread."""
     for dtype in (np.uint8, np.uint16, np.float32, np.float64):
-        sample = np.zeros((2, 2, 2), dtype=dtype)
-        project(sample, 0, "max")
-        project(sample, 0, "mean")
+        sample = np.zeros((2, 2, 4), dtype=dtype)
+        # contiguous slabs, and the strided views sliced from a volume
+        for slab in (sample, sample[:, :, ::2]):
+            project(slab, 0, "max")
+            project(slab, 0, "mean")

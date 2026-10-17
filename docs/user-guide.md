@@ -113,14 +113,18 @@ itself — so if you add one in 2D, nothing appears and it looks broken.
 - **Source** — which layer's data it shows.
 - **View** — `XY` faces down Z, `XZ` down Y, `YZ` down X. Or type a **Normal**
   by hand for an oblique section.
-- **Centre Z** — drag the slider to scroll through the source volume, or enter
-  an exact world-coordinate value in the Centre Z box. The controls stay in sync.
+- **Centre Z / Y / X** — drag a slider to scroll the slab centre through the
+  source volume along that axis (Z for an `XY` section, Y for `XZ`, X for
+  `YZ`), or enter an exact world-coordinate value in the Centre boxes. The
+  controls stay in sync.
 - **Thickness** — in world units, measured along the normal. At 2 µm Z
   spacing, a 10 µm XY slab is 5 planes thick.
 - **Projection** — `max` / `mean` / `min` through that thickness.
 - **Render as** — leave on `plane`. (`clip` carves the slab out of the source
   volume instead of drawing it alongside; no extra GPU memory, but you lose
-  the rest of the volume.)
+  the rest of the volume.) Several `clip` sections on the same source each
+  keep their own slab, so three orthogonal `clip` sections show three thick
+  slabs crossing; cutaway clip planes still cut all of them.
 
 **3. Generate the sweep.** In *View and scroll-through*:
 

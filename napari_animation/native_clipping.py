@@ -12,11 +12,102 @@ import weakref
 import numpy as np
 
 
+def _union_clip_glsl(groups) -> str:
+    """Vispy ``clip_planes`` GLSL keeping samples inside any grouped slab.
+
+    ``groups[i]`` is the clip group of plane ``i``. Ungrouped planes are
+    intersected as in vispy's own builder. Planes sharing a group are
+    intersected into one slab, and the slabs are then united. The result is
+    signed like vispy's: non-negative means the sample is drawn.
+    """
+    slabs = {}
+    for index, group in enumerate(groups):
+        if group is not None:
+            slabs.setdefault(group, []).append(index)
+
+    def distance(index):
+        return (
+            f"dot(loc_transf - $clipping_plane_pos{index}, "
+            f"$clipping_plane_norm{index})"
+        )
+
+    body = [
+        "vec3 loc_transf = $clip_transform(vec4(loc * vol_shape, 1)).xyz;",
+        "float distance_from_clip = 3.4e38;",
+    ]
+    body += [
+        f"distance_from_clip = min(distance_from_clip, {distance(index)});"
+        for index, group in enumerate(groups)
+        if group is None
+    ]
+    if slabs:
+        body.append("float in_any_slab = -3.4e38;")
+        for indices in slabs.values():
+            body.append("{ float slab = 3.4e38;")
+            body += [
+                f"slab = min(slab, {distance(index)});" for index in indices
+            ]
+            body.append("in_any_slab = max(in_any_slab, slab); }")
+        body.append(
+            "distance_from_clip = min(distance_from_clip, in_any_slab);"
+        )
+    body.append("return distance_from_clip;")
+    lines = "\n    ".join(body)
+    return f"float clip_planes(vec3 loc, vec3 vol_shape) {{\n    {lines}\n}}"
+
+
+def _layer_clip_groups(layer, n_planes):
+    """The layer's clip groups when they need the union shader."""
+    groups = getattr(layer, "_napari_animation_clip_groups", None)
+    if not groups or len(groups) != n_planes:
+        return None
+    slabs = {group for group in groups if group is not None}
+    # A single slab intersects exactly like vispy's own builder.
+    return tuple(groups) if len(slabs) > 1 else None
+
+
+def _set(node, name, value):
+    object.__setattr__(node, name, value)
+
+
+def _sync_clip_groups(node, layer):
+    """Let clip-mode slabs on ``node`` unite instead of intersecting."""
+    builder = getattr(type(node), "_build_clipping_planes_glsl", None)
+    if builder is None or not hasattr(node, "clipping_planes"):
+        return
+    if not getattr(node, "_napari_animation_union_clip", False):
+        layer_ref = weakref.ref(layer)
+
+        def build(n_planes):
+            source = layer_ref()
+            groups = (
+                _layer_clip_groups(source, n_planes)
+                if source is not None
+                else None
+            )
+            _set(node, "_napari_animation_built_groups", groups)
+            if groups is None:
+                return builder(n_planes)
+            return _union_clip_glsl(groups)
+
+        # Vispy visuals are frozen against new attributes.
+        _set(node, "_build_clipping_planes_glsl", build)
+        _set(node, "_napari_animation_union_clip", True)
+        _set(node, "_napari_animation_built_groups", None)
+    planes = node.clipping_planes
+    wanted = _layer_clip_groups(layer, len(planes))
+    if wanted != getattr(node, "_napari_animation_built_groups", None):
+        # Rebuild the shader for the same planes with the new grouping.
+        node.clipping_planes = planes
+
+
 def _sync_layer(viewer, layer):
     window = getattr(viewer, "window", None)
     canvas = getattr(getattr(window, "_qt_viewer", None), "canvas", None)
     visual = getattr(canvas, "layer_to_visual", {}).get(layer)
     node = getattr(visual, "node", None)
+    if node is not None:
+        _sync_clip_groups(node, layer)
     if getattr(node, "clipping_planes_coord_system", None) != "scene":
         return
     planes = layer.experimental_clipping_planes.as_array()

@@ -256,13 +256,22 @@ class OrthoSliceEditor(_ObjectEditor):
         position_widget, self.positionBoxes = _vector_widget(
             "Centre of the slab, in world units"
         )
-        self.centreZSlider = QSlider(Qt.Horizontal)
-        self.centreZSlider.setRange(0, 10000)
-        self.centreZSlider.setToolTip(
-            "Scroll the slab through the source volume along Z"
+        # One slider per world axis, so an XZ or YZ section scrolls along
+        # Y or X as easily as an XY section scrolls along Z.
+        self.centreSliders = []
+        for axis in "ZYX":
+            slider = QSlider(Qt.Horizontal)
+            slider.setRange(0, 10000)
+            slider.setToolTip(
+                f"Scroll the slab centre through the source volume along "
+                f"{axis}"
+            )
+            slider.setEnabled(False)
+            self.centreSliders.append(slider)
+        self.centreZSlider, self.centreYSlider, self.centreXSlider = (
+            self.centreSliders
         )
-        self.centreZSlider.setEnabled(False)
-        self._z_slider_bounds = (0.0, 0.0)
+        self._slider_bounds = [(0.0, 0.0)] * 3
         normal_widget, self.normalBoxes = _vector_widget(
             "Slab normal, in world units"
         )
@@ -313,7 +322,8 @@ class OrthoSliceEditor(_ObjectEditor):
         layout.addRow("Resolution", self.sourceLevelComboBox)
         layout.addRow("View", self.viewComboBox)
         layout.addRow("Centre", position_widget)
-        layout.addRow("Centre Z", self.centreZSlider)
+        for axis, slider in zip("ZYX", self.centreSliders):
+            layout.addRow(f"Centre {axis}", slider)
         layout.addRow("Normal", normal_widget)
         layout.addRow("Thickness", self.thicknessSpinBox)
         layout.addRow("Projection", self.projectionComboBox)
@@ -328,8 +338,15 @@ class OrthoSliceEditor(_ObjectEditor):
             self.thicknessSpinBox,
         ):
             spin_box.valueChanged.connect(self._changed)
-        self.positionBoxes[0].valueChanged.connect(self._sync_z_slider)
-        self.centreZSlider.valueChanged.connect(self._z_slider_changed)
+        for axis, slider in enumerate(self.centreSliders):
+            self.positionBoxes[axis].valueChanged.connect(
+                lambda value, axis=axis: self._sync_centre_slider(axis, value)
+            )
+            slider.valueChanged.connect(
+                lambda value, axis=axis: self._centre_slider_changed(
+                    axis, value
+                )
+            )
         self.sourceComboBox.currentIndexChanged.connect(self._source_chosen)
         self.channelList.itemChanged.connect(self._channel_toggled)
         self.channelList.currentItemChanged.connect(
@@ -403,7 +420,7 @@ class OrthoSliceEditor(_ObjectEditor):
         self._refresh_levels(ortho_slice.source_level)
 
         self.object = ortho_slice
-        self._refresh_z_slider()
+        self._refresh_centre_sliders()
         if self.channelList.count():
             self.channelList.setCurrentRow(0)
         self._read_channel_appearance(self.channelList.currentItem())
@@ -680,7 +697,7 @@ class OrthoSliceEditor(_ObjectEditor):
                 self.object.id, channels=channels
             )
             self._refresh_channels(self.object)
-            self._refresh_z_slider()
+            self._refresh_centre_sliders()
 
     def _channel_toggled(self, item):
         if self.object is None:
@@ -703,55 +720,60 @@ class OrthoSliceEditor(_ObjectEditor):
         self.scene_widget.animation.update_scene_object(
             self.object.id, channels=channels
         )
-        self._refresh_z_slider()
+        self._refresh_centre_sliders()
 
-    def _refresh_z_slider(self):
-        """Use the selected source volume's world-space Z extent."""
-        source = self.sourceComboBox.currentText()
-        layer = (
-            self.scene_widget.viewer.layers[source]
-            if source in self.scene_widget.viewer.layers
-            else None
-        )
-        bounds = None
-        if layer is not None and getattr(layer, "ndim", 0) >= 3:
-            lower, upper = sorted(float(v) for v in layer.extent.world[:, -3])
-            if math.isfinite(lower) and math.isfinite(upper):
-                bounds = (lower, upper)
+    def _refresh_centre_sliders(self):
+        """Use the selected source volumes' world-space extent per axis."""
+        viewer = self.scene_widget.viewer
+        sources = []
+        name = self.sourceComboBox.currentText()
+        if name in viewer.layers:
+            sources.append(viewer.layers[name])
         if self.object is not None and self.object.channels is not None:
+            sources = (
+                list(self.object.source_layers(viewer, include_disabled=True))
+                or sources
+            )
+        for axis, slider in enumerate(self.centreSliders):
             extents = []
-            for source in self.object.source_layers(
-                self.scene_widget.viewer, include_disabled=True
-            ):
-                extent = sorted(float(v) for v in source.extent.world[:, -3])
+            for layer in sources:
+                if getattr(layer, "ndim", 0) < 3:
+                    continue
+                extent = sorted(
+                    float(v) for v in layer.extent.world[:, axis - 3]
+                )
                 if all(math.isfinite(value) for value in extent):
                     extents.append(extent)
-            if extents:
-                bounds = min(extent[0] for extent in extents), max(
-                    extent[1] for extent in extents
+            bounds = (
+                (
+                    min(extent[0] for extent in extents),
+                    max(extent[1] for extent in extents),
                 )
-        self._z_slider_bounds = bounds or (0.0, 0.0)
-        lower, upper = self._z_slider_bounds
-        self.centreZSlider.setEnabled(bounds is not None and upper > lower)
-        self._sync_z_slider(self.positionBoxes[0].value())
+                if extents
+                else (0.0, 0.0)
+            )
+            self._slider_bounds[axis] = bounds
+            slider.setEnabled(bounds[1] > bounds[0])
+            self._sync_centre_slider(axis, self.positionBoxes[axis].value())
 
-    def _sync_z_slider(self, z):
-        lower, upper = self._z_slider_bounds
+    def _sync_centre_slider(self, axis, value):
+        lower, upper = self._slider_bounds[axis]
         if upper <= lower:
             return
-        fraction = (z - lower) / (upper - lower)
-        value = round(
-            max(0.0, min(1.0, fraction)) * self.centreZSlider.maximum()
-        )
-        self.centreZSlider.blockSignals(True)
-        self.centreZSlider.setValue(value)
-        self.centreZSlider.blockSignals(False)
+        slider = self.centreSliders[axis]
+        fraction = (value - lower) / (upper - lower)
+        position = round(max(0.0, min(1.0, fraction)) * slider.maximum())
+        slider.blockSignals(True)
+        slider.setValue(position)
+        slider.blockSignals(False)
 
-    def _z_slider_changed(self, value):
-        lower, upper = self._z_slider_bounds
+    def _centre_slider_changed(self, axis, value):
+        lower, upper = self._slider_bounds[axis]
         if upper > lower:
-            z = lower + (upper - lower) * value / self.centreZSlider.maximum()
-            self.positionBoxes[0].setValue(z)
+            slider = self.centreSliders[axis]
+            self.positionBoxes[axis].setValue(
+                lower + (upper - lower) * value / slider.maximum()
+            )
 
     def _refresh_levels(self, selected=None):
         source = self.sourceComboBox.currentText()
@@ -781,7 +803,7 @@ class OrthoSliceEditor(_ObjectEditor):
 
     def _source_chosen(self, *args):
         self._refresh_levels()
-        self._refresh_z_slider()
+        self._refresh_centre_sliders()
         self._changed()
 
     def _resolution_changed(self, *args):
