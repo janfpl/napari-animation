@@ -1422,7 +1422,9 @@ class Animation:
                 )
 
             with (
-                ExportCaptureSession(self.viewer, render_size),
+                ExportCaptureSession(
+                    self.viewer, render_size, canvas_only=canvas_only
+                ),
                 tqdm(total=n_frames) as pbar,
             ):
                 for ind in range(n_frames):
