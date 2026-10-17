@@ -26,9 +26,15 @@ but feedback and contributions are welcome.
 
 ## Installation
 
-You can clone this repository with install locally with
+Requires Python 3.11 or newer and napari 0.8 or newer with a Qt backend.
+Clone this repository and install it locally with
 
+    pip install "napari[pyqt5]"
     pip install -e .
+
+See [docs/installation.md](docs/installation.md) for details, and
+[docs/user-guide.md](docs/user-guide.md) for the 3D scene objects (clipping
+planes, ortho slices, scroll-throughs).
 
 ## Examples
 Examples can be found in our [examples](examples) folder. Simple examples for both interactive and headless 
@@ -70,14 +76,91 @@ animation.capture_keyframe()
 animation.animate('demo.mov', canvas_only=False)
 ```
 
+### Importing processed Luxendo folders
+
+Open **Import Luxendo folder** at the top of the animation dock. Paste a folder
+path or use **Browse…**, then click **Import channels**. Choose a processed task
+folder, or its parent with **Include subfolders** enabled.
+
+Each per-channel `.lux.h5` or `.h5` file becomes an image layer. The importer
+reads `processingInformation.voxel_size_um` from the embedded `metadata`
+JSON and sets Z/Y/X spacing from depth/height/width in micrometers. It also
+fills the **Voxel size** controls automatically. Channels can have different
+spacing; no manual **Apply voxel size** step is needed.
+
+Image pyramids stay lazy, metadata preparation runs in a background worker,
+and channels are added one at a time. Each new channel gets napari's **Auto
+contrast** adjustment as it is added. **Cancel** stops remaining work and keeps
+channels already added. Companion `main*` and `*_bdv.h5` headers are excluded.
+Files with missing or invalid voxel metadata are skipped with an explanation.
+Repeating an import skips files already loaded through this importer.
+
+In Python:
+
+```python
+from napari_animation import import_luxendo_folder
+
+layers = import_luxendo_folder(
+    viewer, r"D:\data\Embryo8b\processed", recursive=True
+)
+```
+
+The Python call is synchronous; the dock uses background preparation. Saved
+keyframes record each channel's file path so **Load Keyframes** can reopen it.
+Separate timepoints or tiles remain separate layers; the importer does not
+assemble a time series or apply registration transforms.
+
 ### Editing keyframes
+
+Resolution defaults to **level 0 (highest resolution)** for new multiscale
+images and optical sections in the animation dock. Changing an image's
+**resolution** control or a section's **Resolution** control updates that
+image or section in every existing keyframe, including scroll-through endpoints.
+The choice is saved with keyframes; selecting another frame refreshes the scene
+controls to match its rendered state. Fine 2D sections may briefly show a coarse
+preview while their requested resolution loads. Higher resolution requires more
+memory and can take longer to load.
 
 Keyframes can be **dragged to reorder** them in the list. Each keyframe row has
 an **Overwrite** button that replaces that keyframe's captured view with the
 current viewer state (keeping its name, steps and easing), so you can fix up a
 single keyframe without deleting and re-adding it.
 
+### Export quality and size estimates
+
+The video export dialog shows the output resolution, duration and approximate
+file-size range for the selected quality level. Hover over **Quality** or its
+slider to compare all ten levels. **Render size** offers common 16:9 and 4:3
+presets, including Full HD and 4K. A preset makes napari rerender each canvas
+frame at that size, independent of the window and monitor dimensions. Presets
+require **Canvas only**. **Current canvas** keeps the existing on-screen size.
+If the preset has a different aspect ratio, export fits the existing view in
+the new frame and shows more scene along one axis. The selected data pyramid
+level still determines how much source detail is available.
+Quality controls compression. Estimates update with the format and selected
+render size. GIF and PNG exports do not use the quality slider.
+
+File sizes are rough heuristics based on pixel count, frame count and quality,
+without encoding a sample. Current-canvas video frames are padded with black
+pixels on the right and bottom to multiples of 16, preserving every captured
+pixel. Preset videos retain the selected dimensions exactly. Motion, noise and
+image detail can put the actual size outside the displayed range. For Current
+canvas, reopen the dialog if you resize the viewer before exporting.
+
 ### Rendering performance
+
+Interactive 2D sections read and project large slabs in a worker so napari can
+keep handling input. For a large compressed HDF5 dataset exposed directly,
+through an unchanged Dask `from_array` wrapper, or through the unmodified
+single-time/channel graph of `napari-imaris-loader`, the projection worker starts
+a small read-only process pool. Independent HDF5 readers decompress output
+stripes concurrently from the first request. The default is up to
+four processes when there is enough available RAM. Large uncompressed Luxendo
+slabs with many native Dask chunks use one direct HDF5 read to avoid chunk
+scheduling overhead; other transformed reader graphs keep the Dask path. Set
+`NAPARI_ANIMATION_H5_PROCESS_LANES=0` before starting napari to disable this,
+or set a value from 2 to 8 to force a lane count. The process pool is released
+when the animation dock closes.
 
 Frames are rendered on the main thread (napari needs its single OpenGL context
 there), while encoding and writing to disk happen on a background thread so the
@@ -171,25 +254,30 @@ animated (e.g. a slab that sweeps through z or grows over the movie).
 
 ## Is everything animate-able?
 
-Unfortunately, not yet! Currently differences in the following objects are tracked by the `Animation` class
+Not everything, but most of what shapes the rendered view. Keyframes capture:
 
-- `Viewer.camera`
-- `Viewer.dims`
-- `Layer.scale`
-- `Layer.translate`
-- `Layer.rotate`
-- `Layer.shear`
-- `layer.opacity`
-- `Layer.blending`
-- `Layer.visible`
+- `Viewer.camera` (angles are interpolated spherically, zoom logarithmically)
+- `Viewer.dims`, including switching between 2D and 3D at a keyframe
+- layer transforms: `scale`, `translate`, `rotate`, `shear`, `affine`
+- layer display: `opacity`, `blending`, `visible`, `contrast_limits`,
+  `gamma`, `colormap`, `rendering`, `iso_threshold`, `attenuation`,
+  `interpolation2d` / `interpolation3d`, and the pyramid level
+- image `depiction` and `plane` (position, normal and thickness)
+- the ortho slicer's optical section
+- scene objects: clipping planes and ortho slices, whose geometry is
+  interpolated and which can be switched on or off per keyframe
 
-Support for more layer attributes will be added in future releases.
+Discrete values (2D/3D mode, colormap, rendering mode, visibility) switch on
+arrival at a keyframe rather than being blended. Layer data itself is not
+stored; saved keyframe files record each layer's source path instead.
 
 ## Contributing
 
 Contributions are very welcome and a detailed contributing guide is coming soon. 
 
-Tests are run with `pytest`.
+Tests are run with `pytest` (`pip install -e ".[testing]"`). Performance
+benchmarks are in [benchmarks](benchmarks), and design, review and
+performance notes from development are in [docs/dev-notes](docs/dev-notes).
 
 We use [`pre-commit`](https://pre-commit.com) to sort imports with
 [`isort`](https://github.com/timothycrosley/isort), format code with

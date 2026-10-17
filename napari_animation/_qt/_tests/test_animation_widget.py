@@ -1,6 +1,131 @@
+from unittest.mock import patch
+
 import numpy as np
+from napari.components import ViewerModel
 
 from napari_animation._qt import AnimationWidget
+from napari_animation._qt.savedialog_widget import SaveDialogWidget
+
+
+class _HeadlessViewer(ViewerModel):
+    """Stands in for a real viewer where no OpenGL context is available."""
+
+    def screenshot(self, *args, **kwargs):
+        return np.zeros((60, 60, 4), dtype=np.uint8)
+
+
+def test_panels_are_scrollable(qtbot):
+    """The stack of panels is taller than a side dock, so it must scroll.
+
+    Without this the controls at the bottom -- save/load keyframes, the ortho
+    slicer -- are simply unreachable in a normal-height napari window.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    assert widget.scrollArea.widget() is widget.contentWidget
+    # panels stretch to the dock width instead of sitting at minimum width
+    assert widget.scrollArea.widgetResizable() is True
+
+    # every panel is inside the scrolling area, so none can be cut off
+    for panel in (
+        widget.voxelSizeWidget,
+        widget.sceneWidget,
+        widget.scrollWidget,
+        widget.orthoSlicerWidget,
+        widget.keyframeIOWidget,
+    ):
+        assert widget.contentWidget.isAncestorOf(panel)
+
+    # saving and scrubbing stay pinned outside it, always reachable
+    assert not widget.contentWidget.isAncestorOf(widget.saveButton)
+    assert not widget.contentWidget.isAncestorOf(widget.animationSlider)
+
+
+def test_panels_fit_a_normal_dock_width(qtbot):
+    """Vertical scrolling only: the panel must fit a typical side dock.
+
+    A wide control anywhere in the stack forces a *horizontal* scrollbar
+    across the whole dock, which is far more disruptive than the vertical one
+    it is paired with. Form rows wrap and spin boxes are width-capped to keep
+    this in check; this guards against a new panel undoing that.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    minimum = widget.contentWidget.minimumSizeHint().width()
+    assert minimum <= 340, (
+        f"controls need {minimum}px, wider than a normal napari dock; "
+        "cap spin box widths or let the form rows wrap"
+    )
+
+
+def test_panels_still_reach_their_animation(qtbot):
+    """Reparenting into the scroll container must not orphan the panels.
+
+    Each panel resolves ``parentWidget().animation`` in its constructor; if
+    that were deferred it would break once the panel is moved into the
+    scrolling container.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    for panel in (
+        widget.voxelSizeWidget,
+        widget.sceneWidget,
+        widget.scrollWidget,
+        widget.orthoSlicerWidget,
+        widget.frameWidget,
+    ):
+        assert panel.animation is widget.animation
+
+    # and the panels still work after being reparented
+    widget.sceneWidget.add_clip_plane()
+    assert len(widget.animation.scene) == 1
+
+
+def test_cancelling_the_save_dialog_is_a_no_op(qtbot):
+    """Regression: backing out of the save dialog used to raise.
+
+    The dialog returned "" on cancel and the callback did
+    ``animation_kwargs["path"]``, so cancelling raised "string indices must be
+    integers" instead of quietly doing nothing.
+    """
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    with (
+        patch.object(
+            SaveDialogWidget, "getAnimationParameters", return_value=None
+        ),
+        patch.object(widget.animation, "animate") as animate,
+    ):
+        widget._save_callback()
+
+    animate.assert_not_called()
+
+
+def test_incompatible_layer_units_are_visible_in_animation_dock(qtbot):
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.zeros((3, 4, 5)), name="physical", units=("um",) * 3)
+    other = viewer.add_image(np.zeros((3, 4, 5)), name="pixels")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+
+    assert widget.unitsWarningLabel.isHidden() is False
+    assert "incompatible units" in widget.unitsWarningLabel.text()
+    assert "physical" in widget.unitsWarningLabel.toolTip()
+
+    other.units = ("um",) * 3
+    assert widget.unitsWarningLabel.isHidden()
 
 
 def test_animation_widget(make_napari_viewer, qtbot):
@@ -47,3 +172,85 @@ def test_animation_widget_has_keyframe_io_and_ortho(make_napari_viewer, qtbot):
 
     ortho.viewComboBox.setCurrentText("YZ")
     assert aw.animation.ortho_slicer.axis == view_to_axis("YZ", ndim)
+
+
+def test_ortho_panel_follows_the_selected_keyframe(qtbot):
+    viewer = _HeadlessViewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+    animation = widget.animation
+    panel = widget.orthoSlicerWidget
+    panel.setChecked(True)
+    panel.thicknessSpinBox.setValue(5)
+    animation.capture_keyframe(steps=1)
+    panel.setChecked(False)
+    panel.thicknessSpinBox.setValue(1)
+    animation.capture_keyframe(steps=1)
+
+    animation.set_to_keyframe(0)
+
+    assert panel.isChecked()
+    assert panel.thicknessSpinBox.value() == 5
+    # an edit in the panel keeps the restored optical section switched on
+    panel.projectionComboBox.setCurrentText("mean")
+    assert animation.ortho_slicer.enabled
+    assert animation.ortho_slicer.thickness == 5
+
+
+def test_voxel_size_panel_ignores_section_layers(qtbot):
+    from napari_animation.scene import OrthoSlice
+
+    viewer = _HeadlessViewer()
+    viewer.dims.ndisplay = 3
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(viewer)
+    qtbot.addWidget(widget)
+    widget.animation.add_scene_object(OrthoSlice(name="Ortho", source="img"))
+
+    combo = widget.voxelSizeWidget.layerComboBox
+    assert [combo.itemText(index) for index in range(combo.count())] == ["img"]
+
+
+def test_widget_from_plugin_menu_unwraps_viewer_proxy(
+    make_napari_viewer, qtbot, tmp_path
+):
+    """napari gives docks opened from the Plugins menu a viewer proxy.
+
+    Proxied Qt objects are rejected by Qt itself, which made the export
+    progress dialog raise a TypeError when Save Animation was used.
+    """
+    from napari.utils._proxies import PublicOnlyProxy
+    from qtpy.QtCore import QEventLoop, QTimer
+
+    from napari_animation._qt.export_controller import QtExportController
+
+    viewer = make_napari_viewer()
+    viewer.add_image(np.random.random((8, 16, 16)), name="img")
+    widget = AnimationWidget(PublicOnlyProxy(viewer))
+    qtbot.addWidget(widget)
+    assert widget.viewer is viewer
+    assert widget.animation.viewer is viewer
+
+    widget.frameWidget.stepsSpinBox.setValue(1)
+    widget._capture_keyframe_callback()
+    widget._capture_keyframe_callback()
+    controller = QtExportController(
+        widget.animation,
+        {
+            "path": str(tmp_path / "frames"),
+            "prefetch": 0,
+            "dask_cache": None,
+            "diagnose": False,
+        },
+    )
+    loop = QEventLoop()
+    results = []
+    controller.finished.connect(
+        lambda _path, error: (results.append(error), loop.quit())
+    )
+    QTimer.singleShot(10000, loop.quit)
+    controller.start()
+    loop.exec_()
+    assert results == [None]
+    assert len(list((tmp_path / "frames").glob("*.png"))) == 2

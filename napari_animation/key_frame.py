@@ -51,6 +51,8 @@ class KeyFrame:
         steps=15,
         ease=Easing.LINEAR,
         ortho: dict = None,
+        scene: dict = None,
+        view: dict = None,
     ):
         """Create a KeyFrame from a viewer instance.
 
@@ -59,9 +61,16 @@ class KeyFrame:
         ortho : dict, optional
             Ortho-slicer (optical section) parameters to capture, so that the
             optical section is animated alongside the rest of the state.
+        scene : dict, optional
+            Scene-object parameters to capture, so clipping planes and optical
+            sections can be reshaped and toggled per keyframe.
+        view : dict, optional
+            View overrides such as the active 2D section ID.
         """
         return cls(
-            viewer_state=ViewerState.from_viewer(viewer, ortho=ortho),
+            viewer_state=ViewerState.from_viewer(
+                viewer, ortho=ortho, scene=scene, view=view
+            ),
             thumbnail=make_thumbnail(
                 viewer.screenshot(canvas_only=True, flash=False)
             ),

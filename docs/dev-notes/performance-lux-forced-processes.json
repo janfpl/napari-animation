@@ -1,0 +1,108 @@
+{
+  "cases": [
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data",
+      "reader_graph": false,
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "process_lanes": 4,
+      "process_failed": false,
+      "worker_rss_mib": 557.0,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.9117,
+          "sum_uint64": 1013339416,
+          "qt_heartbeat_max_ms": 11.13
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.06,
+          "sum_uint64": 1039217047,
+          "qt_heartbeat_max_ms": 10.38
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.0571,
+          "sum_uint64": 1033732075,
+          "qt_heartbeat_max_ms": 10.04
+        }
+      ]
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
+      "reader_graph": true,
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "process_lanes": 4,
+      "process_failed": false,
+      "worker_rss_mib": 556.6,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.9153,
+          "sum_uint64": 1013339416,
+          "qt_heartbeat_max_ms": 10.57
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.0618,
+          "sum_uint64": 1039217047,
+          "qt_heartbeat_max_ms": 10.93
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.0604,
+          "sum_uint64": 1033732075,
+          "qt_heartbeat_max_ms": 10.48
+        }
+      ]
+    }
+  ]
+}

@@ -45,25 +45,32 @@ class FrameWidget(QWidget):
         """update state of self to reflect animation state at active key frame"""
         key_frame = event.value
         if key_frame:
-            self.stepsSpinBox.setValue(key_frame.steps)
-            active_keyframe = self.animation.key_frames.selection.active
-            ease = active_keyframe.ease
-            self.easeComboBox.setCurrentText(ease.name.lower())
+            self.stepsSpinBox.blockSignals(True)
+            self.easeComboBox.blockSignals(True)
+            try:
+                self.stepsSpinBox.setValue(key_frame.steps)
+                self.easeComboBox.setCurrentText(key_frame.ease.name.lower())
+            finally:
+                self.stepsSpinBox.blockSignals(False)
+                self.easeComboBox.blockSignals(False)
 
     def _update_animation_steps(self, event):
         """update state of 'steps' at current key-frame to reflect GUI state"""
         active_keyframe = self.animation.key_frames.selection.active
         if active_keyframe is None:
             return
-        active_keyframe.steps = self.stepsSpinBox.value()
-        # TODO: if this changes programatically the slider will be out of sync.
-        # but we don't currently have events on the keyframe.steps attribute.
-        self.animation._frames._rebuild_frame_index()
+        index = self.animation.key_frames.index(active_keyframe)
+        self.animation.set_keyframe_timing(
+            index, steps=self.stepsSpinBox.value()
+        )
 
     def _update_animation_ease(self, event):
         """update state of 'ease' at current key-frame to reflect GUI state"""
         active_keyframe = self.animation.key_frames.selection.active
-        active_keyframe.ease = self.get_easing_func()
+        if active_keyframe is None:
+            return
+        index = self.animation.key_frames.index(active_keyframe)
+        self.animation.set_keyframe_timing(index, ease=self.get_easing_func())
 
     def get_easing_func(self):
         return Easing[self.easeComboBox.currentText().upper()]

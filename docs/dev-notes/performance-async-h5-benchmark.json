@@ -1,0 +1,117 @@
+{
+  "scope": "Qt worker heartbeat; no OpenGL paint",
+  "cases": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 3/TimePoint 0/Channel 0/Data",
+      "shape": [
+        256,
+        256,
+        256
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "axis": 0,
+      "interval": [
+        64,
+        96
+      ],
+      "result_shape": [
+        256,
+        256
+      ],
+      "exact_seconds": 0.0428,
+      "qt_heartbeat_max_ms": 10.5,
+      "qt_heartbeat_p95_ms": 10.43,
+      "heartbeat_samples": 3
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 2/TimePoint 0/Channel 0/Data",
+      "shape": [
+        128,
+        512,
+        512
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "axis": 1,
+      "interval": [
+        192,
+        224
+      ],
+      "result_shape": [
+        128,
+        512
+      ],
+      "exact_seconds": 0.0105,
+      "qt_heartbeat_max_ms": 0,
+      "qt_heartbeat_p95_ms": null,
+      "heartbeat_samples": 0
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data_4_4_4",
+      "shape": [
+        128,
+        512,
+        512
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "axis": 2,
+      "interval": [
+        192,
+        224
+      ],
+      "result_shape": [
+        128,
+        512
+      ],
+      "exact_seconds": 0.0106,
+      "qt_heartbeat_max_ms": 0,
+      "qt_heartbeat_p95_ms": null,
+      "heartbeat_samples": 0
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data",
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "axis": 0,
+      "interval": [
+        120,
+        124
+      ],
+      "result_shape": [
+        2048,
+        2049
+      ],
+      "exact_seconds": 0.4124,
+      "qt_heartbeat_max_ms": 81.48,
+      "qt_heartbeat_p95_ms": 10.27,
+      "heartbeat_samples": 33
+    }
+  ]
+}

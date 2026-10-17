@@ -1,0 +1,1605 @@
+{
+  "scope": "7 sampled frames, real Qt/OpenGL/HDF5/FFmpeg; output validity failed; provisional timings",
+  "cases": [
+    {
+      "load_seconds": 14.381863799877465,
+      "original_frames": 181,
+      "original_frame_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180
+      ],
+      "napari": "0.8.0",
+      "platform": "Windows-11-10.0.26100-SP0",
+      "directory": "ortho-profile-20260925",
+      "runs": [
+        {
+          "wall_seconds": 11.878390700090677,
+          "first_capture_seconds": 9.013408900005743,
+          "steady_capture_mean_ms": 237.49393337250999,
+          "phases": {
+            "diagnostics.environment": {
+              "total_seconds": 0.4106147000566125,
+              "count": 1,
+              "mean_ms": 410.6147000566125,
+              "p50_ms": 410.6147000566125,
+              "p95_ms": 410.6147000566125,
+              "max_ms": 410.6147000566125,
+              "wall_percent": 3.456820965263232,
+              "retained_samples": 1
+            },
+            "prefetch.schedule": {
+              "total_seconds": 0.002887899987399578,
+              "count": 7,
+              "mean_ms": 0.4125571410570826,
+              "p50_ms": 0.3374998923391104,
+              "p95_ms": 0.889810128137469,
+              "max_ms": 1.0489001870155334,
+              "wall_percent": 0.02431221585746908,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 1.5000347048044205e-05,
+              "count": 7,
+              "mean_ms": 0.002142906721149172,
+              "p50_ms": 0.00190013088285923,
+              "p95_ms": 0.003820075653493403,
+              "max_ms": 0.004300149157643318,
+              "wall_percent": 0.00012628265416399963,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.016555899986997247,
+              "count": 32,
+              "mean_ms": 0.517371874593664,
+              "p50_ms": 0.3403499722480774,
+              "p95_ms": 1.0935851489193738,
+              "max_ms": 1.2143999338150024,
+              "wall_percent": 0.13937830809750065,
+              "retained_samples": 32
+            },
+            "scene.prepare": {
+              "total_seconds": 0.020927000092342496,
+              "count": 8,
+              "mean_ms": 2.615875011542812,
+              "p50_ms": 2.615349949337542,
+              "p95_ms": 2.866470033768564,
+              "max_ms": 2.911200048401952,
+              "wall_percent": 0.17617706489636467,
+              "retained_samples": 8
+            },
+            "ortho.apply": {
+              "total_seconds": 0.03400509897619486,
+              "count": 36,
+              "mean_ms": 0.9445860826720794,
+              "p50_ms": 0.6321000400930643,
+              "p95_ms": 2.0928499870933592,
+              "max_ms": 2.4089000653475523,
+              "wall_percent": 0.28627698679700164,
+              "retained_samples": 36
+            },
+            "scene.apply": {
+              "total_seconds": 0.06456520012579858,
+              "count": 8,
+              "mean_ms": 8.070650015724823,
+              "p50_ms": 8.605850045569241,
+              "p95_ms": 9.265439992304891,
+              "max_ms": 9.343700017780066,
+              "wall_percent": 0.543551746663003,
+              "retained_samples": 8
+            },
+            "state.apply": {
+              "total_seconds": 0.8417539997026324,
+              "count": 8,
+              "mean_ms": 105.21924996282905,
+              "p50_ms": 27.50085003208369,
+              "p95_ms": 388.1962949410079,
+              "max_ms": 503.14759998582304,
+              "wall_percent": 7.086431326898573,
+              "retained_samples": 8
+            },
+            "apply": {
+              "total_seconds": 0.3387807998806238,
+              "count": 7,
+              "mean_ms": 48.3972571258034,
+              "p50_ms": 27.518700109794736,
+              "p95_ms": 130.82873988896597,
+              "max_ms": 174.73889980465174,
+              "wall_percent": 2.8520765854084735,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 6.990041583776474e-05,
+              "count": 7,
+              "mean_ms": 0.009985773691109248,
+              "p50_ms": 0.009500188753008842,
+              "p95_ms": 0.011850055307149885,
+              "max_ms": 0.012600095942616463,
+              "wall_percent": 0.0005884670541879982,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.017024199943989515,
+              "count": 7,
+              "mean_ms": 2.4320285634270737,
+              "p50_ms": 2.0826999098062515,
+              "p95_ms": 3.81126992870122,
+              "max_ms": 4.521699855104089,
+              "wall_percent": 0.14332076098372112,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 10.438372500240803,
+              "count": 7,
+              "mean_ms": 1491.1960714629718,
+              "p50_ms": 140.29760006815195,
+              "p95_ms": 6526.993690012017,
+              "max_ms": 9013.408900005743,
+              "wall_percent": 87.87699246296991,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.021770999766886234,
+              "count": 7,
+              "mean_ms": 3.110142823840891,
+              "p50_ms": 3.1138998456299305,
+              "p95_ms": 3.269860055297613,
+              "max_ms": 3.2938001677393913,
+              "wall_percent": 0.1832824017711426,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 10.48390920041129,
+              "count": 7,
+              "mean_ms": 1497.70131434447,
+              "p50_ms": 146.44769998267293,
+              "p95_ms": 6535.000690165902,
+              "max_ms": 9022.112500155345,
+              "wall_percent": 88.26034995069878,
+              "retained_samples": 7
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.0005708998069167137,
+              "count": 7,
+              "mean_ms": 0.08155711527381625,
+              "p50_ms": 0.08410005830228329,
+              "p95_ms": 0.08629984222352505,
+              "max_ms": 0.08629984222352505,
+              "wall_percent": 0.004806204993007644,
+              "retained_samples": 7
+            },
+            "queue.put_wait": {
+              "total_seconds": 0.00012720003724098206,
+              "count": 7,
+              "mean_ms": 0.018171433891568865,
+              "p50_ms": 0.016200123354792595,
+              "p95_ms": 0.02440998796373605,
+              "max_ms": 0.02719997428357601,
+              "wall_percent": 0.0010708524450202758,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.0714382000733167,
+              "count": 7,
+              "mean_ms": 10.205457153330956,
+              "p50_ms": 8.340300060808659,
+              "p95_ms": 22.554080002009854,
+              "max_ms": 28.409000020474195,
+              "wall_percent": 0.6014131196473556,
+              "retained_samples": 7
+            },
+            "pipeline.drain": {
+              "total_seconds": 0.0013365999329835176,
+              "count": 1,
+              "mean_ms": 1.3365999329835176,
+              "p50_ms": 1.3365999329835176,
+              "p95_ms": 1.3365999329835176,
+              "max_ms": 1.3365999329835176,
+              "wall_percent": 0.011252365465410348,
+              "retained_samples": 1
+            },
+            "finalize": {
+              "total_seconds": 0.021027300041168928,
+              "count": 1,
+              "mean_ms": 21.027300041168928,
+              "p50_ms": 21.027300041168928,
+              "p95_ms": 21.027300041168928,
+              "max_ms": 21.027300041168928,
+              "wall_percent": 0.17702145494345806,
+              "retained_samples": 1
+            },
+            "restore": {
+              "total_seconds": 0.506018300075084,
+              "count": 1,
+              "mean_ms": 506.01830007508397,
+              "p50_ms": 506.01830007508397,
+              "p95_ms": 506.01830007508397,
+              "max_ms": 506.01830007508397,
+              "wall_percent": 4.259990371180678,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.08869650005362928,
+              "count": 1,
+              "mean_ms": 88.69650005362928,
+              "p50_ms": 88.69650005362928,
+              "p95_ms": 88.69650005362928,
+              "max_ms": 88.69650005362928,
+              "wall_percent": 0.7467046866285699,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-20260925\\run-1.mp4",
+            "export_path": "script",
+            "fps": 20,
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 4,
+            "prefetch_workers": 4,
+            "dask_cache": "auto",
+            "diagnose": true,
+            "status": "complete",
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        },
+        {
+          "wall_seconds": 2.1892611000221223,
+          "first_capture_seconds": 0.15689650014974177,
+          "steady_capture_mean_ms": 161.575016604426,
+          "phases": {
+            "diagnostics.environment": {
+              "total_seconds": 1.309998333454132e-05,
+              "count": 1,
+              "mean_ms": 0.01309998333454132,
+              "p50_ms": 0.01309998333454132,
+              "p95_ms": 0.01309998333454132,
+              "max_ms": 0.01309998333454132,
+              "wall_percent": 0.0005983746449616698,
+              "retained_samples": 1
+            },
+            "prefetch.schedule": {
+              "total_seconds": 0.0031250999309122562,
+              "count": 7,
+              "mean_ms": 0.44644284727317946,
+              "p50_ms": 0.40319981053471565,
+              "p95_ms": 0.9724699892103668,
+              "max_ms": 1.1660000309348106,
+              "wall_percent": 0.14274678935649462,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 1.0799849405884743e-05,
+              "count": 7,
+              "mean_ms": 0.0015428356294121062,
+              "p50_ms": 0.001400010660290718,
+              "p95_ms": 0.0023000175133347503,
+              "max_ms": 0.002600019797682762,
+              "wall_percent": 0.0004933102500097229,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.01915159961208701,
+              "count": 32,
+              "mean_ms": 0.5984874878777191,
+              "p50_ms": 0.385599909350276,
+              "p95_ms": 1.2675699777901173,
+              "max_ms": 1.51269999332726,
+              "wall_percent": 0.8747974196359442,
+              "retained_samples": 32
+            },
+            "scene.prepare": {
+              "total_seconds": 0.025641500251367688,
+              "count": 8,
+              "mean_ms": 3.205187531420961,
+              "p50_ms": 3.136799903586507,
+              "p95_ms": 3.8524351548403497,
+              "max_ms": 4.182800184935331,
+              "wall_percent": 1.171239933469269,
+              "retained_samples": 8
+            },
+            "ortho.apply": {
+              "total_seconds": 0.04324409947730601,
+              "count": 36,
+              "mean_ms": 1.2012249854807224,
+              "p50_ms": 0.7997500943019986,
+              "p95_ms": 2.671100024599582,
+              "max_ms": 3.0200001783668995,
+              "wall_percent": 1.97528286949734,
+              "retained_samples": 36
+            },
+            "scene.apply": {
+              "total_seconds": 0.07183669996447861,
+              "count": 8,
+              "mean_ms": 8.979587495559826,
+              "p50_ms": 9.640949894674122,
+              "p95_ms": 10.230805003084242,
+              "max_ms": 10.403600055724382,
+              "wall_percent": 3.281321719175146,
+              "retained_samples": 8
+            },
+            "state.apply": {
+              "total_seconds": 0.8640879995655268,
+              "count": 8,
+              "mean_ms": 108.01099994569086,
+              "p50_ms": 33.71689992491156,
+              "p95_ms": 415.1350199012083,
+              "max_ms": 610.013899859041,
+              "wall_percent": 39.46938990314108,
+              "retained_samples": 8
+            },
+            "apply": {
+              "total_seconds": 0.2542663998901844,
+              "count": 7,
+              "mean_ms": 36.32377141288349,
+              "p50_ms": 33.57590013183653,
+              "p95_ms": 47.67094003036617,
+              "max_ms": 53.23960003443062,
+              "wall_percent": 11.614256512739164,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 7.400033064186573e-05,
+              "count": 7,
+              "mean_ms": 0.010571475805980819,
+              "p50_ms": 0.010600080713629723,
+              "p95_ms": 0.012330012395977972,
+              "max_ms": 0.012899981811642647,
+              "wall_percent": 0.00338015098523963,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.02148899994790554,
+              "count": 7,
+              "mean_ms": 3.069857135415077,
+              "p50_ms": 2.9873999301344156,
+              "p95_ms": 3.4201500704512,
+              "max_ms": 3.4314000513404608,
+              "wall_percent": 0.9815640513453784,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 1.1263465997762978,
+              "count": 7,
+              "mean_ms": 160.9066571108997,
+              "p50_ms": 157.32929995283484,
+              "p95_ms": 169.3552898708731,
+              "max_ms": 170.07699981331825,
+              "wall_percent": 51.44871024131915,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.029846999794244766,
+              "count": 7,
+              "mean_ms": 4.263857113463538,
+              "p50_ms": 4.282200010493398,
+              "p95_ms": 4.833719949238001,
+              "max_ms": 4.913999931886792,
+              "wall_percent": 1.3633366889834733,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 1.185620800126344,
+              "count": 7,
+              "mean_ms": 169.37440001804913,
+              "p50_ms": 166.05839994736016,
+              "p95_ms": 177.5556400185451,
+              "max_ms": 178.25470003299415,
+              "wall_percent": 54.156208234566606,
+              "retained_samples": 7
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.0016846999060362577,
+              "count": 7,
+              "mean_ms": 0.24067141514803683,
+              "p50_ms": 0.22399984300136566,
+              "p95_ms": 0.39394004270434374,
+              "max_ms": 0.3969999961555004,
+              "wall_percent": 0.07695290004555573,
+              "retained_samples": 7
+            },
+            "queue.put_wait": {
+              "total_seconds": 7.020030170679092e-05,
+              "count": 7,
+              "mean_ms": 0.01002861452954156,
+              "p50_ms": 0.009800074622035027,
+              "p95_ms": 0.011880020610988138,
+              "max_ms": 0.01200009137392044,
+              "wall_percent": 0.0032065751182479584,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.03330260026268661,
+              "count": 7,
+              "mean_ms": 4.757514323240945,
+              "p50_ms": 1.9376000855118036,
+              "p95_ms": 15.462709963321673,
+              "max_ms": 20.686399890109897,
+              "wall_percent": 1.5211799205837115,
+              "retained_samples": 7
+            },
+            "pipeline.drain": {
+              "total_seconds": 0.001356000080704689,
+              "count": 1,
+              "mean_ms": 1.356000080704689,
+              "p50_ms": 1.356000080704689,
+              "p95_ms": 1.356000080704689,
+              "max_ms": 1.356000080704689,
+              "wall_percent": 0.06193870985470791,
+              "retained_samples": 1
+            },
+            "finalize": {
+              "total_seconds": 0.021058500045910478,
+              "count": 1,
+              "mean_ms": 21.058500045910478,
+              "p50_ms": 21.058500045910478,
+              "p95_ms": 21.058500045910478,
+              "max_ms": 21.058500045910478,
+              "wall_percent": 0.9618998869389167,
+              "retained_samples": 1
+            },
+            "restore": {
+              "total_seconds": 0.6135299000889063,
+              "count": 1,
+              "mean_ms": 613.5299000889063,
+              "p50_ms": 613.5299000889063,
+              "p95_ms": 613.5299000889063,
+              "max_ms": 613.5299000889063,
+              "wall_percent": 28.02451932675854,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.09207240003161132,
+              "count": 1,
+              "mean_ms": 92.07240003161132,
+              "p50_ms": 92.07240003161132,
+              "p95_ms": 92.07240003161132,
+              "max_ms": 92.07240003161132,
+              "wall_percent": 4.205638150272754,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-20260925\\run-2.mp4",
+            "export_path": "script",
+            "fps": 20,
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 4,
+            "prefetch_workers": 4,
+            "dask_cache": "auto",
+            "diagnose": true,
+            "status": "complete",
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "load_seconds": 14.484375100117177,
+      "original_frames": 181,
+      "original_frame_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180
+      ],
+      "napari": "0.8.0",
+      "platform": "Windows-11-10.0.26100-SP0",
+      "directory": "ortho-profile-qt-20260925",
+      "runs": [
+        {
+          "wall_seconds": 11.723423599964008,
+          "first_capture_seconds": 9.196224899962544,
+          "steady_capture_mean_ms": 238.83238326137266,
+          "phases": {
+            "prefetch.schedule": {
+              "total_seconds": 0.0027678997721523046,
+              "count": 7,
+              "mean_ms": 0.3954142531646149,
+              "p50_ms": 0.3380998969078064,
+              "p95_ms": 0.8764700498431917,
+              "max_ms": 1.052600098773837,
+              "wall_percent": 0.023609995395549834,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 1.2800097465515137e-05,
+              "count": 7,
+              "mean_ms": 0.001828585352216448,
+              "p50_ms": 0.001400010660290718,
+              "p95_ms": 0.0030099414288997646,
+              "max_ms": 0.0030999071896076202,
+              "wall_percent": 0.00010918395429773974,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.014457199722528458,
+              "count": 28,
+              "mean_ms": 0.5163285615188735,
+              "p50_ms": 0.33359986264258623,
+              "p95_ms": 1.0587600292637944,
+              "max_ms": 1.2417000252753496,
+              "wall_percent": 0.12331892300277235,
+              "retained_samples": 28
+            },
+            "scene.prepare": {
+              "total_seconds": 0.01801200001500547,
+              "count": 7,
+              "mean_ms": 2.5731428592864956,
+              "p50_ms": 2.5541000068187714,
+              "p95_ms": 2.756140055134892,
+              "max_ms": 2.826400101184845,
+              "wall_percent": 0.15364112591701257,
+              "retained_samples": 7
+            },
+            "diagnostics.environment": {
+              "total_seconds": 0.16215029987506568,
+              "count": 1,
+              "mean_ms": 162.15029987506568,
+              "p50_ms": 162.15029987506568,
+              "p95_ms": 162.15029987506568,
+              "max_ms": 162.15029987506568,
+              "wall_percent": 1.383130947137008,
+              "retained_samples": 1
+            },
+            "writer.open": {
+              "total_seconds": 0.0019814001861959696,
+              "count": 1,
+              "mean_ms": 1.9814001861959696,
+              "p50_ms": 1.9814001861959696,
+              "p95_ms": 1.9814001861959696,
+              "max_ms": 1.9814001861959696,
+              "wall_percent": 0.016901207819549,
+              "retained_samples": 1
+            },
+            "ortho.apply": {
+              "total_seconds": 0.027017300482839346,
+              "count": 28,
+              "mean_ms": 0.9649035886728338,
+              "p50_ms": 0.6590498378500342,
+              "p95_ms": 2.091035060584545,
+              "max_ms": 2.5092000141739845,
+              "wall_percent": 0.23045572185007707,
+              "retained_samples": 28
+            },
+            "scene.apply": {
+              "total_seconds": 0.06095319986343384,
+              "count": 7,
+              "mean_ms": 8.707599980490548,
+              "p50_ms": 8.585999952629209,
+              "p95_ms": 9.39111995976418,
+              "max_ms": 9.61269997060299,
+              "wall_percent": 0.5199266182245685,
+              "retained_samples": 7
+            },
+            "state.apply": {
+              "total_seconds": 0.343901899876073,
+              "count": 7,
+              "mean_ms": 49.128842839439,
+              "p50_ms": 27.106199879199266,
+              "p95_ms": 136.62187990266818,
+              "max_ms": 183.35659988224506,
+              "wall_percent": 2.933459641235934,
+              "retained_samples": 7
+            },
+            "apply": {
+              "total_seconds": 0.344068500213325,
+              "count": 7,
+              "mean_ms": 49.15264288761786,
+              "p50_ms": 27.13030017912388,
+              "p95_ms": 136.64465995971102,
+              "max_ms": 183.37889993563294,
+              "wall_percent": 2.934880730696973,
+              "retained_samples": 7
+            },
+            "state.signature": {
+              "total_seconds": 0.024301700294017792,
+              "count": 14,
+              "mean_ms": 1.735835735286985,
+              "p50_ms": 1.6782500315457582,
+              "p95_ms": 2.1681699785403907,
+              "max_ms": 2.1695999894291162,
+              "wall_percent": 0.20729183831668763,
+              "retained_samples": 14
+            },
+            "data.await_ready": {
+              "total_seconds": 0.019872199976816773,
+              "count": 7,
+              "mean_ms": 2.8388857109738246,
+              "p50_ms": 1.7315999139100313,
+              "p95_ms": 7.211269880644971,
+              "max_ms": 9.547999827191234,
+              "wall_percent": 0.16950850412739316,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 7.400009781122208e-05,
+              "count": 7,
+              "mean_ms": 0.010571442544460297,
+              "p50_ms": 0.009599840268492699,
+              "p95_ms": 0.012960028834640978,
+              "max_ms": 0.013200100511312485,
+              "wall_percent": 0.0006312157637249349,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.01639059977605939,
+              "count": 7,
+              "mean_ms": 2.34151425372277,
+              "p50_ms": 2.07689986564219,
+              "p95_ms": 3.4322499763220535,
+              "max_ms": 3.985299961641431,
+              "wall_percent": 0.13981069297973425,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 10.62921919953078,
+              "count": 7,
+              "mean_ms": 1518.4598856472544,
+              "p50_ms": 141.1671000532806,
+              "p95_ms": 6657.145559927443,
+              "max_ms": 9196.224899962544,
+              "wall_percent": 90.66651144093619,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.022508500376716256,
+              "count": 7,
+              "mean_ms": 3.215500053816608,
+              "p50_ms": 3.1618999782949686,
+              "p95_ms": 3.544740029610693,
+              "max_ms": 3.6677999887615442,
+              "wall_percent": 0.1919959658950254,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 10.675453500123695,
+              "count": 7,
+              "mean_ms": 1525.0647857319564,
+              "p50_ms": 147.376999957487,
+              "p95_ms": 6665.083460020827,
+              "max_ms": 9204.62780003436,
+              "wall_percent": 91.06088685694569,
+              "retained_samples": 7
+            },
+            "writer.queue_wait": {
+              "total_seconds": 10.841621900210157,
+              "count": 8,
+              "mean_ms": 1355.2027375262696,
+              "p50_ms": 168.14325004816055,
+              "p95_ms": 6275.585879932619,
+              "max_ms": 9249.323499854654,
+              "wall_percent": 92.47829192355927,
+              "retained_samples": 8
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.035148099763318896,
+              "count": 7,
+              "mean_ms": 5.021157109045556,
+              "p50_ms": 8.267800090834498,
+              "p95_ms": 8.89795992989093,
+              "max_ms": 9.073399938642979,
+              "wall_percent": 0.29981088257722605,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.026050500106066465,
+              "count": 7,
+              "mean_ms": 3.721500015152352,
+              "p50_ms": 1.231999834999442,
+              "p95_ms": 13.646969967521715,
+              "max_ms": 18.954599974676967,
+              "wall_percent": 0.22220898088290902,
+              "retained_samples": 7
+            },
+            "finalize": {
+              "total_seconds": 0.02065479988232255,
+              "count": 1,
+              "mean_ms": 20.65479988232255,
+              "p50_ms": 20.65479988232255,
+              "p95_ms": 20.65479988232255,
+              "max_ms": 20.65479988232255,
+              "wall_percent": 0.17618402769636304,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.08794389991089702,
+              "count": 1,
+              "mean_ms": 87.94389991089702,
+              "p50_ms": 87.94389991089702,
+              "p95_ms": 87.94389991089702,
+              "max_ms": 87.94389991089702,
+              "wall_percent": 0.7501554401835911,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-qt-20260925\\run-1.mp4",
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 4,
+            "diagnose": true,
+            "export_path": "qt",
+            "status": "complete",
+            "error": null,
+            "expected_frames": 7,
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        },
+        {
+          "wall_seconds": 2.275157399941236,
+          "first_capture_seconds": 0.1512475002091378,
+          "steady_capture_mean_ms": 164.73781666718423,
+          "phases": {
+            "diagnostics.environment": {
+              "total_seconds": 1.8300022929906845e-05,
+              "count": 1,
+              "mean_ms": 0.018300022929906845,
+              "p50_ms": 0.018300022929906845,
+              "p95_ms": 0.018300022929906845,
+              "max_ms": 0.018300022929906845,
+              "wall_percent": 0.0008043409625364605,
+              "retained_samples": 1
+            },
+            "writer.open": {
+              "total_seconds": 0.00016549997963011265,
+              "count": 1,
+              "mean_ms": 0.16549997963011265,
+              "p50_ms": 0.16549997963011265,
+              "p95_ms": 0.16549997963011265,
+              "max_ms": 0.16549997963011265,
+              "wall_percent": 0.007274221099357226,
+              "retained_samples": 1
+            },
+            "prefetch.schedule": {
+              "total_seconds": 0.0028975005261600018,
+              "count": 7,
+              "mean_ms": 0.41392864659428596,
+              "p50_ms": 0.4559000954031944,
+              "p95_ms": 0.8537001209333536,
+              "max_ms": 1.009700121358037,
+              "wall_percent": 0.1273538492868599,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 1.2400094419717789e-05,
+              "count": 7,
+              "mean_ms": 0.0017714420599596842,
+              "p50_ms": 0.001600012183189392,
+              "p95_ms": 0.002509891055524349,
+              "max_ms": 0.0025997869670391083,
+              "wall_percent": 0.000545021387093397,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.021011099684983492,
+              "count": 28,
+              "mean_ms": 0.750396417320839,
+              "p50_ms": 0.49504998605698347,
+              "p95_ms": 1.7107750289142132,
+              "max_ms": 1.845699967816472,
+              "wall_percent": 0.9235009272556782,
+              "retained_samples": 28
+            },
+            "scene.prepare": {
+              "total_seconds": 0.025508200051262975,
+              "count": 7,
+              "mean_ms": 3.6440285787518536,
+              "p50_ms": 3.5743999760597944,
+              "p95_ms": 4.035209980793297,
+              "max_ms": 4.053900018334389,
+              "wall_percent": 1.1211619930964696,
+              "retained_samples": 7
+            },
+            "ortho.apply": {
+              "total_seconds": 0.03593069966882467,
+              "count": 28,
+              "mean_ms": 1.2832392738865954,
+              "p50_ms": 0.8272998966276646,
+              "p95_ms": 2.8025049832649525,
+              "max_ms": 3.328099846839905,
+              "wall_percent": 1.5792621499397235,
+              "retained_samples": 28
+            },
+            "scene.apply": {
+              "total_seconds": 0.06774349976330996,
+              "count": 7,
+              "mean_ms": 9.677642823329993,
+              "p50_ms": 9.53209982253611,
+              "p95_ms": 10.106570017524064,
+              "max_ms": 10.134499985724688,
+              "wall_percent": 2.9775302475802192,
+              "retained_samples": 7
+            },
+            "state.apply": {
+              "total_seconds": 0.2525997997727245,
+              "count": 7,
+              "mean_ms": 36.085685681817786,
+              "p50_ms": 33.659299835562706,
+              "p95_ms": 46.23703996185212,
+              "max_ms": 51.32149998098612,
+              "wall_percent": 11.102519754424412,
+              "retained_samples": 7
+            },
+            "apply": {
+              "total_seconds": 0.25277680018916726,
+              "count": 7,
+              "mean_ms": 36.110971455595326,
+              "p50_ms": 33.68590003810823,
+              "p95_ms": 46.26126014627515,
+              "max_ms": 51.34410015307367,
+              "wall_percent": 11.110299454257369,
+              "retained_samples": 7
+            },
+            "state.signature": {
+              "total_seconds": 0.028642300283536315,
+              "count": 14,
+              "mean_ms": 2.0458785916811655,
+              "p50_ms": 1.9439499592408538,
+              "p95_ms": 2.716450020670891,
+              "max_ms": 2.806799951940775,
+              "wall_percent": 1.2589151099733191,
+              "retained_samples": 14
+            },
+            "data.await_ready": {
+              "total_seconds": 0.017643400002270937,
+              "count": 7,
+              "mean_ms": 2.520485714610134,
+              "p50_ms": 2.524100011214614,
+              "p95_ms": 3.0336499447003002,
+              "max_ms": 3.2005999237298965,
+              "wall_percent": 0.7754804130354516,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 7.100054062902927e-05,
+              "count": 7,
+              "mean_ms": 0.01014293437557561,
+              "p50_ms": 0.00990019179880619,
+              "p95_ms": 0.011720089241862295,
+              "max_ms": 0.012200092896819115,
+              "wall_percent": 0.003120686974486386,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.02518369979225099,
+              "count": 7,
+              "mean_ms": 3.5976713988929987,
+              "p50_ms": 3.192399861291051,
+              "p95_ms": 5.47733998391777,
+              "max_ms": 6.356399971991777,
+              "wall_percent": 1.1068992322421936,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 1.1396744002122432,
+              "count": 7,
+              "mean_ms": 162.81062860174902,
+              "p50_ms": 163.87129994109273,
+              "p95_ms": 170.78748983331025,
+              "max_ms": 170.82909983582795,
+              "wall_percent": 50.09211231898415,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.03013279987499118,
+              "count": 7,
+              "mean_ms": 4.3046856964273115,
+              "p50_ms": 4.401100100949407,
+              "p95_ms": 4.680639877915382,
+              "max_ms": 4.75119985640049,
+              "wall_percent": 1.324427042971597,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 1.2048136999364942,
+              "count": 7,
+              "mean_ms": 172.1162428480706,
+              "p50_ms": 172.74420009925961,
+              "p95_ms": 179.97102993540466,
+              "max_ms": 180.03519997000694,
+              "wall_percent": 52.955180154463726,
+              "retained_samples": 7
+            },
+            "writer.queue_wait": {
+              "total_seconds": 1.4180075998883694,
+              "count": 8,
+              "mean_ms": 177.25094998604618,
+              "p50_ms": 203.8260999834165,
+              "p95_ms": 215.37279493641105,
+              "max_ms": 218.58379989862442,
+              "wall_percent": 62.3256922762792,
+              "retained_samples": 8
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.026153200305998325,
+              "count": 7,
+              "mean_ms": 3.736171472285475,
+              "p50_ms": 3.37980012409389,
+              "p95_ms": 7.9230501316487745,
+              "max_ms": 9.585800115019083,
+              "wall_percent": 1.1495116912207404,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.05860360013321042,
+              "count": 7,
+              "mean_ms": 8.371942876172918,
+              "p50_ms": 6.3732999842613935,
+              "p95_ms": 23.145890072919414,
+              "max_ms": 29.840900097042322,
+              "wall_percent": 2.5758042118195457,
+              "retained_samples": 7
+            },
+            "finalize": {
+              "total_seconds": 0.020852799993008375,
+              "count": 1,
+              "mean_ms": 20.852799993008375,
+              "p50_ms": 20.852799993008375,
+              "p95_ms": 20.852799993008375,
+              "max_ms": 20.852799993008375,
+              "wall_percent": 0.9165431804211425,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.09050150006078184,
+              "count": 1,
+              "mean_ms": 90.50150006078184,
+              "p50_ms": 90.50150006078184,
+              "p95_ms": 90.50150006078184,
+              "max_ms": 90.50150006078184,
+              "wall_percent": 3.9778127026780377,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-qt-20260925\\run-2.mp4",
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 4,
+            "diagnose": true,
+            "export_path": "qt",
+            "status": "complete",
+            "error": null,
+            "expected_frames": 7,
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "load_seconds": 14.38246120000258,
+      "original_frames": 181,
+      "original_frame_indices": [
+        0,
+        30,
+        60,
+        90,
+        120,
+        150,
+        180
+      ],
+      "napari": "0.8.0",
+      "platform": "Windows-11-10.0.26100-SP0",
+      "directory": "ortho-profile-no-prefetch-20260925",
+      "runs": [
+        {
+          "wall_seconds": 10.590416200226173,
+          "first_capture_seconds": 8.271377999801189,
+          "steady_capture_mean_ms": 236.68008328725895,
+          "phases": {
+            "diagnostics.environment": {
+              "total_seconds": 0.022195299854502082,
+              "count": 1,
+              "mean_ms": 22.195299854502082,
+              "p50_ms": 22.195299854502082,
+              "p95_ms": 22.195299854502082,
+              "max_ms": 22.195299854502082,
+              "wall_percent": 0.20957910845872205,
+              "retained_samples": 1
+            },
+            "prefetch.schedule": {
+              "total_seconds": 1.2400094419717789e-05,
+              "count": 7,
+              "mean_ms": 0.0017714420599596842,
+              "p50_ms": 0.001300126314163208,
+              "p95_ms": 0.0033800257369875895,
+              "max_ms": 0.003800028935074806,
+              "wall_percent": 0.00011708788573817305,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 3.1099654734134674e-05,
+              "count": 7,
+              "mean_ms": 0.004442807819162097,
+              "p50_ms": 0.004499917849898338,
+              "p95_ms": 0.006100093014538286,
+              "max_ms": 0.006700167432427406,
+              "wall_percent": 0.00029365847523037385,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.016147698974236846,
+              "count": 32,
+              "mean_ms": 0.5046155929449014,
+              "p50_ms": 0.34149992279708385,
+              "p95_ms": 1.0365799767896533,
+              "max_ms": 1.1574001982808113,
+              "wall_percent": 0.15247463998527264,
+              "retained_samples": 32
+            },
+            "scene.prepare": {
+              "total_seconds": 0.020639199996367097,
+              "count": 8,
+              "mean_ms": 2.579899999545887,
+              "p50_ms": 2.5896000443026423,
+              "p95_ms": 2.759920002426952,
+              "max_ms": 2.8063999488949776,
+              "wall_percent": 0.19488563627864142,
+              "retained_samples": 8
+            },
+            "state.dims": {
+              "total_seconds": 0.03350219991989434,
+              "count": 8,
+              "mean_ms": 4.187774989986792,
+              "p50_ms": 4.407549975439906,
+              "p95_ms": 4.427794995717704,
+              "max_ms": 4.43139998242259,
+              "wall_percent": 0.31634450701926947,
+              "retained_samples": 8
+            },
+            "state.layers": {
+              "total_seconds": 0.5664988995995373,
+              "count": 8,
+              "mean_ms": 70.81236244994216,
+              "p50_ms": 10.107499896548688,
+              "p95_ms": 326.0704199783501,
+              "max_ms": 495.87320000864565,
+              "wall_percent": 5.349165593581099,
+              "retained_samples": 8
+            },
+            "ortho.apply": {
+              "total_seconds": 0.032484199618920684,
+              "count": 36,
+              "mean_ms": 0.9023388783033522,
+              "p50_ms": 0.559349893592298,
+              "p95_ms": 2.0146998576819897,
+              "max_ms": 2.0471999887377024,
+              "wall_percent": 0.30673203965512646,
+              "retained_samples": 36
+            },
+            "scene.apply": {
+              "total_seconds": 0.06273730006068945,
+              "count": 8,
+              "mean_ms": 7.842162507586181,
+              "p50_ms": 8.482499979436398,
+              "p95_ms": 8.845080062747002,
+              "max_ms": 8.961700135841966,
+              "wall_percent": 0.5923969263771673,
+              "retained_samples": 8
+            },
+            "state.camera": {
+              "total_seconds": 0.010018100496381521,
+              "count": 8,
+              "mean_ms": 1.2522625620476902,
+              "p50_ms": 1.1301001068204641,
+              "p95_ms": 1.8472450436092913,
+              "max_ms": 1.914900029078126,
+              "wall_percent": 0.09459590923506454,
+              "retained_samples": 8
+            },
+            "state.apply": {
+              "total_seconds": 0.6939371000044048,
+              "count": 8,
+              "mean_ms": 86.7421375005506,
+              "p50_ms": 27.22365001682192,
+              "p95_ms": 337.78314009541623,
+              "max_ms": 504.6588000841439,
+              "wall_percent": 6.552500741090655,
+              "retained_samples": 8
+            },
+            "apply": {
+              "total_seconds": 0.18942029983736575,
+              "count": 7,
+              "mean_ms": 27.060042833909392,
+              "p50_ms": 27.21549989655614,
+              "p95_ms": 27.78072003275156,
+              "max_ms": 27.893400052562356,
+              "wall_percent": 1.7886010923094828,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 6.770016625523567e-05,
+              "count": 7,
+              "mean_ms": 0.009671452322176524,
+              "p50_ms": 0.009200070053339005,
+              "p95_ms": 0.012010056525468823,
+              "max_ms": 0.01300009898841381,
+              "wall_percent": 0.0006392587880898377,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.01580310007557273,
+              "count": 7,
+              "mean_ms": 2.2575857250818183,
+              "p50_ms": 2.085800049826503,
+              "p95_ms": 2.7950300369411707,
+              "max_ms": 2.8286001179367304,
+              "wall_percent": 0.14922076504637496,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 9.691458499524742,
+              "count": 7,
+              "mean_ms": 1384.4940713606775,
+              "p50_ms": 140.71539998985827,
+              "p95_ms": 6005.473139882082,
+              "max_ms": 8271.377999801189,
+              "wall_percent": 91.51159233305457,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.022309899795800447,
+              "count": 7,
+              "mean_ms": 3.1871285422572067,
+              "p50_ms": 3.194499993696809,
+              "p95_ms": 3.398159984499216,
+              "max_ms": 3.4088999964296818,
+              "wall_percent": 0.21066121835064414,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 9.736011300468817,
+              "count": 7,
+              "mean_ms": 1390.858757209831,
+              "p50_ms": 147.0113000832498,
+              "p95_ms": 6012.520320084872,
+              "max_ms": 8278.41900009662,
+              "wall_percent": 91.93228213505803,
+              "retained_samples": 7
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.0006754000205546618,
+              "count": 7,
+              "mean_ms": 0.09648571722209454,
+              "p50_ms": 0.09899982251226902,
+              "p95_ms": 0.1073600025847554,
+              "max_ms": 0.10910001583397388,
+              "wall_percent": 0.006377464377086877,
+              "retained_samples": 7
+            },
+            "queue.put_wait": {
+              "total_seconds": 0.00011760042980313301,
+              "count": 7,
+              "mean_ms": 0.016800061400447572,
+              "p50_ms": 0.016300007700920105,
+              "p95_ms": 0.019280030392110344,
+              "max_ms": 0.020300038158893585,
+              "wall_percent": 0.0011104420032200576,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.07148610008880496,
+              "count": 7,
+              "mean_ms": 10.212300012686423,
+              "p50_ms": 7.900600088760257,
+              "p95_ms": 22.67477007117121,
+              "max_ms": 28.948400169610977,
+              "wall_percent": 0.6750074665363791,
+              "retained_samples": 7
+            },
+            "pipeline.drain": {
+              "total_seconds": 0.003110900055617094,
+              "count": 1,
+              "mean_ms": 3.110900055617094,
+              "p50_ms": 3.110900055617094,
+              "p95_ms": 3.110900055617094,
+              "max_ms": 3.110900055617094,
+              "wall_percent": 0.029374672315056482,
+              "retained_samples": 1
+            },
+            "finalize": {
+              "total_seconds": 0.020604100078344345,
+              "count": 1,
+              "mean_ms": 20.604100078344345,
+              "p50_ms": 20.604100078344345,
+              "p95_ms": 20.604100078344345,
+              "max_ms": 20.604100078344345,
+              "wall_percent": 0.19455420531918582,
+              "retained_samples": 1
+            },
+            "restore": {
+              "total_seconds": 0.5074919001199305,
+              "count": 1,
+              "mean_ms": 507.4919001199305,
+              "p50_ms": 507.4919001199305,
+              "p95_ms": 507.4919001199305,
+              "max_ms": 507.4919001199305,
+              "wall_percent": 4.791992028689981,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.09155310015194118,
+              "count": 1,
+              "mean_ms": 91.55310015194118,
+              "p50_ms": 91.55310015194118,
+              "p95_ms": 91.55310015194118,
+              "max_ms": 91.55310015194118,
+              "wall_percent": 0.8644901052140513,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-no-prefetch-20260925\\run-1.mp4",
+            "export_path": "script",
+            "fps": 20,
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 0,
+            "prefetch_workers": 4,
+            "dask_cache": "auto",
+            "diagnose": true,
+            "expected_frames": 7,
+            "status": "complete",
+            "output_shape": [
+              480,
+              640,
+              4
+            ],
+            "blank_frames": [
+              4,
+              5
+            ],
+            "sampled_pixel_range": [
+              0.0,
+              1.0
+            ],
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        },
+        {
+          "wall_seconds": 1.9327431998681277,
+          "first_capture_seconds": 0.1467814000789076,
+          "steady_capture_mean_ms": 150.74178335877755,
+          "phases": {
+            "diagnostics.environment": {
+              "total_seconds": 1.5199882909655571e-05,
+              "count": 1,
+              "mean_ms": 0.015199882909655571,
+              "p50_ms": 0.015199882909655571,
+              "p95_ms": 0.015199882909655571,
+              "max_ms": 0.015199882909655571,
+              "wall_percent": 0.0007864408945116283,
+              "retained_samples": 1
+            },
+            "prefetch.schedule": {
+              "total_seconds": 8.400063961744308e-06,
+              "count": 7,
+              "mean_ms": 0.001200009137392044,
+              "p50_ms": 0.001200009137392044,
+              "p95_ms": 0.001400010660290718,
+              "max_ms": 0.001400010660290718,
+              "wall_percent": 0.00043461873063723366,
+              "retained_samples": 7
+            },
+            "interpolate": {
+              "total_seconds": 2.0699575543403625e-05,
+              "count": 7,
+              "mean_ms": 0.0029570822204862323,
+              "p50_ms": 0.0028999056667089462,
+              "p95_ms": 0.0034099444746971126,
+              "max_ms": 0.0034999102354049683,
+              "wall_percent": 0.0010709946124666729,
+              "retained_samples": 7
+            },
+            "ortho.ensure_layer": {
+              "total_seconds": 0.015975200571119785,
+              "count": 32,
+              "mean_ms": 0.4992250178474933,
+              "p50_ms": 0.3237500786781311,
+              "p95_ms": 1.0337749030441046,
+              "max_ms": 1.0712000075727701,
+              "wall_percent": 0.8265557768983373,
+              "retained_samples": 32
+            },
+            "scene.prepare": {
+              "total_seconds": 0.020432199584320188,
+              "count": 8,
+              "mean_ms": 2.5540249480400234,
+              "p50_ms": 2.5457500014454126,
+              "p95_ms": 2.7586199226789176,
+              "max_ms": 2.8379999566823244,
+              "wall_percent": 1.0571605987652313,
+              "retained_samples": 8
+            },
+            "state.dims": {
+              "total_seconds": 0.03369020018726587,
+              "count": 8,
+              "mean_ms": 4.211275023408234,
+              "p50_ms": 4.420600016601384,
+              "p95_ms": 4.479015001561493,
+              "max_ms": 4.487799946218729,
+              "wall_percent": 1.7431286365185286,
+              "retained_samples": 8
+            },
+            "state.layers": {
+              "total_seconds": 0.5750221002381295,
+              "count": 8,
+              "mean_ms": 71.87776252976619,
+              "p50_ms": 11.405800003558397,
+              "p95_ms": 327.8036900795994,
+              "max_ms": 497.87100008688867,
+              "wall_percent": 29.75160384873498,
+              "retained_samples": 8
+            },
+            "ortho.apply": {
+              "total_seconds": 0.033123899484053254,
+              "count": 36,
+              "mean_ms": 0.9201083190014793,
+              "p50_ms": 0.588199938647449,
+              "p95_ms": 2.052374999038875,
+              "max_ms": 2.1132000256329775,
+              "wall_percent": 1.713828277151011,
+              "retained_samples": 36
+            },
+            "scene.apply": {
+              "total_seconds": 0.06598149985074997,
+              "count": 8,
+              "mean_ms": 8.247687481343746,
+              "p50_ms": 8.499899879097939,
+              "p95_ms": 10.679574974346904,
+              "max_ms": 11.606199899688363,
+              "wall_percent": 3.4138782563173384,
+              "retained_samples": 8
+            },
+            "state.camera": {
+              "total_seconds": 0.009982500225305557,
+              "count": 8,
+              "mean_ms": 1.2478125281631947,
+              "p50_ms": 1.100050052627921,
+              "p95_ms": 1.7977400682866573,
+              "max_ms": 1.8081001471728086,
+              "wall_percent": 0.5164938738879883,
+              "retained_samples": 8
+            },
+            "state.apply": {
+              "total_seconds": 0.7056732997298241,
+              "count": 8,
+              "mean_ms": 88.20916246622801,
+              "p50_ms": 28.61924993339926,
+              "p95_ms": 340.1260649668982,
+              "max_ms": 506.77999993786216,
+              "wall_percent": 36.51148790889408,
+              "retained_samples": 8
+            },
+            "apply": {
+              "total_seconds": 0.19903400004841387,
+              "count": 7,
+              "mean_ms": 28.433428578344838,
+              "p50_ms": 28.50160002708435,
+              "p95_ms": 30.240589962340888,
+              "max_ms": 30.64549993723631,
+              "wall_percent": 10.298005449559676,
+              "retained_samples": 7
+            },
+            "capture.slice_wait": {
+              "total_seconds": 6.339955143630505e-05,
+              "count": 7,
+              "mean_ms": 0.009057078776615006,
+              "p50_ms": 0.00909995287656784,
+              "p95_ms": 0.009599840268492699,
+              "max_ms": 0.009599840268492699,
+              "wall_percent": 0.0032802884232437522,
+              "retained_samples": 7
+            },
+            "capture.draw": {
+              "total_seconds": 0.014748499728739262,
+              "count": 7,
+              "mean_ms": 2.1069285326770375,
+              "p50_ms": 2.1009999327361584,
+              "p95_ms": 2.1878699539229274,
+              "max_ms": 2.207699930295348,
+              "wall_percent": 0.7630863598301917,
+              "retained_samples": 7
+            },
+            "capture.framebuffer": {
+              "total_seconds": 1.051232100231573,
+              "count": 7,
+              "mean_ms": 150.17601431879615,
+              "p50_ms": 149.18529987335205,
+              "p95_ms": 154.49843010865152,
+              "max_ms": 154.6595001127571,
+              "wall_percent": 54.3906764387167,
+              "retained_samples": 7
+            },
+            "capture.restore_viewport": {
+              "total_seconds": 0.022135400446131825,
+              "count": 7,
+              "mean_ms": 3.162200063733118,
+              "p50_ms": 3.120700130239129,
+              "p95_ms": 3.3032501116394997,
+              "max_ms": 3.3238001633435488,
+              "wall_percent": 1.1452840940090818,
+              "retained_samples": 7
+            },
+            "screenshot": {
+              "total_seconds": 1.0944629998411983,
+              "count": 7,
+              "mean_ms": 156.3518571201712,
+              "p50_ms": 155.27749992907047,
+              "p95_ms": 160.6541598914191,
+              "max_ms": 160.73629981838167,
+              "wall_percent": 56.62744020601776,
+              "retained_samples": 7
+            },
+            "diagnostics.frame": {
+              "total_seconds": 0.000598100246861577,
+              "count": 7,
+              "mean_ms": 0.08544289240879673,
+              "p50_ms": 0.09070010855793953,
+              "p95_ms": 0.1032000407576561,
+              "max_ms": 0.1058999914675951,
+              "wall_percent": 0.030945665565005522,
+              "retained_samples": 7
+            },
+            "queue.put_wait": {
+              "total_seconds": 0.00012240023352205753,
+              "count": 7,
+              "mean_ms": 0.01748574764600822,
+              "p50_ms": 0.01650000922381878,
+              "p95_ms": 0.022429972887039178,
+              "max_ms": 0.024799956008791924,
+              "wall_percent": 0.006332979649361021,
+              "retained_samples": 7
+            },
+            "encode/write": {
+              "total_seconds": 0.06880700006149709,
+              "count": 7,
+              "mean_ms": 9.829571437356728,
+              "p50_ms": 7.969799917191267,
+              "p95_ms": 22.06512002740054,
+              "max_ms": 28.069799998775125,
+              "wall_percent": 3.5600694425514905,
+              "retained_samples": 7
+            },
+            "pipeline.drain": {
+              "total_seconds": 0.0012858998961746693,
+              "count": 1,
+              "mean_ms": 1.2858998961746693,
+              "p50_ms": 1.2858998961746693,
+              "p95_ms": 1.2858998961746693,
+              "max_ms": 1.2858998961746693,
+              "wall_percent": 0.06653237203278775,
+              "retained_samples": 1
+            },
+            "finalize": {
+              "total_seconds": 0.020833899965509772,
+              "count": 1,
+              "mean_ms": 20.833899965509772,
+              "p50_ms": 20.833899965509772,
+              "p95_ms": 20.833899965509772,
+              "max_ms": 20.833899965509772,
+              "wall_percent": 1.0779445488118278,
+              "retained_samples": 1
+            },
+            "restore": {
+              "total_seconds": 0.5095683000981808,
+              "count": 1,
+              "mean_ms": 509.56830009818077,
+              "p50_ms": 509.56830009818077,
+              "p95_ms": 509.56830009818077,
+              "max_ms": 509.56830009818077,
+              "wall_percent": 26.36502873909731,
+              "retained_samples": 1
+            },
+            "diagnostics.verify": {
+              "total_seconds": 0.0917560001835227,
+              "count": 1,
+              "mean_ms": 91.7560001835227,
+              "p50_ms": 91.7560001835227,
+              "p95_ms": 91.7560001835227,
+              "max_ms": 91.7560001835227,
+              "wall_percent": 4.747449127736332,
+              "retained_samples": 1
+            }
+          },
+          "metadata": {
+            "path": ".performance-audit\\ortho-profile-no-prefetch-20260925\\run-2.mp4",
+            "export_path": "script",
+            "fps": 20,
+            "render_size": [
+              480,
+              640
+            ],
+            "prefetch": 0,
+            "prefetch_workers": 4,
+            "dask_cache": "auto",
+            "diagnose": true,
+            "expected_frames": 7,
+            "status": "complete",
+            "output_shape": [
+              480,
+              640,
+              4
+            ],
+            "blank_frames": [
+              4,
+              5
+            ],
+            "sampled_pixel_range": [
+              0.0,
+              1.0
+            ],
+            "original_frame_indices": [
+              0,
+              30,
+              60,
+              90,
+              120,
+              150,
+              180
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

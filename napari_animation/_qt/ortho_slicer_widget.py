@@ -2,17 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qtpy.QtWidgets import (
-    QComboBox,
-    QFormLayout,
-    QGroupBox,
-    QLabel,
-    QSpinBox,
-)
+from qtpy.QtCore import QTimer
+from qtpy.QtWidgets import QComboBox, QFormLayout, QGroupBox, QLabel, QSpinBox
 
 from ..ortho_slicer import (
     ORTHO_VIEWS,
     PROJECTION_MODES,
+    axis_to_view,
     physical_step,
     view_to_axis,
 )
@@ -33,6 +29,10 @@ class OrthoSlicerWidget(QGroupBox):
     def __init__(self, parent=None):
         super().__init__("Ortho slicer", parent=parent)
         self.animation: Animation = self.parentWidget().animation
+        self._apply_timer = QTimer(self)
+        self._apply_timer.setSingleShot(True)
+        self._apply_timer.setInterval(40)
+        self._apply_timer.timeout.connect(self.animation.apply_working_state)
         self.setCheckable(True)
         self.setChecked(self.animation.ortho_slicer.enabled)
         self.setToolTip(
@@ -75,6 +75,8 @@ class OrthoSlicerWidget(QGroupBox):
         )
 
         layout = QFormLayout()
+        layout.setRowWrapPolicy(QFormLayout.WrapLongRows)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow("View", self.viewComboBox)
         layout.addRow("Thickness (planes)", self.thicknessSpinBox)
         layout.addRow("Section", self.sectionLabel)
@@ -95,7 +97,46 @@ class OrthoSlicerWidget(QGroupBox):
         self.animation.viewer.dims.events.current_step.connect(
             self._on_dims_changed
         )
+        # selecting a frame restores the slicer captured in it
+        self.animation.events.state_applied.connect(
+            self._sync_widgets_from_slicer
+        )
 
+        self._update_enabled_state()
+        self._update_section_label()
+
+    def _sync_widgets_from_slicer(self, event=None):
+        """Show the slicer state restored from the selected frame.
+
+        Otherwise the controls keep their old values, and the next edit here
+        would push all of them back -- e.g. switching off a section that the
+        selected keyframe has switched on.
+        """
+        slicer = self.animation.ortho_slicer
+        view = (
+            axis_to_view(slicer.axis, self.animation.viewer.dims.ndim)
+            if slicer.axis is not None
+            else None
+        )
+        controls = (
+            self,
+            self.viewComboBox,
+            self.thicknessSpinBox,
+            self.modeComboBox,
+            self.projectionComboBox,
+        )
+        for control in controls:
+            control.blockSignals(True)
+        try:
+            self.setChecked(bool(slicer.enabled))
+            self.thicknessSpinBox.setValue(int(round(slicer.thickness)))
+            self.modeComboBox.setCurrentText(slicer.mode)
+            self.projectionComboBox.setCurrentText(slicer.projection_mode)
+            if view is not None:
+                self.viewComboBox.setCurrentText(view)
+        finally:
+            for control in controls:
+                control.blockSignals(False)
         self._update_enabled_state()
         self._update_section_label()
 
@@ -135,10 +176,10 @@ class OrthoSlicerWidget(QGroupBox):
         self._sync_slicer_from_widgets()
         self._update_enabled_state()
         self._update_section_label()
-        self.animation.ortho_slicer.apply(self.animation.viewer)
+        self._apply_timer.start()
 
     def _on_dims_changed(self, event=None):
         """Re-center the optical section when the selected plane changes."""
         self._update_section_label()
         if self.animation.ortho_slicer.enabled:
-            self.animation.ortho_slicer.apply(self.animation.viewer)
+            self._apply_timer.start()

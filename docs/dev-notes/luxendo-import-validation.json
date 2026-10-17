@@ -1,0 +1,53 @@
+{
+  "date": "2026-09-23",
+  "folder": "D:\\081926\\Embryo8b\\processed",
+  "channel_file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+  "name": "ch0 \u2014 561",
+  "scale_zyx_um": [
+    0.7,
+    0.29250002,
+    0.29250002
+  ],
+  "displayed_scale_zyx_um": [
+    0.7,
+    0.2925,
+    0.2925
+  ],
+  "units": [
+    "micrometer",
+    "micrometer",
+    "micrometer"
+  ],
+  "pyramid_shapes": [
+    [
+      487,
+      2048,
+      2049
+    ],
+    [
+      256,
+      1024,
+      1024
+    ],
+    [
+      128,
+      512,
+      512
+    ],
+    [
+      64,
+      256,
+      256
+    ]
+  ],
+  "metadata_prepare_seconds": 0.0055071000242605805,
+  "gui_import_seconds_after_metadata_probe": 0.3926012000301853,
+  "gui_heartbeat_count": 2,
+  "gui_max_heartbeat_gap_seconds": 0.3637274999637157,
+  "skipped": [],
+  "status": "Imported 1 channel(s), with voxel sizes in \u00b5m.",
+  "native_volume_bytes": 4087246848,
+  "parallel_h5_descriptor": true,
+  "repeat_import_status": "Imported 0 channel(s), with voxel sizes in \u00b5m. 1 already loaded.",
+  "repeat_import_seconds": 0.008646300062537193
+}

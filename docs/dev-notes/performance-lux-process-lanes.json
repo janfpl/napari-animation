@@ -1,0 +1,129 @@
+{
+  "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+  "dataset": "Data",
+  "shape": [
+    487,
+    2048,
+    2049
+  ],
+  "chunks": [
+    64,
+    64,
+    64
+  ],
+  "axis": 0,
+  "intervals": [
+    [
+      120,
+      124
+    ],
+    [
+      121,
+      125
+    ]
+  ],
+  "direct": [
+    {
+      "seconds": 0.0989,
+      "shape": [
+        2048,
+        2049
+      ],
+      "sum_uint64": 1013339416
+    },
+    {
+      "seconds": 0.0966,
+      "shape": [
+        2048,
+        2049
+      ],
+      "sum_uint64": 1039217047
+    }
+  ],
+  "process_pools": [
+    {
+      "lanes": 1,
+      "requests": [
+        {
+          "seconds": 0.3278,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1013339416
+        },
+        {
+          "seconds": 0.1099,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1039217047
+        }
+      ]
+    },
+    {
+      "lanes": 2,
+      "requests": [
+        {
+          "seconds": 0.2945,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1013339416
+        },
+        {
+          "seconds": 0.0703,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1039217047
+        }
+      ]
+    },
+    {
+      "lanes": 4,
+      "requests": [
+        {
+          "seconds": 0.2996,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1013339416
+        },
+        {
+          "seconds": 0.0541,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1039217047
+        }
+      ]
+    },
+    {
+      "lanes": 8,
+      "requests": [
+        {
+          "seconds": 0.3432,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1013339416
+        },
+        {
+          "seconds": 0.0548,
+          "shape": [
+            2048,
+            2049
+          ],
+          "sum_uint64": 1039217047
+        }
+      ]
+    }
+  ]
+}

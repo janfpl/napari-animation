@@ -1,0 +1,264 @@
+{
+  "cases": [
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 1/TimePoint 0/Channel 0/Data",
+      "reader_graph": false,
+      "shape": [
+        1024,
+        1024,
+        1024
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "process_lanes": 4,
+      "process_failed": false,
+      "worker_rss_mib": 527.8,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 1.0114,
+          "sum_uint64": 49662669,
+          "qt_heartbeat_max_ms": 10.6
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.1522,
+          "sum_uint64": 49819921,
+          "qt_heartbeat_max_ms": 10.91
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.151,
+          "sum_uint64": 49940023,
+          "qt_heartbeat_max_ms": 10.39
+        }
+      ]
+    },
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
+      "reader_graph": false,
+      "shape": [
+        2048,
+        2112,
+        2048
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "process_lanes": 4,
+      "process_failed": false,
+      "worker_rss_mib": 521.9,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 1.5092,
+          "sum_uint64": 232697631,
+          "qt_heartbeat_max_ms": 10.81
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.6764,
+          "sum_uint64": 232546904,
+          "qt_heartbeat_max_ms": 10.61
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.6756,
+          "sum_uint64": 232118563,
+          "qt_heartbeat_max_ms": 10.53
+        }
+      ]
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\uni_tp-0_ch-0_st-1_obj-left_cam-left_etc.lux.h5",
+      "dataset": "Data",
+      "reader_graph": false,
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "process_lanes": 0,
+      "process_failed": false,
+      "worker_rss_mib": 0.0,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.1006,
+          "sum_uint64": 1013339416,
+          "qt_heartbeat_max_ms": 10.49
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.0998,
+          "sum_uint64": 1039217047,
+          "qt_heartbeat_max_ms": 10.57
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.0983,
+          "sum_uint64": 1033732075,
+          "qt_heartbeat_max_ms": 10.98
+        }
+      ]
+    },
+    {
+      "file": "D:\\081926\\single tile.ims",
+      "dataset": "DataSet/ResolutionLevel 1/TimePoint 0/Channel 0/Data",
+      "reader_graph": true,
+      "shape": [
+        1024,
+        1024,
+        1024
+      ],
+      "chunks": [
+        128,
+        64,
+        64
+      ],
+      "compression": "gzip",
+      "process_lanes": 4,
+      "process_failed": false,
+      "worker_rss_mib": 529.8,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 1.0053,
+          "sum_uint64": 49662669,
+          "qt_heartbeat_max_ms": 10.62
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.1528,
+          "sum_uint64": 49819921,
+          "qt_heartbeat_max_ms": 10.23
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": true,
+          "exact_seconds": 0.1531,
+          "sum_uint64": 49940023,
+          "qt_heartbeat_max_ms": 10.44
+        }
+      ]
+    },
+    {
+      "file": "D:\\081926\\Embryo8b\\processed\\20260526-153600_Task_3_Descrip_my_task\\main_st-1.ims",
+      "dataset": "DataSet/ResolutionLevel 0/TimePoint 0/Channel 0/Data",
+      "reader_graph": true,
+      "shape": [
+        487,
+        2048,
+        2049
+      ],
+      "chunks": [
+        64,
+        64,
+        64
+      ],
+      "compression": null,
+      "process_lanes": 0,
+      "process_failed": false,
+      "worker_rss_mib": 0.0,
+      "workers_after_close": 0,
+      "cases": [
+        {
+          "interval": [
+            120,
+            124
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.1029,
+          "sum_uint64": 1013339416,
+          "qt_heartbeat_max_ms": 10.62
+        },
+        {
+          "interval": [
+            121,
+            125
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.1015,
+          "sum_uint64": 1039217047,
+          "qt_heartbeat_max_ms": 11.36
+        },
+        {
+          "interval": [
+            122,
+            126
+          ],
+          "pool_existed_at_start": false,
+          "exact_seconds": 0.1022,
+          "sum_uint64": 1033732075,
+          "qt_heartbeat_max_ms": 10.17
+        }
+      ]
+    }
+  ]
+}
