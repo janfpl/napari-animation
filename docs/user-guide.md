@@ -173,6 +173,36 @@ replacing one another.
 
 ---
 
+## Preset routines
+
+The **Routines** panel builds a whole animation from a recipe, sized to
+whatever 3D data is loaded, so the same motion can be reused on new data.
+
+- Pick a routine and click **Apply to current data**. This replaces the
+  keyframes and scene objects (you are asked first if there are any).
+- **Ortho clip pans** (built in) adds three orthogonal clip-mode slabs, each
+  10% of the data thick and showing every 3D image layer. First each slab
+  pans end to end on its own, once seen head-on and once while the camera
+  swings from −15° to +15° about the head-on view; the other two slabs stay
+  parked at the centre. Then the slabs pan two at a time (XY+XZ, XZ+YZ,
+  XY+YZ), twice per pair, seen from halfway between the two planes. It is
+  33 keyframes and 1681 frames, 84 s at 20 fps.
+- **Save keyframes as routine…** stores the current keyframes as a routine.
+  Ortho slice positions and thicknesses are saved as fractions of the data
+  extent and the camera as directions plus a zoom relative to the fitted
+  view, so the routine applies to data of any size. Cutaway clip planes are
+  not saved in routines yet. Saved routines are JSON files in your
+  napari-animation data folder (the panel's tooltip shows where) and can be
+  copied to another computer.
+
+From a script:
+
+```python
+from napari_animation.routines import apply_routine, ortho_clip_pan_routine
+
+apply_routine(animation, ortho_clip_pan_routine(pass_frames=40))
+```
+
 ## Things that trip people up
 
 **"I added a plane but the animation doesn't show it."** You did not capture
