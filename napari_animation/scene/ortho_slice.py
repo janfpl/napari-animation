@@ -1527,15 +1527,20 @@ class OrthoSlice(SceneObject):
         normal = world_to_data_normal(source, self.normal)
         half = self.data_thickness(source) / 2.0
 
+        # Both planes carry this section's id as their clip group: the
+        # compositor keeps the union of grouped slabs, so two clip-mode
+        # sections each show their own slab instead of only the overlap.
         yield source.name, [
             {
                 "position": tuple((position - half * normal)[-3:].tolist()),
                 "normal": tuple(normal[-3:].tolist()),
                 "enabled": True,
+                "group": self.id,
             },
             {
                 "position": tuple((position + half * normal)[-3:].tolist()),
                 "normal": tuple((-normal)[-3:].tolist()),
                 "enabled": True,
+                "group": self.id,
             },
         ]

@@ -102,11 +102,28 @@ def scene_contributions(
 def composite_clipping_planes(
     viewer: "napari.viewer.Viewer", contributions: Dict[str, List[dict]]
 ) -> None:
-    """Assign every layer the union of the planes contributed to it."""
+    """Assign every layer the planes contributed to it.
+
+    Ungrouped planes (cutaways) all apply. Planes that share a ``group``
+    form one slab, and a sample is kept when it lies in any slab, so
+    several clip-mode sections show the union of their slabs. The group of
+    each enabled plane is stored on the layer for
+    :mod:`~napari_animation.native_clipping`, which builds the shader.
+    """
     for layer in viewer.layers:
         if not hasattr(layer, "experimental_clipping_planes"):
             continue
-        desired = list(contributions.get(layer.name, []))
+        contributed = contributions.get(layer.name, [])
+        desired = [
+            {key: value for key, value in plane.items() if key != "group"}
+            for plane in contributed
+        ]
+        # Set before assigning: napari rebuilds the shader on assignment.
+        layer._napari_animation_clip_groups = tuple(
+            plane.get("group")
+            for plane in contributed
+            if plane.get("enabled", True)
+        )
         if _planes_differ(layer.experimental_clipping_planes, desired):
             layer.experimental_clipping_planes = desired
 

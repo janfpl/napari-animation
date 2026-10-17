@@ -319,6 +319,27 @@ def test_centre_z_slider_uses_selected_source_extent(scene_widget, animation):
     assert animation.scene[0].position[0] == pytest.approx(upper, abs=0.001)
 
 
+@pytest.mark.parametrize("axis", [1, 2])
+def test_centre_y_and_x_sliders_scroll_the_slice(
+    scene_widget, animation, axis
+):
+    scene_widget.add_ortho_slice()
+    editor = scene_widget.orthoSliceEditor
+    slider = editor.centreSliders[axis]
+    lower, upper = sorted(
+        animation.viewer.layers["img"].extent.world[:, axis - 3]
+    )
+
+    assert slider.isEnabled()
+    slider.setValue(slider.maximum())
+    assert editor.positionBoxes[axis].value() == pytest.approx(
+        upper, abs=0.001
+    )
+    assert animation.scene[0].position[axis] == pytest.approx(upper, abs=0.001)
+    editor.positionBoxes[axis].setValue(lower)
+    assert slider.value() == slider.minimum()
+
+
 def test_projection_reaches_the_layer(scene_widget, animation):
     scene_widget.add_ortho_slice()
     scene_widget.listWidget.setCurrentRow(0)
